@@ -1,8 +1,8 @@
 from typing import Optional
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict
 
 class UserCreate(BaseModel):
-    neu_email: EmailStr
+    neu_email: str
     first_name: str
     last_name: str
     password: str
@@ -24,7 +24,7 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    neu_email: Optional[EmailStr] = None
+    neu_email: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     password: Optional[str] = None

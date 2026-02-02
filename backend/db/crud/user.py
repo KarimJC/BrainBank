@@ -1,6 +1,6 @@
 from psycopg2.extensions import connection as Connection
 from psycopg2.extras import RealDictCursor
-from api.schemas.users import UserCreate, UserUpdate
+from api.schemas.user import UserCreate, UserUpdate
 from core.exceptions import DatabaseException
 import logging
 
@@ -12,7 +12,7 @@ def create_user(user_data: UserCreate, db: Connection) -> dict:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         
         query = """
-            INSERT INTO users (neu_email, first_name, last_name, password, profile_picture)
+            INSERT INTO public.user (neu_email, first_name, last_name, password, profile_picture)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING user_id, neu_email, first_name, last_name, profile_picture
         """
@@ -45,7 +45,7 @@ def get_user_by_id(user_id: int, db: Connection):
         
         query = """
             SELECT user_id, neu_email, first_name, last_name, profile_picture
-            FROM users
+            FROM public.user
             WHERE user_id = %s
         """
         
@@ -91,7 +91,7 @@ def update_user(user_id: int, user_data: UserUpdate, db: Connection) -> dict:
         values.append(user_id)
         
         query = f"""
-            UPDATE users
+            UPDATE public.user
             SET {', '.join(update_fields)}
             WHERE user_id = %s
             RETURNING user_id, neu_email, first_name, last_name, profile_picture
@@ -116,7 +116,7 @@ def delete_user(user_id: int, db: Connection) -> bool:
     try:
         cursor = db.cursor()
         
-        query = "DELETE FROM users WHERE user_id = %s"
+        query = "DELETE FROM public.user WHERE user_id = %s"
         cursor.execute(query, (user_id,))
         
         db.commit()
@@ -137,7 +137,7 @@ def check_email_exists(email: str, db: Connection) -> bool:
     try:
         cursor = db.cursor()
         
-        query = "SELECT EXISTS(SELECT 1 FROM users WHERE neu_email = %s)"
+        query = "SELECT EXISTS(SELECT 1 FROM public.user WHERE neu_email = %s)"
         cursor.execute(query, (email,))
         
         exists = cursor.fetchone()[0]

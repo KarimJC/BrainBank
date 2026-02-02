@@ -11,7 +11,7 @@ from db.crud.user import (
 )
 
 
-from api.schemas.users import UserCreate, UserUpdate, UserResponse, DeleteResponse
+from api.schemas.user import UserCreate, UserUpdate, UserResponse, DeleteResponse
 
 from core.exceptions import UserNotFoundException, UserAlreadyExistsException 
 
@@ -35,7 +35,7 @@ def create_user(user_data: UserCreate, db: Connection = Depends(get_db)):
 
 
 
-@router.get("/users/{user_id}", response_model=UserResponse, status_code=status.HTTP_200_OK) 
+@router.get("/user/{user_id}", response_model=UserResponse, status_code=status.HTTP_200_OK) 
 def get_user(user_id: int, db: Connection = Depends(get_db)):
     user = get_user_by_id(user_id, db)
     if user:
@@ -44,7 +44,7 @@ def get_user(user_id: int, db: Connection = Depends(get_db)):
         raise UserNotFoundException(user_id)
 
 
-@router.patch("/users/{user_id}", response_model= UserResponse, status_code=status.HTTP_200_OK) 
+@router.patch("/user/{user_id}", response_model= UserResponse, status_code=status.HTTP_200_OK) 
 def update_user(user_id: int, updated_user_data: UserUpdate, db: Connection = Depends(get_db)):
     current_user = get_user_by_id(user_id, db)
     if not current_user:
@@ -59,7 +59,7 @@ def update_user(user_id: int, updated_user_data: UserUpdate, db: Connection = De
             return updated_user
      
 
-@router.delete("/users/{user_id}", response_model=DeleteResponse, status_code=status.HTTP_200_OK)
+@router.delete("/user/{user_id}", response_model=DeleteResponse, status_code=status.HTTP_200_OK)
 def delete_user_route(user_id: int, db: Connection = Depends(get_db)) -> DeleteResponse:
     user = get_user_by_id(user_id, db)
     if not user:

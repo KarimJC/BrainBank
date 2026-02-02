@@ -1,4 +1,4 @@
-from api.schemas.users import UserCreate, UserUpdate, UserResponse, DeleteResponse
+from api.schemas.user import UserCreate, UserUpdate, UserResponse, DeleteResponse
 
 __all__ = [
     "UserCreate",
