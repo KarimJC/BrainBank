@@ -1,8 +1,5 @@
-
 from typing import Optional
-from pydantic import BaseModel, EmailStr
-
-#since I needed these for the routers, I made them, feel free to change them up as needed
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 class UserCreate(BaseModel):
     neu_email: EmailStr
@@ -10,6 +7,20 @@ class UserCreate(BaseModel):
     last_name: str
     password: str
     profile_picture: Optional[str] = None
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "neu_email": "elmoucary.a@northeastern.edu",
+                    "first_name": "Angel",
+                    "last_name": "El Moucary",
+                    "password": "password123",
+                    "profile_picture": "https://pfp.com/pfp.jpg"
+                }
+            ]
+        }
+    )
 
 
 class UserUpdate(BaseModel):
@@ -18,6 +29,17 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = None
     password: Optional[str] = None
     profile_picture: Optional[str] = None
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "first_name": "Angel",
+                    "last_name": "El Moucary",
+                }
+            ]
+        }
+    )
 
 
 class UserResponse(BaseModel):
@@ -26,8 +48,20 @@ class UserResponse(BaseModel):
     first_name: str
     last_name: str
     profile_picture: Optional[str]
-
- 
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "user_id": 1,
+                    "neu_email": "elmoucary.a@northeastern.edu",
+                    "first_name": "Angel",
+                    "last_name": "El Moucary",
+                    "profile_picture": "https://pfp.com/pfp.jpg"
+                }
+            ]
+        }
+    )
 
 
 class DeleteResponse(BaseModel):
