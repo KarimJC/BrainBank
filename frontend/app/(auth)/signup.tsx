@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from '@/services/supabase';
 
 const COLORS = {
   darkPurple: '#6B4CE6',
@@ -21,10 +23,50 @@ const COLORS = {
 
 const SignUpScreen: React.FC = () => {
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSignUp = () => {
-    // Navigate to main app (no auth logic)
-    router.replace('/(tabs)');
+  const handleSignUp = async () => {
+    if (!email || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: password,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Sign Up Failed', error.message);
+    } else {
+      Alert.alert(
+        'Success!',
+        'Account created! Please check your email to verify your account.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(auth)/login'),
+          },
+        ]
+      );
+    }
   };
 
   const handleBackToLogin = () => {
@@ -53,6 +95,9 @@ const SignUpScreen: React.FC = () => {
               placeholder="Full Name"
               placeholderTextColor={COLORS.mediumGrey}
               autoCapitalize="words"
+              value={email}
+              onChangeText={setEmail}
+              editable={!loading}
             />
             <TextInput
               style={styles.input}
@@ -66,16 +111,28 @@ const SignUpScreen: React.FC = () => {
               placeholder="Password"
               placeholderTextColor={COLORS.mediumGrey}
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              editable={!loading}
             />
             <TextInput
               style={styles.input}
               placeholder="Confirm Password"
               placeholderTextColor={COLORS.mediumGrey}
               secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              editable={!loading}
             />
 
-            <TouchableOpacity style={styles.primaryButton} onPress={handleSignUp}>
-              <Text style={styles.primaryButtonText}>Create Account</Text>
+            <TouchableOpacity 
+              style={[styles.primaryButton, loading && styles.buttonDisabled]} 
+              onPress={handleSignUp}
+              disabled={loading}
+            >
+              <Text style={styles.primaryButtonText}>
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </Text>
             </TouchableOpacity>
 
             <View style={styles.loginPrompt}>
@@ -148,6 +205,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 24,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   primaryButtonText: {
     color: COLORS.white,
