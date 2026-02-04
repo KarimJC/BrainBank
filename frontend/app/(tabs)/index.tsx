@@ -1,15 +1,75 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
+import Svg, { Path } from 'react-native-svg';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+
+// Bookmark Icon component with toggle
+interface BookmarkIconProps {
+  filled: boolean;
+  onPress: () => void;
+}
+
+const BookmarkIcon: React.FC<BookmarkIconProps> = ({ filled, onPress }) => (
+  <TouchableOpacity onPress={onPress} style={styles.bookmarkTouchable}>
+    <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M5 5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V21L12 17.5L5 21V5Z"
+        fill={filled ? '#000' : 'none'}
+        stroke="#000"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </TouchableOpacity>
+);
+
+// ClassCard component
+interface ClassCardProps {
+  classData: {
+    id: string;
+    code: string;
+    description: string;
+    bookmarked: boolean;
+  };
+  onPress: () => void;
+  onBookmarkPress: (id: string) => void;
+}
+
+const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPress }) => (
+  <View style={styles.card}>
+    <View style={styles.cardHeader}>
+      <Text style={styles.classCode}>{classData.code}</Text>
+      <BookmarkIcon 
+        filled={classData.bookmarked}
+        onPress={() => onBookmarkPress(classData.id)}
+      />
+    </View>
+    <Text style={styles.classDescription}>{classData.description}</Text>
+    <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
+      <IconSymbol 
+        name="folder" 
+        size={20} 
+        color="#FFFFFF" 
+      />
+      <Text style={styles.viewNotesText}>View All Notes</Text>
+    </TouchableOpacity>
+  </View>
+);
 
 export default function HomeScreen() {
   const router = useRouter();
 
+  // Mock class data with bookmark state
+  const [classes, setClasses] = useState([
+    { id: '1', code: 'CS 2510', description: 'This is a short description of the class.', bookmarked: true },
+    { id: '2', code: 'MATH 1201', description: 'This is a short description of the class.', bookmarked: true },
+  ]);
+
   const handleNavigation = (route: string) => {
     console.log(`Navigating to: ${route}`);
-    
-    // Handle navigation based on route
     if (route === 'home') {
       router.push('/(tabs)');
     } else if (route === 'notes') {
@@ -19,23 +79,27 @@ export default function HomeScreen() {
     } else if (route === 'profile') {
       router.push('/(tabs)/profile');
     } else if (route === 'add-class') {
-      // Handle add class action
       console.log('Add class clicked');
     } else if (route === 'upload-notes') {
-      // Handle upload notes action
       console.log('Upload notes clicked');
     } else if (route === 'generate-document') {
-      // Handle generate document action
       console.log('Generate document clicked');
     }
   };
 
-  // Mock class data
-  const classes = [
-    { id: '1', code: 'CS 2510', description: 'This is a short description of the class.' },
-    { id: '2', code: 'MATH 1201', description: 'This is a short description of the class.' },
-    { id: '3', code: 'ENVR 1400', description: 'This is a short description of the class.' },
-  ];
+  const handleViewNotes = (classId: string) => {
+    console.log(`Viewing notes for class: ${classId}`);
+  };
+
+  const handleBookmarkToggle = (classId: string) => {
+    setClasses(prevClasses => 
+      prevClasses.map(cls => 
+        cls.id === classId 
+          ? { ...cls, bookmarked: !cls.bookmarked }
+          : cls
+      )
+    );
+  };
 
   return (
     <AppLayout 
@@ -48,6 +112,15 @@ export default function HomeScreen() {
           <Text style={styles.welcome}>
             Welcome, <Text style={styles.userName}>User!</Text>
           </Text>
+
+          {classes.map((classData) => (
+            <ClassCard 
+              key={classData.id} 
+              classData={classData}
+              onPress={() => handleViewNotes(classData.id)}
+              onBookmarkPress={handleBookmarkToggle}
+            />
+          ))}
         </View>
       </ScrollView>
     </AppLayout>
@@ -59,12 +132,54 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   welcome: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '600',
     color: '#000',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   userName: {
-    color: '#6B4CE6',
+    color: '#6B5BC7',
+  },
+  card: {
+    backgroundColor: '#E8E5F5',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  classCode: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#000',
+  },
+  bookmarkTouchable: {
+    padding: 4,
+  },
+  classDescription: {
+    fontSize: 15,
+    color: '#666666',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  viewNotesButton: {
+    backgroundColor: '#6B5BC7',
+    borderRadius: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+  },
+  viewNotesText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });
