@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,15 @@ const SignUpScreen: React.FC = () => {
       return;
     }
 
+    // Check for @northeastern.edu email
+    if (!email.toLowerCase().trim().endsWith('@northeastern.edu')) {
+      Alert.alert(
+        'Invalid Email', 
+        'Please use your Northeastern University email address (@northeastern.edu)'
+      );
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
@@ -47,7 +56,7 @@ const SignUpScreen: React.FC = () => {
     setLoading(true);
 
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password: password,
     });
 
@@ -70,7 +79,6 @@ const SignUpScreen: React.FC = () => {
   };
 
   const handleBackToLogin = () => {
-    // Navigate back to login
     router.back();
   };
 
@@ -86,29 +94,23 @@ const SignUpScreen: React.FC = () => {
               <Text style={styles.titlePurple}>Brain</Text>
               <Text style={styles.titleBlack}>Bank</Text>
             </Text>
-            <Text style={styles.subtitle}>Create Your Account</Text>
+            <Text style={styles.subtitle}>NEU Students Only</Text>
           </View>
 
           <View style={styles.formContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Full Name"
+              placeholder="NEU Email (@northeastern.edu)"
               placeholderTextColor={COLORS.mediumGrey}
-              autoCapitalize="words"
+              keyboardType="email-address"
+              autoCapitalize="none"
               value={email}
               onChangeText={setEmail}
               editable={!loading}
             />
             <TextInput
               style={styles.input}
-              placeholder="Email"
-              placeholderTextColor={COLORS.mediumGrey}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
+              placeholder="Password (min 6 characters)"
               placeholderTextColor={COLORS.mediumGrey}
               secureTextEntry
               value={password}

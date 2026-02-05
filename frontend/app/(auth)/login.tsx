@@ -27,18 +27,8 @@ const LoginScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-
-  console.log('Supabase URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
-  console.log('Supabase Key exists:', !!process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
-
-
-  // handle login logic
   const handleLogin = async () => {
-
-    console.log('This should trigger')
-    
-    if (email == '' || password == '') {
-      console.log('soidufhodsi');
+    if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password');
       return;
     }
@@ -46,7 +36,7 @@ const LoginScreen: React.FC = () => {
     setLoading(true);
     
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password: password,
     });
 
@@ -55,13 +45,12 @@ const LoginScreen: React.FC = () => {
     if (error) {
       Alert.alert('Login Failed', error.message);
     } else {
-      router.replace('/(tabs)'); // routes to this page
+      router.replace('/(tabs)');
     }
   };
 
-  // handle signup logic
   const handleSignUp = () => {
-    router.push('/(auth)/signup'); // routes you to signup page
+    router.push('/(auth)/signup');
   };
 
   return (
@@ -81,7 +70,7 @@ const LoginScreen: React.FC = () => {
         <View style={styles.formContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="NEU Email"
             placeholderTextColor={COLORS.mediumGrey}
             keyboardType="email-address"
             autoCapitalize="none"
@@ -91,7 +80,7 @@ const LoginScreen: React.FC = () => {
           />
           <TextInput
             style={styles.input}
-            placeholder="sota"
+            placeholder="Password"
             placeholderTextColor={COLORS.mediumGrey}
             secureTextEntry
             value={password}

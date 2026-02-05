@@ -2,8 +2,9 @@
 // app/index.tsx - Splash Screen with Vault Animation + Login
 // ==========================================
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from '@/services/supabase';
 import Svg, {
   Circle,
   Line,
@@ -303,94 +304,65 @@ const SplashScreen = () => {
   const bottomHalf = useRef(new Animated.Value(0)).current;
   const fadeOut = useRef(new Animated.Value(1)).current;
 
-  const handleLogin = () => {
-    router.replace('/(tabs)');
-  };
-
-  const handleSignUp = () => {
-    router.push('/(auth)/signup');
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // Start spinning animation
-      Animated.timing(rotation, {
-        toValue: 1,
-        duration: 1500,
-        useNativeDriver: true,
-      }).start(() => {
-        // Then open the doors
-        Animated.parallel([
-          Animated.timing(topHalf, {
-            toValue: -height / 2,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(bottomHalf, {
-            toValue: height / 2,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(fadeOut, {
-            toValue: 0,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      });
-    }, 500);
-
-    return () => clearTimeout(timer);
+  useEffect(() =>{ 
+    checkAuth(); 
   }, []);
 
+  // Idea is that since we already have the spinning animation, while that animation's playing 
+  // we can route the user to either the home page if alrdy authenticated or the homepage 
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    setTimeout(() => {
+      playAnimation(session);
+    }, 500);
+  };
+
+  const playAnimation = (session: any) => {
+    // Start spinning animation
+    Animated.timing(rotation, {
+      toValue: 1,
+      duration: 1500,
+      useNativeDriver: true,
+    }).start(() => {
+      // Then open the doors
+      Animated.parallel([
+        Animated.timing(topHalf, {
+          toValue: -height / 2,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bottomHalf, {
+          toValue: height / 2,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeOut, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        // After animation, route based on session
+        if (session) {
+          router.replace('/(tabs)');
+        } else {
+          router.replace('/(auth)/login');
+        }
+      });
+    });
+  };
+
+
   return (
-    <View style={styles.outerContainer}>
-      {/* Login page - always rendered behind vault */}
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View style={styles.content}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.title}>
-              <Text style={styles.titleBlack}>Brain</Text>
-              <Text style={styles.titlePurple}>Bank</Text>
-            </Text>
-            <Text style={styles.subtitle}>Deposit Notes, Withdraw A's</Text>
-          </View>
-
-          <View style={styles.formContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor={COLORS.mediumGrey}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={COLORS.mediumGrey}
-              secureTextEntry
-            />
-
-            <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
-              <Text style={styles.primaryButtonText}>Log In</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            <View style={styles.signupPrompt}>
-              <Text style={styles.signupPromptText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={handleSignUp}>
-                <Text style={styles.signupLink}>Sign Up</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
+    <View style={styles.container}>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.title}>
+          <Text style={styles.titleBlack}>Brain</Text>
+          <Text style={styles.titlePurple}>Bank</Text>
+        </Text>
+        <ActivityIndicator size="small" color={COLORS.darkPurple} style={{ marginTop: 20 }} />
+      </View>
 
       {/* Top half overlay that slides up */}
       <Animated.View
@@ -428,28 +400,18 @@ const SplashScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-  },
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
-  },
-  content: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
   },
-  logoContainer: {
+  loadingContainer: {
     alignItems: 'center',
-    marginBottom: 48,
   },
   title: {
     fontSize: 42,
     fontWeight: '800',
-    marginBottom: 12,
     letterSpacing: -1,
   },
   titlePurple: {
@@ -457,86 +419,6 @@ const styles = StyleSheet.create({
   },
   titleBlack: {
     color: COLORS.black,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: COLORS.mediumGrey,
-    fontStyle: 'italic',
-    letterSpacing: 0.5,
-  },
-  formContainer: {
-    width: '100%',
-    maxWidth: 340,
-  },
-  input: {
-    backgroundColor: COLORS.lightGrey,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 16,
-    color: COLORS.black,
-    marginBottom: 16,
-  },
-  primaryButton: {
-    backgroundColor: COLORS.darkPurple,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  primaryButtonText: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  forgotPassword: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    color: COLORS.darkPurple,
-    fontSize: 14,
-  },
-  signupPrompt: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  signupPromptText: {
-    fontSize: 14,
-    color: COLORS.mediumGrey,
-  },
-  signupLink: {
-    fontSize: 14,
-    color: COLORS.darkPurple,
-    fontWeight: '600',
-  },
-  topTitle: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    zIndex: 100,
-  },
-  topTitleText: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  topTitlePurple: {
-    color: COLORS.darkPurple,
-  },
-  topTitleBlack: {
-    color: COLORS.black,
-  },
-  vaultContainer: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    marginLeft: -160,
-    marginTop: -160,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 50,
   },
   vaultHalf: {
     position: 'absolute',
