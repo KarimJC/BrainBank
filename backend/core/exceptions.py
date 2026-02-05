@@ -26,3 +26,11 @@ class DatabaseException(HTTPException):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=detail
         )
+
+
+class CourseNotFoundException(HTTPException):
+    def __init__(self, course_id: int):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course with id {course_id} not found"
+        )

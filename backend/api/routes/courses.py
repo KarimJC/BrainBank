@@ -1,85 +1,84 @@
-from fastapi import FastAPI, APIRouter, status, HTTPException, Depends, Query
-from api.routes import api_router
+from fastapi import HTTPException, status, APIRouter, Depends, Query
+from psycopg2.extensions import connection as Connection
 from typing import Optional
-import asyncpg
+
+from db.crud.course import (
+    create_course as create_course_crud,
+    get_course_by_id,
+    get_all_courses as get_all_courses_crud,
+    update_course as update_course_crud,
+    delete_course as delete_course_crud
+)
+
+from api.schemas.courses import (
+    CourseCreate,
+    CourseUpdate,
+    CourseResponse,
+    CourseList,
+    CourseDeleteResponse
+)
+
+from core.exceptions import CourseNotFoundException
+
+from db.connection import get_db
+
 
 router = APIRouter()
 
-@router.post("/courses", status_code=status.HTTP_201_CREATED, tags=["Courses"])
-async def create_course(
-    course_data: dict,
 
-    # Need to make a function to get the db lol
-    db: asyncpg.Connection = Depends(get_db)
-):
+@router.post("/courses", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
+def create_course(course_data: CourseCreate, db: Connection = Depends(get_db)):
     """Create a new course"""
-    try:
-        # Insert into database
-        query = """
-        INSERT INTO courses (name, code, subject, description, credits)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING course_id, name, code, subject, description, credits, created_at
-        """
-        result = await db.fetchrow(
-            query,
-            course_data.get("name"),
-            course_data.get("code"),
-            course_data.get("subject"),
-            course_data.get("description"),
-            course_data.get("credits")
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating course: {str(e)}"
-        )
-    
+    course = create_course_crud(course_data, db)
+    return course
 
-@router.get("/courses", status_code=status.HTTP_200_OK, tags=["Courses"])
-async def get_courses(
-    db: asyncpg.Connection = Depends(get_db),
-    subject: Optional[str] = Query(None, description="Filter by subject"),
-    search: Optional[str] = Query(None, description="Search in name, code, or subject")
-    ):
-    try:
-        # Build dynamic query based on filters
-        conditions = []
-        params = []
-        param_count = 1
-        
-        if subject:
-            conditions.append(f"subject = ${param_count}")
-            params.append(subject)
-            param_count += 1
-        
-        if search:
-            conditions.append(f"(name ILIKE ${param_count} OR code ILIKE ${param_count} OR subject ILIKE ${param_count})")
-            params.append(f"%{search}%")
-            param_count += 1
-        
-        where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-        
-        
-        query = f"""
-            SELECT *
-            FROM courses
-            {where_clause}
-            ORDER BY created_at DESC
-            LIMIT ${param_count} OFFSET ${param_count + 1}
-        """
-        
-        results = await db.fetch(query, *params)
-        
-        courses = [dict(row) for row in results]
-        
-        return {
-            "courses": courses
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving courses: {str(e)}"
-        )
 
+@router.get("/courses/{course_id}", response_model=CourseResponse, status_code=status.HTTP_200_OK)
+def get_course(course_id: int, db: Connection = Depends(get_db)):
+    """Get a course by ID"""
+    course = get_course_by_id(course_id, db)
+    if course:
+        return course
+    else:
+        raise CourseNotFoundException(course_id)
+
+
+@router.get("/courses", response_model=CourseList, status_code=status.HTTP_200_OK)
+def get_courses(
+    db: Connection = Depends(get_db),
+    subject: Optional[str] = Query(None, description="Filter courses by subject")
+):
+    """Get all courses, optionally filtered by subject"""
+    courses = get_all_courses_crud(db, subject=subject)
+    return CourseList(courses=courses)
+
+
+@router.put("/courses/{course_id}", response_model=CourseResponse, status_code=status.HTTP_200_OK)
+def update_course(
+    course_id: int,
+    course_data: CourseUpdate,
+    db: Connection = Depends(get_db)
+):
+    """Update a course by ID"""
+    # Check if course exists
+    existing_course = get_course_by_id(course_id, db)
+    if not existing_course:
+        raise CourseNotFoundException(course_id)
     
+    updated_course = update_course_crud(course_id, course_data, db)
+    return updated_course
+
+
+@router.delete("/courses/{course_id}", response_model=CourseDeleteResponse, status_code=status.HTTP_200_OK)
+def delete_course(course_id: int, db: Connection = Depends(get_db)):
+    """Delete a course by ID"""
+    # Check if course exists
+    existing_course = get_course_by_id(course_id, db)
+    if not existing_course:
+        raise CourseNotFoundException(course_id)
+    
+    delete_course_crud(course_id, db)
+    return CourseDeleteResponse(
+        message=f"Successfully deleted course {course_id}",
+        deleted_id=course_id
+    )
