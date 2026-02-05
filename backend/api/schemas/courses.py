@@ -1,85 +1,113 @@
-from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict
+
 
 class CourseCreate(BaseModel):
-    course_title: str
-    course_code: int
-    course_CRN: int
-    professor_id: int
+    """Schema for creating a new course"""
+    name: str
+    code: str
+    subject: str
+    description: Optional[str] = None
+    credits: int
 
-    model_config = {
-    "json_schema_extra": { #not sure if this is correct
-        "example": {
-            "course_title": "Intro to Algorithms",
-            "course_code": 3000, #might need to change to str 
-            "course_CRN": 12345,
-            "professor_id": 7 # what is a professor id?
-        }
-    }
-}
-
-class courseUpdate(BaseModel):
-    course_title: str | None = None
-    course_code: int | None = None
-    course_CRN: int | None = None
-    professor_id: int | None = None
-
-    model_config = {
-    "json_schema_extra": {
-        "example": {
-            "course_title": "Advanced Algorithms",
-            "course_code": 4000,
-            "course_CRN": 54321,
-            "professor_id": 8
-        }
-    }
-}
-
-class courseResponse(BaseModel):
-    course_id: int
-    course_title: str
-    course_code: int
-    course_CRN: int
-    professor_id: int
-
-    model_config = {
-    "json_schema_extra": {
-        "example": {
-            "course_id": 1,
-            "course_title": "Intro to Algorithms",
-            "course_code": 3000,
-            "course_CRN": 12345,
-            "professor_id": 7
-        }
-    }
-}
-    
-class courseList(BaseModel):
-    courses: list[courseResponse]
-
-    model_config = {
-    "json_schema_extra": {
-        "example": {
-            "courses": [
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
                 {
-                    "course_id": 1,
-                    "course_title": "Intro to Algorithms",
-                    "course_code": 3000,
-                    "course_CRN": 12345,
-                    "professor_id": 7
-                },
-                {
-                    "course_id": 2,
-                    "course_title": "Data Structures",
-                    "course_code": 2000,
-                    "course_CRN": 67890,
-                    "professor_id": 8
+                    "name": "Intro to Algorithms",
+                    "code": "CS3000",
+                    "subject": "CS",
+                    "description": "Introduction to algorithm design and analysis",
+                    "credits": 4
                 }
             ]
         }
-    }
-}
-    
+    )
 
 
+class CourseUpdate(BaseModel):
+    """Schema for updating an existing course - all fields optional"""
+    name: Optional[str] = None
+    code: Optional[str] = None
+    subject: Optional[str] = None
+    description: Optional[str] = None
+    credits: Optional[int] = None
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "name": "Advanced Algorithms",
+                    "credits": 4
+                }
+            ]
+        }
+    )
 
 
+class CourseResponse(BaseModel):
+    """Schema for course response"""
+    course_id: int
+    name: str
+    code: str
+    subject: str
+    description: Optional[str]
+    credits: int
+    created_at: datetime
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "course_id": 1,
+                    "name": "Intro to Algorithms",
+                    "code": "CS3000",
+                    "subject": "CS",
+                    "description": "Introduction to algorithm design and analysis",
+                    "credits": 4,
+                    "created_at": "2024-01-15T10:30:00"
+                }
+            ]
+        }
+    )
+
+
+class CourseList(BaseModel):
+    """Schema for list of courses"""
+    courses: list[CourseResponse]
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "courses": [
+                        {
+                            "course_id": 1,
+                            "name": "Intro to Algorithms",
+                            "code": "CS3000",
+                            "subject": "CS",
+                            "description": "Introduction to algorithm design and analysis",
+                            "credits": 4,
+                            "created_at": "2024-01-15T10:30:00"
+                        },
+                        {
+                            "course_id": 2,
+                            "name": "Data Structures",
+                            "code": "CS2500",
+                            "subject": "CS",
+                            "description": "Fundamental data structures",
+                            "credits": 4,
+                            "created_at": "2024-01-15T11:00:00"
+                        }
+                    ]
+                }
+            ]
+        }
+    )
+
+
+class CourseDeleteResponse(BaseModel):
+    """Schema for delete confirmation"""
+    message: str
+    deleted_id: int
