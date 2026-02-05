@@ -9,7 +9,6 @@ class CourseCreate(BaseModel):
     code: str
     subject: str
     description: Optional[str] = None
-    credits: int
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -19,7 +18,6 @@ class CourseCreate(BaseModel):
                     "code": "CS3000",
                     "subject": "CS",
                     "description": "Introduction to algorithm design and analysis",
-                    "credits": 4
                 }
             ]
         }
@@ -32,14 +30,12 @@ class CourseUpdate(BaseModel):
     code: Optional[str] = None
     subject: Optional[str] = None
     description: Optional[str] = None
-    credits: Optional[int] = None
 
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
                     "name": "Advanced Algorithms",
-                    "credits": 4
                 }
             ]
         }
@@ -53,7 +49,6 @@ class CourseResponse(BaseModel):
     code: str
     subject: str
     description: Optional[str]
-    credits: int
     created_at: datetime
 
     model_config = ConfigDict(
@@ -65,7 +60,6 @@ class CourseResponse(BaseModel):
                     "code": "CS3000",
                     "subject": "CS",
                     "description": "Introduction to algorithm design and analysis",
-                    "credits": 4,
                     "created_at": "2024-01-15T10:30:00"
                 }
             ]
@@ -87,8 +81,7 @@ class CourseList(BaseModel):
                             "name": "Intro to Algorithms",
                             "code": "CS3000",
                             "subject": "CS",
-                            "description": "Introduction to algorithm design and analysis",
-                            "credits": 4,
+                            "description": "Introduction to algorithm design and analysis",                            "credits": 4,
                             "created_at": "2024-01-15T10:30:00"
                         },
                         {
@@ -97,7 +90,6 @@ class CourseList(BaseModel):
                             "code": "CS2500",
                             "subject": "CS",
                             "description": "Fundamental data structures",
-                            "credits": 4,
                             "created_at": "2024-01-15T11:00:00"
                         }
                     ]
