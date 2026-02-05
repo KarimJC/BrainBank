@@ -1,11 +1,5 @@
 from fastapi import APIRouter
+from api.routes.user import router as user_router
 
 api_router = APIRouter()
-
-# Example:
-# api_router.include_router(
-#     groups_router,
-#     prefix="/groups",
-#     tags=["Groups"]
-# )
-
+api_router.include_router(user_router, tags=["user"])
