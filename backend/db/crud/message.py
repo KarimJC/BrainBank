@@ -1,6 +1,6 @@
 from psycopg2.extensions import connection as Connection
 from psycopg2.extras import RealDictCursor
-from backend.api.schemas.message import MessageCreate, MessageUpdate
+from api.schemas.message import MessageCreate, MessageUpdate
 from core.exceptions import DatabaseException
 import logging
 
