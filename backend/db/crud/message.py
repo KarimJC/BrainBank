@@ -6,9 +6,32 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def check_user_exists(user_id: int, db: Connection) -> bool:
+    """Check if a user exists in the database"""
+    try:
+        cursor = db.cursor()
+        query = "SELECT EXISTS(SELECT 1 FROM user WHERE user_id = %s)"
+        cursor.execute(query, (user_id,))
+        exists = cursor.fetchone()[0]
+        cursor.close()
+        return exists
+    except Exception as e:
+        logger.error(f"Failed to check if user {user_id} exists: {str(e)}")
+        raise DatabaseException(f"Failed to check user: {str(e)}")
+
 def create_message(message_data: MessageCreate, db: Connection) -> dict:
     """Create a new message in the database"""
     try:
+        # To check if the sender exists
+        if not check_user_exists(message_data.sender_id, db):
+            from core.exceptions import UserNotFoundException
+            raise UserNotFoundException(message_data.sender_id)
+        
+        # To check if the receiver exists
+        if not check_user_exists(message_data.receiver_id, db):
+            from core.exceptions import UserNotFoundException
+            raise UserNotFoundException(message_data.receiver_id)
+        
         cursor = db.cursor(cursor_factory=RealDictCursor)
         
         query = """
