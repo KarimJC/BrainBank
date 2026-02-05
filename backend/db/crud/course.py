@@ -14,24 +14,24 @@ def create_course(course_data: CourseCreate, db: Connection) -> dict:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         
         query = """
-            INSERT INTO courses (name, code, subject, description, credits)
+            INSERT INTO courses (course_title, course_code, course_CRN, professor_id, subject)
             VALUES (%s, %s, %s, %s, %s)
-            RETURNING course_id, name, code, subject, description, credits, created_at
+            RETURNING course_id, course_title, course_code, course_CRN, professor_id, subject
         """
         
         cursor.execute(query, (
-            course_data.name,
-            course_data.code,
-            course_data.subject,
-            course_data.description,
-            course_data.credits
+            course_data.course_title,
+            course_data.course_code,
+            course_data.course_CRN,
+            course_data.professor_id,
+            course_data.subject
         ))
         
         result = cursor.fetchone()
         db.commit()
         cursor.close()
         
-        logger.info(f"Created course: {course_data.name} ({course_data.code})")
+        logger.info(f"Created course: {course_data.course_title} ({course_data.course_code})")
         return dict(result)
         
     except Exception as e:
@@ -46,7 +46,7 @@ def get_course_by_id(course_id: int, db: Connection) -> Optional[dict]:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         
         query = """
-            SELECT course_id, name, code, subject, description, credits, created_at
+            SELECT course_id, course_title, course_code, course_CRN, professor_id, subject
             FROM courses
             WHERE course_id = %s
         """
@@ -69,17 +69,15 @@ def get_all_courses(db: Connection, subject: Optional[str] = None) -> list[dict]
         
         if subject:
             query = """
-                SELECT course_id, name, code, subject, description, credits, created_at
+                SELECT course_id, course_title, course_code, course_CRN, professor_id, subject
                 FROM courses
                 WHERE subject = %s
-                ORDER BY created_at DESC
             """
             cursor.execute(query, (subject,))
         else:
             query = """
-                SELECT course_id, name, code, subject, description, credits, created_at
+                SELECT course_id, course_title, course_code, course_CRN, professor_id, subject
                 FROM courses
-                ORDER BY created_at DESC
             """
             cursor.execute(query)
         
@@ -101,25 +99,25 @@ def update_course(course_id: int, course_data: CourseUpdate, db: Connection) -> 
         update_fields = []
         values = []
         
-        if course_data.name is not None:
-            update_fields.append("name = %s")
-            values.append(course_data.name)
+        if course_data.course_title is not None:
+            update_fields.append("course_title = %s")
+            values.append(course_data.course_title)
         
-        if course_data.code is not None:
-            update_fields.append("code = %s")
-            values.append(course_data.code)
+        if course_data.course_code is not None:
+            update_fields.append("course_code = %s")
+            values.append(course_data.course_code)
+        
+        if course_data.course_CRN is not None:
+            update_fields.append("course_CRN = %s")
+            values.append(course_data.course_CRN)
+        
+        if course_data.professor_id is not None:
+            update_fields.append("professor_id = %s")
+            values.append(course_data.professor_id)
         
         if course_data.subject is not None:
             update_fields.append("subject = %s")
             values.append(course_data.subject)
-        
-        if course_data.description is not None:
-            update_fields.append("description = %s")
-            values.append(course_data.description)
-        
-        if course_data.credits is not None:
-            update_fields.append("credits = %s")
-            values.append(course_data.credits)
         
         if not update_fields:
             # No fields to update, return current course
@@ -131,7 +129,7 @@ def update_course(course_id: int, course_data: CourseUpdate, db: Connection) -> 
             UPDATE courses
             SET {', '.join(update_fields)}
             WHERE course_id = %s
-            RETURNING course_id, name, code, subject, description, credits, created_at
+            RETURNING course_id, course_title, course_code, course_CRN, professor_id, subject
         """
         
         cursor.execute(query, values)
