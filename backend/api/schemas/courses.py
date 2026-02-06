@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional
 
 class CourseCreate(BaseModel):
     """Schema for creating a new course"""
@@ -16,7 +17,7 @@ class CourseCreate(BaseModel):
                 }
             ]
         }
-    }
+    )
 
 class CourseUpdate(BaseModel):
     """Schema for updating an existing course - all fields optional"""
@@ -32,7 +33,7 @@ class CourseUpdate(BaseModel):
                 }
             ]
         }
-    }
+    )
 
 class CourseResponse(BaseModel):
     """Schema for course response"""
