@@ -5,9 +5,13 @@
 #     PaginatedResponse
 # )
 
+from .professors import (ProfessorCreate, ProfessorUpdate, Professor)
+
 __all__ = [
 
     # "PaginationParams",
     # "PaginatedResponse"
-
+    "ProfessorCreate",
+    "ProfessorUpdate",
+    "Professor"
 ]
