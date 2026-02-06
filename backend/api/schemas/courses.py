@@ -5,19 +5,17 @@ from pydantic import BaseModel, ConfigDict
 
 class CourseCreate(BaseModel):
     """Schema for creating a new course"""
-    name: str
-    code: str
+    course: str
+    title: str
     subject: str
-    description: Optional[str] = None
 
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
-                    "name": "Intro to Algorithms",
-                    "code": "CS3000",
+                    "course": "Intro to Algorithms",
+                    "title": "CS3000",
                     "subject": "CS",
-                    "description": "Introduction to algorithm design and analysis",
                 }
             ]
         }
@@ -26,16 +24,15 @@ class CourseCreate(BaseModel):
 
 class CourseUpdate(BaseModel):
     """Schema for updating an existing course - all fields optional"""
-    name: Optional[str] = None
-    code: Optional[str] = None
+    course: Optional[str] = None
+    title: Optional[str] = None
     subject: Optional[str] = None
-    description: Optional[str] = None
 
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
-                    "name": "Advanced Algorithms",
+                    "course": "Advanced Algorithms",
                 }
             ]
         }
@@ -44,23 +41,19 @@ class CourseUpdate(BaseModel):
 
 class CourseResponse(BaseModel):
     """Schema for course response"""
-    course_id: int
-    name: str
-    code: str
+    id: int
+    course: str
+    title: str
     subject: str
-    description: Optional[str]
-    created_at: datetime
 
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
-                    "course_id": 1,
-                    "name": "Intro to Algorithms",
-                    "code": "CS3000",
+                    "id": 1,
+                    "course": "Intro to Algorithms",
+                    "title": "CS3000",
                     "subject": "CS",
-                    "description": "Introduction to algorithm design and analysis",
-                    "created_at": "2024-01-15T10:30:00"
                 }
             ]
         }
@@ -77,20 +70,16 @@ class CourseList(BaseModel):
                 {
                     "courses": [
                         {
-                            "course_id": 1,
-                            "name": "Intro to Algorithms",
-                            "code": "CS3000",
+                            "id": 1,
+                            "course": "Intro to Algorithms",
+                            "title": "CS3000",
                             "subject": "CS",
-                            "description": "Introduction to algorithm design and analysis",                            "credits": 4,
-                            "created_at": "2024-01-15T10:30:00"
                         },
                         {
-                            "course_id": 2,
-                            "name": "Data Structures",
-                            "code": "CS2500",
+                            "id": 2,
+                            "course": "Data Structures",
+                            "title": "CS2500",
                             "subject": "CS",
-                            "description": "Fundamental data structures",
-                            "created_at": "2024-01-15T11:00:00"
                         }
                     ]
                 }

@@ -14,24 +14,22 @@ def create_course(course_data: CourseCreate, db: Connection) -> dict:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         
         query = """
-            INSERT INTO courses (name, code, subject, description, credits)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING course_id, name, code, subject, description, credits, created_at
+            INSERT INTO courses (course, title, subject)
+            VALUES (%s, %s, %s)
+            RETURNING course_id, course, title, subject
         """
         
         cursor.execute(query, (
-            course_data.name,
-            course_data.code,
+            course_data.course,
+            course_data.title,
             course_data.subject,
-            course_data.description,
-            course_data.credits
         ))
         
         result = cursor.fetchone()
         db.commit()
         cursor.close()
         
-        logger.info(f"Created course: {course_data.name} ({course_data.code})")
+        logger.info(f"Created course: {course_data.course} ({course_data.title})")
         return dict(result)
         
     except Exception as e:
@@ -40,18 +38,18 @@ def create_course(course_data: CourseCreate, db: Connection) -> dict:
         raise DatabaseException(f"Failed to create course: {str(e)}")
 
 
-def get_course_by_id(course_id: int, db: Connection) -> Optional[dict]:
+def get_course_by_id(id: int, db: Connection) -> Optional[dict]:
     """Get a course by its ID"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         
         query = """
-            SELECT course_id, name, code, subject, description, credits, created_at
+            SELECT *
             FROM courses
-            WHERE course_id = %s
+            WHERE id = %s
         """
         
-        cursor.execute(query, (course_id,))
+        cursor.execute(query, (id,))
         result = cursor.fetchone()
         cursor.close()
         
@@ -69,17 +67,15 @@ def get_all_courses(db: Connection, subject: Optional[str] = None) -> list[dict]
         
         if subject:
             query = """
-                SELECT course_id, name, code, subject, description, credits, created_at
-                FROM courses
+                SELECT *
+                FROM course
                 WHERE subject = %s
-                ORDER BY created_at DESC
             """
             cursor.execute(query, (subject,))
         else:
             query = """
-                SELECT course_id, name, code, subject, description, credits, created_at
-                FROM courses
-                ORDER BY created_at DESC
+                SELECT *
+                FROM course
             """
             cursor.execute(query)
         
