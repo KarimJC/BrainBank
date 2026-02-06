@@ -97,25 +97,25 @@ def update_course(course_id: int, course_data: CourseUpdate, db: Connection) -> 
         update_fields = []
         values = []
         
-        if course_data.name is not None:
-            update_fields.append("name = %s")
-            values.append(course_data.name)
+        if course_data.course_title is not None:
+            update_fields.append("course_title = %s")
+            values.append(course_data.course_title)
         
-        if course_data.code is not None:
-            update_fields.append("code = %s")
-            values.append(course_data.code)
+        if course_data.course_code is not None:
+            update_fields.append("course_code = %s")
+            values.append(course_data.course_code)
+        
+        if course_data.course_CRN is not None:
+            update_fields.append("course_CRN = %s")
+            values.append(course_data.course_CRN)
+        
+        if course_data.professor_id is not None:
+            update_fields.append("professor_id = %s")
+            values.append(course_data.professor_id)
         
         if course_data.subject is not None:
             update_fields.append("subject = %s")
             values.append(course_data.subject)
-        
-        if course_data.description is not None:
-            update_fields.append("description = %s")
-            values.append(course_data.description)
-        
-        if course_data.credits is not None:
-            update_fields.append("credits = %s")
-            values.append(course_data.credits)
         
         if not update_fields:
             # No fields to update, return current course
@@ -127,7 +127,7 @@ def update_course(course_id: int, course_data: CourseUpdate, db: Connection) -> 
             UPDATE courses
             SET {', '.join(update_fields)}
             WHERE course_id = %s
-            RETURNING course_id, name, code, subject, description, credits, created_at
+            RETURNING course_id, course_title, course_code, course_CRN, professor_id, subject
         """
         
         cursor.execute(query, values)
