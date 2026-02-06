@@ -14,9 +14,9 @@ def create_course(course_data: CourseCreate, db: Connection) -> dict:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         
         query = """
-            INSERT INTO courses (course, title, subject)
+            INSERT INTO course (course, title, subject)
             VALUES (%s, %s, %s)
-            RETURNING course_id, course, title, subject
+            RETURNING id, course, title, subject
         """
         
         cursor.execute(query, (
@@ -45,7 +45,7 @@ def get_course_by_id(id: int, db: Connection) -> Optional[dict]:
         
         query = """
             SELECT *
-            FROM courses
+            FROM course
             WHERE id = %s
         """
         
@@ -56,7 +56,7 @@ def get_course_by_id(id: int, db: Connection) -> Optional[dict]:
         return dict(result) if result else None
         
     except Exception as e:
-        logger.error(f"Failed to get course {course_id}: {str(e)}")
+        logger.error(f"Failed to get course {id}: {str(e)}")
         raise DatabaseException(f"Failed to get course: {str(e)}")
 
 
@@ -89,7 +89,7 @@ def get_all_courses(db: Connection, subject: Optional[str] = None) -> list[dict]
         raise DatabaseException(f"Failed to get courses: {str(e)}")
 
 
-def update_course(course_id: int, course_data: CourseUpdate, db: Connection) -> Optional[dict]:
+def update_course(id: int, course_data: CourseUpdate, db: Connection) -> Optional[dict]:
     """Update a course's information"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
@@ -97,11 +97,17 @@ def update_course(course_id: int, course_data: CourseUpdate, db: Connection) -> 
         update_fields = []
         values = []
         
-        if course_data.course_title is not None:
-            update_fields.append("course_title = %s")
-            values.append(course_data.course_title)
+        if course_data.course is not None:
+            update_fields.append("course = %s")
+            values.append(course_data.course)
         
-        if course_data.course_code is not None:
+        if course_data.title is not None:
+            update_fields.append("title = %s")
+            values.append(course_data.title)
+        
+        if course_data.subject is not None:
+            update_fields.append("subject = %s")
+            values.append(course_data.subject)
             update_fields.append("course_code = %s")
             values.append(course_data.course_code)
         
@@ -119,15 +125,15 @@ def update_course(course_id: int, course_data: CourseUpdate, db: Connection) -> 
         
         if not update_fields:
             # No fields to update, return current course
-            return get_course_by_id(course_id, db)
+            return get_course_by_id(id, db)
         
-        values.append(course_id)
+        values.append(id)
         
         query = f"""
-            UPDATE courses
+            UPDATE course
             SET {', '.join(update_fields)}
-            WHERE course_id = %s
-            RETURNING course_id, course_title, course_code, course_CRN, professor_id, subject
+            WHERE id = %s
+            RETURNING id, course, title, subject
         """
         
         cursor.execute(query, values)
