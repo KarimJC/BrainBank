@@ -108,20 +108,7 @@ def update_course(id: int, course_data: CourseUpdate, db: Connection) -> Optiona
         if course_data.subject is not None:
             update_fields.append("subject = %s")
             values.append(course_data.subject)
-            update_fields.append("course_code = %s")
-            values.append(course_data.course_code)
         
-        if course_data.course_CRN is not None:
-            update_fields.append("course_CRN = %s")
-            values.append(course_data.course_CRN)
-        
-        if course_data.professor_id is not None:
-            update_fields.append("professor_id = %s")
-            values.append(course_data.professor_id)
-        
-        if course_data.subject is not None:
-            update_fields.append("subject = %s")
-            values.append(course_data.subject)
         
         if not update_fields:
             # No fields to update, return current course
@@ -141,12 +128,12 @@ def update_course(id: int, course_data: CourseUpdate, db: Connection) -> Optiona
         db.commit()
         cursor.close()
         
-        logger.info(f"Updated course {course_id}")
+        logger.info(f"Updated course {id}")
         return dict(result) if result else None
         
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to update course {course_id}: {str(e)}")
+        logger.error(f"Failed to update course {id}: {str(e)}")
         raise DatabaseException(f"Failed to update course: {str(e)}")
 
 
@@ -155,7 +142,7 @@ def delete_course(course_id: int, db: Connection) -> bool:
     try:
         cursor = db.cursor()
         
-        query = "DELETE FROM courses WHERE course_id = %s"
+        query = "DELETE FROM course WHERE id = %s"
         cursor.execute(query, (course_id,))
         
         db.commit()
