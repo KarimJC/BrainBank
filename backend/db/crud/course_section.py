@@ -4,6 +4,7 @@ from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate
 from core.exceptions import DatabaseException
 import logging
 
+<<<<<<< HEAD
 logger = logging.getLogger(__name__)
 
 def create_course_section(course_section_data: CourseSectionCreate, db: Connection):
@@ -33,10 +34,17 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
         raise DatabaseException()
 
 
+=======
+
+def create_course_section(course_section_data: CourseSectionCreate, db: Connection):
+    """Create a new course section"""
+    pass
+>>>>>>> e82f5605f1e903175e3d8e2a4199b315b85c4dab
 
 
 def get_course_section_by_id(section_id: int, db: Connection):
     """Get course section by ID"""
+<<<<<<< HEAD
     try:
         cursor = db.cursor()
         query = 'SELECT * FROM public.course_section WHERE id = %s'
@@ -52,6 +60,9 @@ def get_course_section_by_id(section_id: int, db: Connection):
         raise DatabaseException()
         
 
+=======
+    pass
+>>>>>>> e82f5605f1e903175e3d8e2a4199b315b85c4dab
 
 
 def get_course_sections_by_subject(subject: str, db: Connection):
@@ -66,6 +77,7 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
 
 def delete_course_section(section_id: int, db: Connection):
     """Delete a course section"""
+<<<<<<< HEAD
     try:
         cursor = db.cursor()
         query = 'DELETE FROM public.course_section WHERE id = %s'
@@ -82,10 +94,14 @@ def delete_course_section(section_id: int, db: Connection):
         logger.error(f"Failed to delete section_id {section_id}: {str(e)}")
         raise DatabaseException()
 
+=======
+    pass
+>>>>>>> e82f5605f1e903175e3d8e2a4199b315b85c4dab
 
 
 def check_crn_exists(crn: int, db: Connection):
     """Check if a CRN already exists"""
+<<<<<<< HEAD
     try:
         cursor = db.cursor()
         query = 'SELECT EXISTS(SELECT 1 FROM public.course_section WHERE "course_CRN" = %s)'
@@ -96,3 +112,6 @@ def check_crn_exists(crn: int, db: Connection):
     except Exception as e:
         logger.error(f"Failed to find crn {crn}: {str(e)}")
         raise DatabaseException()
+=======
+    pass
+>>>>>>> e82f5605f1e903175e3d8e2a4199b315b85c4dab

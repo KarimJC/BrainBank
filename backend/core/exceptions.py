@@ -29,7 +29,10 @@ class DatabaseException(HTTPException):
             detail=detail
         )
 
+<<<<<<< HEAD
 #Course Section Exceptions 
+=======
+>>>>>>> e82f5605f1e903175e3d8e2a4199b315b85c4dab
 class CourseSectionNotFoundException(HTTPException):
     def __init__(self, course_section_id : int):
           super().__init__(
@@ -42,6 +45,7 @@ class CourseSectionAlreadyExistsException(HTTPException):
         super().__init__(
             status_code= status.HTTP_409_CONFLICT,
             detail= f"Course section with CRN {crn} already exists"
+<<<<<<< HEAD
         )
 
 # Exceptions related to messages
@@ -66,4 +70,7 @@ class MessageAlreadyDeletedException(HTTPException):
         super().__init__(
             status_code=status.HTTP_410_GONE,
             detail=f"Message {message_id} has already been deleted"
+=======
+
+>>>>>>> e82f5605f1e903175e3d8e2a4199b315b85c4dab
         )
