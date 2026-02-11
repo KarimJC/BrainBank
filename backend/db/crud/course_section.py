@@ -4,7 +4,6 @@ from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate
 from core.exceptions import DatabaseException
 import logging
 
-<<<<<<< HEAD
 logger = logging.getLogger(__name__)
 
 def create_course_section(course_section_data: CourseSectionCreate, db: Connection):
@@ -34,17 +33,10 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
         raise DatabaseException()
 
 
-=======
-
-def create_course_section(course_section_data: CourseSectionCreate, db: Connection):
-    """Create a new course section"""
-    pass
->>>>>>> e82f5605f1e903175e3d8e2a4199b315b85c4dab
 
 
 def get_course_section_by_id(section_id: int, db: Connection):
     """Get course section by ID"""
-<<<<<<< HEAD
     try:
         cursor = db.cursor()
         query = 'SELECT * FROM public.course_section WHERE id = %s'
@@ -60,24 +52,85 @@ def get_course_section_by_id(section_id: int, db: Connection):
         raise DatabaseException()
         
 
-=======
-    pass
->>>>>>> e82f5605f1e903175e3d8e2a4199b315b85c4dab
 
 
 def get_course_sections_by_subject(subject: str, db: Connection):
     """Get all course sections for a given subject (requires JOIN with course table)"""
-    pass
+    try: 
+        cursor = db.cursor()
+        query = """
+        SELECT * FROM  public.course_section INNER JOIN 
+        public.course ON public.course_section.course_id = public.course.id 
+        WHERE public.course.subject = %s
+        """
+        cursor.execute(query, (subject,))
+        result = cursor.fetchall()
+        cursor.close()
+        if result:
+            return result
+        else:
+            return []
+        
+
+
+    except Exception as e:
+        logger.error(f"Failed to get subject {subject}: {str(e)}")
+        raise DatabaseException(f"Failed to get subject {subject}: {str(e)}")
+        
 
 
 def update_course_section(section_id: int, course_section_data: CourseSectionUpdate, db: Connection):
     """Update an existing course section"""
-    pass
+    try:
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+        
+        update_fields = []
+        values = []
+
+        if course_section_data.course_id is not None:
+            update_fields.append("course_id = %s")
+            values.append(course_section_data.course_id)
+
+        if course_section_data.course_title is not None:
+            update_fields.append("course_title = %s")
+            values.append(course_section_data.course_title)
+
+        if course_section_data.course_crn is not None:
+            update_fields.append('"course_CRN" = %s')
+            values.append(course_section_data.course_crn)
+
+        if  course_section_data.professor_id is not None:
+            update_fields.append("professor_id = %s")
+            values.append(course_section_data.professor_id)
+        
+        values.append(section_id)
+
+        query = f'''
+            UPDATE public.course_section
+            SET {', '.join(update_fields)}
+             WHERE id = %s
+             RETURNING course_id, id, course_title, "course_CRN", professor_id 
+             '''
+        cursor.execute(query, values)
+        result = cursor.fetchone()
+        db.commit()
+        cursor.close()
+        logger.info(f"Updated section_id {section_id}")
+        if result:
+            return result 
+        else: 
+            return None
+    
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to update section_id {section_id}: {str(e)}")
+        raise DatabaseException(f"Failed to update section_id {section_id}: {str(e)}")
+
+            
 
 
 def delete_course_section(section_id: int, db: Connection):
     """Delete a course section"""
-<<<<<<< HEAD
     try:
         cursor = db.cursor()
         query = 'DELETE FROM public.course_section WHERE id = %s'
@@ -92,16 +145,12 @@ def delete_course_section(section_id: int, db: Connection):
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to delete section_id {section_id}: {str(e)}")
-        raise DatabaseException()
+        raise DatabaseException(f"Failed to delete section_id {section_id}: {str(e)}")
 
-=======
-    pass
->>>>>>> e82f5605f1e903175e3d8e2a4199b315b85c4dab
 
 
 def check_crn_exists(crn: int, db: Connection):
     """Check if a CRN already exists"""
-<<<<<<< HEAD
     try:
         cursor = db.cursor()
         query = 'SELECT EXISTS(SELECT 1 FROM public.course_section WHERE "course_CRN" = %s)'
@@ -111,7 +160,4 @@ def check_crn_exists(crn: int, db: Connection):
         return exists 
     except Exception as e:
         logger.error(f"Failed to find crn {crn}: {str(e)}")
-        raise DatabaseException()
-=======
-    pass
->>>>>>> e82f5605f1e903175e3d8e2a4199b315b85c4dab
+        raise DatabaseException(f"Failed to find crn {crn}: {str(e)}")
