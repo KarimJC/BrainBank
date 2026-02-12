@@ -27,6 +27,15 @@ class DatabaseException(HTTPException):
             detail=detail
         )
 
+
+class CourseNotFoundException(HTTPException):
+    def __init__(self, course_id: int):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course with id {course_id} not found"
+        )
+
+
 # Exceptions related to messages
 class MessageNotFoundException(HTTPException):
     def __init__(self, message_id: int):
