@@ -18,7 +18,7 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
         cursor.execute(query, (
             course_section_data.course_id, 
             course_section_data.course_title,
-            course_section_data.course_crn, 
+            course_section_data.course_CRN, 
             course_section_data.professor_id
         ))
         result = cursor.fetchone()
@@ -29,7 +29,7 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
         
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to create section - Course ID: {course_section_data.course_id}, CRN: {course_section_data.course_crn}: {str(e)}")
+        logger.error(f"Failed to create section - Course ID: {course_section_data.course_id}, CRN: {course_section_data.course_CRN}: {str(e)}")
         raise DatabaseException()
 
 
@@ -38,7 +38,7 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
 def get_course_section_by_id(section_id: int, db: Connection):
     """Get course section by ID"""
     try:
-        cursor = db.cursor()
+        cursor = db.cursor(cursor_factory=RealDictCursor)
         query = 'SELECT * FROM public.course_section WHERE id = %s'
         cursor.execute(query, (section_id,))
         row = cursor.fetchone()
@@ -57,7 +57,7 @@ def get_course_section_by_id(section_id: int, db: Connection):
 def get_course_sections_by_subject(subject: str, db: Connection):
     """Get all course sections for a given subject (requires JOIN with course table)"""
     try: 
-        cursor = db.cursor()
+        cursor = db.cursor(cursor_factory=RealDictCursor)
         query = """
         SELECT * FROM  public.course_section INNER JOIN 
         public.course ON public.course_section.course_id = public.course.id 
@@ -95,9 +95,9 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
             update_fields.append("course_title = %s")
             values.append(course_section_data.course_title)
 
-        if course_section_data.course_crn is not None:
+        if course_section_data.course_CRN is not None:
             update_fields.append('"course_CRN" = %s')
-            values.append(course_section_data.course_crn)
+            values.append(course_section_data.course_CRN)
 
         if  course_section_data.professor_id is not None:
             update_fields.append("professor_id = %s")

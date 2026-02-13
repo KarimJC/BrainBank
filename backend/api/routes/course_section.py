@@ -21,8 +21,8 @@ router = APIRouter()
 
 @router.post("/course_sections", response_model= CourseSectionResponse, status_code=status.HTTP_201_CREATED)
 def create_course_section(course_section_data: CourseSectionCreate, db: Connection = Depends(get_db)):
-    if check_crn_exists(course_section_data.course_crn, db):
-        raise CourseSectionAlreadyExistsException(course_section_data.course_crn)
+    if check_crn_exists(course_section_data.course_CRN, db):
+        raise CourseSectionAlreadyExistsException(course_section_data.course_CRN)
     else:
         course_section = create_course_section_crud(course_section_data, db)
         return course_section
@@ -52,10 +52,10 @@ def update_course_section(section_id: int, updated_course_section_data: CourseSe
     
     else: 
 
-        if (updated_course_section_data.course_crn and 
-            updated_course_section_data.course_crn != current_course_section['course_crn'] 
-            and check_crn_exists(updated_course_section_data.course_crn, db)):
-             raise CourseSectionAlreadyExistsException(updated_course_section_data.course_crn)
+        if (updated_course_section_data.course_CRN and 
+            updated_course_section_data.course_CRN != current_course_section['course_CRN'] 
+            and check_crn_exists(updated_course_section_data.course_CRN, db)):
+             raise CourseSectionAlreadyExistsException(updated_course_section_data.course_CRN)
         else:
             updated_course_section = update_course_section_crud(section_id, updated_course_section_data, db)
             return updated_course_section

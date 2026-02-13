@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 class CourseSectionCreate(BaseModel):
     course_id: int 
     course_title: str 
-    course_crn: int 
+    course_CRN: int 
     professor_id: int 
     model_config = ConfigDict(
         json_schema_extra={
@@ -13,7 +13,7 @@ class CourseSectionCreate(BaseModel):
                 {
                     "course_id": 1, #represents the id for a class and all of its sections share the same id
                     "course_title": "Calculus One For Science and Engineering",
-                    "course_crn" : 30186, #represents CRN, a section of a class 
+                    "course_CRN" : 30186, #represents CRN, a section of a class 
                     "professor_id" : 1 #represents the id for a professor teaching this section
 
 
@@ -25,7 +25,7 @@ class CourseSectionCreate(BaseModel):
 class CourseSectionUpdate(BaseModel):
     course_id: Optional[int] = None
     course_title: Optional[str] = None
-    course_crn: Optional[int] = None
+    course_CRN: Optional[int] = None
     professor_id: Optional[int] = None 
     model_config = ConfigDict(
         json_schema_extra = {
@@ -43,7 +43,7 @@ class CourseSectionResponse(BaseModel):
     id: int 
     course_id: int 
     course_title: str 
-    course_crn: int 
+    course_CRN: int 
     professor_id: int 
     model_config = ConfigDict(
         json_schema_extra = {
@@ -52,7 +52,7 @@ class CourseSectionResponse(BaseModel):
                    "id": 100, # database id to refer
                     "course_id": 1, #represents the id for a class and all of its sections share the same id
                     "course_title": "Calculus One For Science and Engineering",
-                    "course_crn" : 30186, #represents CRN, a section of a class 
+                    "course_CRN" : 30186, #represents CRN, a section of a class 
                     "professor_id" : 1 #represents the id for a professor teaching this section
 
 
