@@ -21,10 +21,18 @@ const Header: React.FC<HeaderProps> = ({
         style={styles.profileButton}
         onPress={onProfilePress}
       >
-        <Image
-          source={profileImage || { uri: 'https://via.placeholder.com/40' }}
-          style={styles.profileImage}
-        />
+        {profileImage ? (
+          <Image
+            source={profileImage}
+            style={styles.profileImage}
+          />
+        ) : (
+          <View style={styles.defaultProfile}>
+            <Text style={styles.defaultProfileText}>
+              {userName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -46,7 +54,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   logoAccent: {
-    color: '#6B4CE6',
+    color: '#6B5BC7',
   },
   profileButton: {
     width: 40,
@@ -57,6 +65,18 @@ const styles = StyleSheet.create({
   profileImage: {
     width: '100%',
     height: '100%',
+  },
+  defaultProfile: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#E8E5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  defaultProfileText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6B5BC7',
   },
 });
 
