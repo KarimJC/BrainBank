@@ -311,11 +311,24 @@ const SplashScreen = () => {
   // Idea is that since we already have the spinning animation, while that animation's playing 
   // we can route the user to either the home page if alrdy authenticated or the homepage 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    setTimeout(() => {
-      playAnimation(session);
-    }, 500);
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      // If there's an error with the session, clear it
+      if (error) {
+        console.log('Session error:', error);
+        await supabase.auth.signOut();
+      }
+      
+      setTimeout(() => {
+        playAnimation(session);
+      }, 500);
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      setTimeout(() => {
+        playAnimation(null); // Route to login
+      }, 500);
+    }
   };
 
   const playAnimation = (session: any) => {

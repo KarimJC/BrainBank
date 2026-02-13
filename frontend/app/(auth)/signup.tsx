@@ -23,13 +23,15 @@ const COLORS = {
 
 const SignUpScreen: React.FC = () => {
   const router = useRouter();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -58,6 +60,12 @@ const SignUpScreen: React.FC = () => {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password: password,
+      options: {
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+        }
+      }
     });
 
     setLoading(false);
@@ -67,7 +75,7 @@ const SignUpScreen: React.FC = () => {
     } else {
       Alert.alert(
         'Success!',
-        'Account created! Please check your email to verify your account.',
+        'Account created! You can now log in.',
         [
           {
             text: 'OK',
@@ -98,6 +106,24 @@ const SignUpScreen: React.FC = () => {
           </View>
 
           <View style={styles.formContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="First Name"
+              placeholderTextColor={COLORS.mediumGrey}
+              autoCapitalize="words"
+              value={firstName}
+              onChangeText={setFirstName}
+              editable={!loading}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Last Name"
+              placeholderTextColor={COLORS.mediumGrey}
+              autoCapitalize="words"
+              value={lastName}
+              onChangeText={setLastName}
+              editable={!loading}
+            />
             <TextInput
               style={styles.input}
               placeholder="NEU Email (@northeastern.edu)"
