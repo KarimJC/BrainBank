@@ -5,18 +5,18 @@ from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
-# Gemini API
+# Configure Gemini API
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 
 class AIService:
     def __init__(self):
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-pro')
         
     def build_context_prompt(self, context: Dict, chat_history: List[Dict]) -> str:
         """Build a comprehensive prompt with course context and chat history"""
         
-        # make context from notes and documents
+        # Build context from notes and documents
         context_text = "You are a helpful AI tutor for students at Northeastern University. "
         context_text += "You have access to the following course materials:\n\n"
         
@@ -40,10 +40,10 @@ class AIService:
                     context_text += f"Content: {doc['doc_content']}\n"
                 context_text += "---\n"
         
-        # Add a chat history
+        # Add chat history
         if chat_history:
             context_text += "\n=== PREVIOUS CONVERSATION ===\n"
-            for msg in chat_history[-10:]:  # will use last 10 messages for context
+            for msg in chat_history[-10:]:  # Last 10 messages for context
                 role = "Student" if msg['role'] == 'user' else "AI Tutor"
                 context_text += f"{role}: {msg['content']}\n"
         
