@@ -4,7 +4,7 @@ from typing_extensions import Annotated, Doc
 from fastapi import HTTPException, status
 
 
-#uesr exceptions 
+#user exceptions 
 class UserNotFoundException(HTTPException):
     def __init__(self, user_id: int): 
         super().__init__(
