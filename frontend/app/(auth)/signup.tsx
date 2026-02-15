@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from '@/services/supabase';
 
 const COLORS = {
   darkPurple: '#6B4CE6',
@@ -21,14 +23,70 @@ const COLORS = {
 
 const SignUpScreen: React.FC = () => {
   const router = useRouter();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSignUp = () => {
-    // Navigate to main app (no auth logic)
-    router.replace('/(tabs)');
+  const handleSignUp = async () => {
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    // Check for @northeastern.edu email
+    if (!email.toLowerCase().trim().endsWith('@northeastern.edu')) {
+      Alert.alert(
+        'Invalid Email', 
+        'Please use your Northeastern University email address (@northeastern.edu)'
+      );
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password: password,
+      options: {
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+        }
+      }
+    });
+
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Sign Up Failed', error.message);
+    } else {
+      Alert.alert(
+        'Success!',
+        'Account created! You can now log in.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(auth)/login'),
+          },
+        ]
+      );
+    }
   };
 
   const handleBackToLogin = () => {
-    // Navigate back to login
     router.back();
   };
 
@@ -44,38 +102,65 @@ const SignUpScreen: React.FC = () => {
               <Text style={styles.titlePurple}>Brain</Text>
               <Text style={styles.titleBlack}>Bank</Text>
             </Text>
-            <Text style={styles.subtitle}>Create Your Account</Text>
+            <Text style={styles.subtitle}>NEU Students Only</Text>
           </View>
 
           <View style={styles.formContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Full Name"
+              placeholder="First Name"
               placeholderTextColor={COLORS.mediumGrey}
               autoCapitalize="words"
+              value={firstName}
+              onChangeText={setFirstName}
+              editable={!loading}
             />
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="Last Name"
+              placeholderTextColor={COLORS.mediumGrey}
+              autoCapitalize="words"
+              value={lastName}
+              onChangeText={setLastName}
+              editable={!loading}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="NEU Email (@northeastern.edu)"
               placeholderTextColor={COLORS.mediumGrey}
               keyboardType="email-address"
               autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              editable={!loading}
             />
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder="Password (min 6 characters)"
               placeholderTextColor={COLORS.mediumGrey}
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              editable={!loading}
             />
             <TextInput
               style={styles.input}
               placeholder="Confirm Password"
               placeholderTextColor={COLORS.mediumGrey}
               secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              editable={!loading}
             />
 
-            <TouchableOpacity style={styles.primaryButton} onPress={handleSignUp}>
-              <Text style={styles.primaryButtonText}>Create Account</Text>
+            <TouchableOpacity 
+              style={[styles.primaryButton, loading && styles.buttonDisabled]} 
+              onPress={handleSignUp}
+              disabled={loading}
+            >
+              <Text style={styles.primaryButtonText}>
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </Text>
             </TouchableOpacity>
 
             <View style={styles.loginPrompt}>
@@ -148,6 +233,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 24,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   primaryButtonText: {
     color: COLORS.white,
