@@ -1,17 +1,18 @@
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import logging
 from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
 # Configure Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
 class AIService:
     def __init__(self):
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.client = client
         
     def build_context_prompt(self, context: Dict, chat_history: List[Dict]) -> str:
         """Build a comprehensive prompt with course context and chat history"""
@@ -72,11 +73,13 @@ class AIService:
             system_prompt = self.build_context_prompt(context, chat_history)
             full_prompt = system_prompt + f"\nStudent Question: {user_message}\n\nAI Tutor Response:"
             
-            # Generate response
-            response = self.model.generate_content(full_prompt)
+            # Generate response using new API with correct model name
+            response = self.client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=full_prompt
+            )
             
-            # Count tokens (approximate - Gemini doesn't return exact count in free tier)
-            # Rough estimate: ~4 characters per token
+            # Count tokens 
             tokens_used = len(full_prompt + response.text) // 4
             
             logger.info(f"Generated AI response, approx {tokens_used} tokens used")
