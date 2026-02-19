@@ -87,11 +87,11 @@ class CourseDeleteResponse(BaseModel):
     message: str
     deleted_id: int
 
-    model_config = {
-        "json_schema_extra": {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "message": "Successfully deleted course 1",
                 "deleted_id": 1
             }
         }
-    }
+    )

@@ -1,4 +1,7 @@
 import React from 'react';
+import { supabase } from '@/services/supabase';
+import { useState } from 'react';
+import { Alert } from 'react-native';
 import {
   View,
   Text,
@@ -20,14 +23,33 @@ const COLORS = {
 
 const LoginScreen: React.FC = () => {
   const router = useRouter();
+  const [email, setEmail] = useState(''); 
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // Navigate to main app (no auth logic)
-    router.replace('/(tabs)');
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    setLoading(true);
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: password,
+    });
+
+    setLoading(false); 
+  
+    if (error) {
+      Alert.alert('Login Failed', error.message);
+    } else {
+      router.replace('/(tabs)');
+    }
   };
 
   const handleSignUp = () => {
-    // Navigate to signup page
     router.push('/(auth)/signup');
   };
 
@@ -48,20 +70,32 @@ const LoginScreen: React.FC = () => {
         <View style={styles.formContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="NEU Email"
             placeholderTextColor={COLORS.mediumGrey}
             keyboardType="email-address"
             autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+            editable={!loading}
           />
           <TextInput
             style={styles.input}
             placeholder="Password"
             placeholderTextColor={COLORS.mediumGrey}
             secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            editable={!loading}
           />
 
-          <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
-            <Text style={styles.primaryButtonText}>Log In</Text>
+          <TouchableOpacity 
+            style={[styles.primaryButton, loading && styles.buttonDisabled]} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.primaryButtonText}>
+              {loading ? 'Logging in...' : 'Log In'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.forgotPassword}>
@@ -132,6 +166,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   primaryButtonText: {
     color: COLORS.white,

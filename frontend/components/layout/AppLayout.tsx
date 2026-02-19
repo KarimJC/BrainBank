@@ -21,7 +21,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   activeRoute = 'home'
 }) => {
   const [showActionMenu, setShowActionMenu] = useState(false);
-  const [showNotesUpload, setShowNotesUpload] = useState(false);
+  // const [showNotesUpload, setShowNotesUpload] = useState(false);
 
   const handleAction = (action: string) => {
     console.log(`Action selected: ${action}`);
@@ -30,7 +30,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     // Handle different actions
     switch (action) {
       case 'upload-notes':
-        setShowNotesUpload(true);
+        // setShowNotesUpload(true);
+        console.log('Upload notes - NotesUploadPage not implemented yet');
         break;
       case 'add-class':
         // Handle add class action
@@ -57,9 +58,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     }
   };
 
-  const handleCloseNotesUpload = () => {
-    setShowNotesUpload(false);
-  };
+  // const handleCloseNotesUpload = () => {
+  //   setShowNotesUpload(false);
+  // };
 
   return (
     <View style={styles.container}>
@@ -75,8 +76,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         onAction={handleAction}
       />
 
-      {/* Modal for Notes Upload */}
-      <Modal
+      {/* Modal for Notes Upload - NOT IMPLEMENTED YET */}
+      {/* <Modal
         visible={showNotesUpload}
         animationType="slide"
         presentationStyle="pageSheet"
@@ -85,7 +86,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <View style={styles.modalContainer}>
           <NotesUploadPage onClose={handleCloseNotesUpload} />
         </View>
-      </Modal>
+      </Modal> */}
 
       <BottomNav 
         onNavigate={handleNavigation}
