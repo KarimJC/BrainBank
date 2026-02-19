@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Modal } from 'react-native';
 import Header from '../ui/Header';
 import BottomNav from '../ui/BottomNav';
 import ActionMenu from '../ui/ActionMenu';
+import NotesUploadPage from '../../app/(tabs)/NotesUploadPage';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -20,12 +21,33 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   activeRoute = 'home'
 }) => {
   const [showActionMenu, setShowActionMenu] = useState(false);
+  const [showNotesUpload, setShowNotesUpload] = useState(false);
 
   const handleAction = (action: string) => {
     console.log(`Action selected: ${action}`);
     setShowActionMenu(false);
-    if (onNavigate) {
-      onNavigate(action);
+    
+    // Handle different actions
+    switch (action) {
+      case 'upload-notes':
+        setShowNotesUpload(true);
+        break;
+      case 'add-class':
+        // Handle add class action
+        if (onNavigate) {
+          onNavigate('add-class');
+        }
+        break;
+      case 'generate-document':
+        // Handle generate document action
+        if (onNavigate) {
+          onNavigate('generate-document');
+        }
+        break;
+      default:
+        if (onNavigate) {
+          onNavigate(action);
+        }
     }
   };
 
@@ -33,6 +55,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     if (onNavigate) {
       onNavigate(route);
     }
+  };
+
+  const handleCloseNotesUpload = () => {
+    setShowNotesUpload(false);
   };
 
   return (
@@ -48,6 +74,18 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         onClose={() => setShowActionMenu(false)}
         onAction={handleAction}
       />
+
+      {/* Modal for Notes Upload */}
+      <Modal
+        visible={showNotesUpload}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCloseNotesUpload}
+      >
+        <View style={styles.modalContainer}>
+          <NotesUploadPage onClose={handleCloseNotesUpload} />
+        </View>
+      </Modal>
 
       <BottomNav 
         onNavigate={handleNavigation}
@@ -66,6 +104,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
 });
 

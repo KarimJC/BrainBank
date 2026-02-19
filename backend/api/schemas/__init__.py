@@ -1,11 +1,6 @@
+from api.schemas.user import UserCreate, UserUpdate, UserResponse, DeleteResponse
 
-# Example
-# from .common import (
-#     PaginationParams,      -- these would be pydantic models from the common.py file in the schemas folder
-#     PaginatedResponse
-# )
-
-from .professors import (ProfessorCreate, ProfessorUpdate, Professor)
+from .professor import (ProfessorCreate, ProfessorUpdate, Professor)
 
 __all__ = [
 
@@ -14,4 +9,8 @@ __all__ = [
     "ProfessorCreate",
     "ProfessorUpdate",
     "Professor"
+    "UserCreate",
+    "UserUpdate", 
+    "UserResponse",
+    "DeleteResponse"
 ]
