@@ -341,6 +341,7 @@ const SplashScreen = () => {
     }, 500);
 
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: run once on mount
   }, []);
 
   return (
@@ -356,7 +357,7 @@ const SplashScreen = () => {
               <Text style={styles.titleBlack}>Brain</Text>
               <Text style={styles.titlePurple}>Bank</Text>
             </Text>
-            <Text style={styles.subtitle}>Deposit Notes, Withdraw A's</Text>
+            <Text style={styles.subtitle}>Deposit Notes, Withdraw A&apos;s</Text>
           </View>
 
           <View style={styles.formContainer}>
@@ -383,7 +384,7 @@ const SplashScreen = () => {
             </TouchableOpacity>
 
             <View style={styles.signupPrompt}>
-              <Text style={styles.signupPromptText}>Don't have an account? </Text>
+              <Text style={styles.signupPromptText}>Don&apos;t have an account? </Text>
               <TouchableOpacity onPress={handleSignUp}>
                 <Text style={styles.signupLink}>Sign Up</Text>
               </TouchableOpacity>

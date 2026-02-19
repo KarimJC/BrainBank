@@ -4,14 +4,14 @@ from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, M
 
 __all__ = [
     "UserCreate",
-    "UserUpdate", 
+    "UserUpdate",
     "UserResponse",
     "DeleteResponse",
     "CourseCreate",
     "CourseUpdate",
     "CourseResponse",
     "CourseList",
-    "CourseDeleteResponse"
+    "CourseDeleteResponse",
     "MessageCreate",
     "MessageUpdate",
     "MessageResponse",

@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, APIRouter, Depends
+from fastapi import status, APIRouter, Depends
 from psycopg2.extensions import connection as Connection
 
 # Import placeholder CRUD functions with different names 

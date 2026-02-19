@@ -11,7 +11,6 @@ from db.crud.message import (
 )
 
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
-from core.exceptions import DatabaseException
 
 from db.connection import get_db
 

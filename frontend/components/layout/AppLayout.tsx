@@ -3,7 +3,7 @@ import { View, StyleSheet, Modal } from 'react-native';
 import Header from '../ui/Header';
 import BottomNav from '../ui/BottomNav';
 import ActionMenu from '../ui/ActionMenu';
-import NotesUploadPage from '../../app/(tabs)/NotesUploadPage';
+import NotesUploadPage from '@/app/(tabs)/NotesUploadPage';
 
 interface AppLayoutProps {
   children: React.ReactNode;
