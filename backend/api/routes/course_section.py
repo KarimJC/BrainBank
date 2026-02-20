@@ -1,6 +1,11 @@
 from fastapi import HTTPException, status, APIRouter, Depends
 from psycopg2.extensions import connection as Connection
 from db.connection import get_db
+<<<<<<< HEAD
+=======
+from db.crud.course_section import get_all_course_sections, get_course_section_by_id
+from pydantic import BaseModel
+>>>>>>> c0680b4 (Frontend and backend to view, upload, and edit notes)
 
 from db.crud.course_section import (
     create_course_section as create_course_section_crud, 

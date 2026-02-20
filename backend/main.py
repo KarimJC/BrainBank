@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+<<<<<<< HEAD
 from api.routes import api_router
+=======
+from api.routes.notes import router as notes_router
+from api.routes.course_section import router as course_sections_router
+>>>>>>> c0680b4 (Frontend and backend to view, upload, and edit notes)
 
 app = FastAPI(title="NEU Notes Hub API")
 
