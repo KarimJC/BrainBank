@@ -1,35 +1,3 @@
-<<<<<<< HEAD
-import { ScrollView } from 'react-native';
-import AppLayout from '@/components/layout/AppLayout';
-import { useRouter } from 'expo-router';
-
-export default function NotesScreen() {
-  const router = useRouter();
-
-  const handleNavigation = (route: string) => {
-    if (route === 'home') {
-      router.push('/(tabs)');
-    } else if (route === 'notes') {
-      router.push('/(tabs)/notes');
-    } else if (route === 'chat') {
-      router.push('/(tabs)/chat');
-    } else if (route === 'profile') {
-      router.push('/(tabs)/profile');
-    }
-  };
-
-  return (
-    <AppLayout 
-      userName="User" 
-      onNavigate={handleNavigation}
-      activeRoute="notes"
-    >
-      <ScrollView showsVerticalScrollIndicator={false}>
-      </ScrollView>
-    </AppLayout>
-  );
-}
-=======
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -404,4 +372,3 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
 });
->>>>>>> c0680b4 (Frontend and backend to view, upload, and edit notes)

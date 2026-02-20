@@ -32,6 +32,39 @@ def build_attachments(media_url, file_url, file_name, file_size) -> list:
     return attachments
 
 
+def parse_attachments(row: dict) -> dict:
+    attachments = row.get('attachments') or []
+    media = next((a for a in attachments if a.get('type') == 'image'), None)
+    doc = next((a for a in attachments if a.get('type') == 'document'), None)
+    row['media_url'] = media['url'] if media else None
+    row['file_url'] = doc['url'] if doc else None
+    row['file_name'] = doc['filename'] if doc else None
+    row['file_size'] = doc.get('size') if doc else None
+    return row
+
+
+NOTE_SELECT = """
+    SELECT
+        n.note_id,
+        n.user_id,
+        n.course_id,
+        n.title,
+        n.description,
+        n.date_uploaded,
+        n.notes_content,
+        n.attachments,
+        cs.course_title,
+        cs.id as course_section_id,
+        c.course as course_code,
+        c.title as course_name,
+        p.name as professor_name
+    FROM notes n
+    LEFT JOIN course_section cs ON n.course_id = cs.id
+    LEFT JOIN course c ON cs.course_id = c.id
+    LEFT JOIN professor p ON cs.professor_id = p.professor_id
+"""
+
+
 def create_note(note_data: NoteCreate, media_url: Optional[str], file_name: Optional[str],
                 file_url: Optional[str], file_size: Optional[int], notes_content: str,
                 user_id: int, course_section_id: int, db: Connection) -> dict:
@@ -91,45 +124,14 @@ def create_note(note_data: NoteCreate, media_url: Optional[str], file_name: Opti
 def get_note_by_id(note_id: int, db: Connection) -> Optional[dict]:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-
-        query = """
-            SELECT
-                n.note_id,
-                n.user_id,
-                n.course_id,
-                n.title,
-                n.description,
-                n.date_uploaded,
-                n.notes_content,
-                n.attachments,
-                cs.course_title,
-                cs.id as course_section_id,
-                c.course as course_code,
-                c.title as course_name,
-                p.name as professor_name
-            FROM notes n
-            LEFT JOIN course_section cs ON n.course_id = cs.id
-            LEFT JOIN course c ON cs.course_id = c.id
-            LEFT JOIN professor p ON cs.professor_id = p.professor_id
-            WHERE n.note_id = %s
-        """
-
-        cursor.execute(query, (note_id,))
+        cursor.execute(NOTE_SELECT + "WHERE n.note_id = %s", (note_id,))
         result = cursor.fetchone()
         cursor.close()
 
         if not result:
             return None
 
-        row = dict(result)
-        attachments = row.get('attachments') or []
-        media = next((a for a in attachments if a.get('type') == 'image'), None)
-        doc = next((a for a in attachments if a.get('type') == 'document'), None)
-        row['media_url'] = media['url'] if media else None
-        row['file_url'] = doc['url'] if doc else None
-        row['file_name'] = doc['filename'] if doc else None
-        row['file_size'] = doc.get('size') if doc else None
-        return row
+        return parse_attachments(dict(result))
 
     except Exception as e:
         logger.error(f"Failed to get note {note_id}: {str(e)}")
@@ -143,6 +145,7 @@ def get_all_notes(
     end_date: Optional[str] = None,
     limit: int = 50,
     skip: int = 0,
+    user_id: Optional[int] = None,
     db: Connection = None
 ) -> List[dict]:
     try:
@@ -150,6 +153,10 @@ def get_all_notes(
 
         conditions = []
         params = []
+
+        if user_id:
+            conditions.append("n.user_id = %s")
+            params.append(user_id)
 
         if course_section_id:
             conditions.append("n.course_id = %s")
@@ -170,25 +177,7 @@ def get_all_notes(
 
         where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
-        query = f"""
-            SELECT
-                n.note_id,
-                n.user_id,
-                n.course_id,
-                n.title,
-                n.description,
-                n.date_uploaded,
-                n.notes_content,
-                n.attachments,
-                cs.course_title,
-                cs.id as course_section_id,
-                c.course as course_code,
-                c.title as course_name,
-                p.name as professor_name
-            FROM notes n
-            LEFT JOIN course_section cs ON n.course_id = cs.id
-            LEFT JOIN course c ON cs.course_id = c.id
-            LEFT JOIN professor p ON cs.professor_id = p.professor_id
+        query = NOTE_SELECT + f"""
             {where_clause}
             ORDER BY n.date_uploaded DESC
             LIMIT %s OFFSET %s
@@ -199,16 +188,7 @@ def get_all_notes(
         results = cursor.fetchall()
         cursor.close()
 
-        rows = [dict(row) for row in results]
-        for row in rows:
-            attachments = row.get('attachments') or []
-            media = next((a for a in attachments if a.get('type') == 'image'), None)
-            doc = next((a for a in attachments if a.get('type') == 'document'), None)
-            row['media_url'] = media['url'] if media else None
-            row['file_url'] = doc['url'] if doc else None
-            row['file_name'] = doc['filename'] if doc else None
-            row['file_size'] = doc.get('size') if doc else None
-        return rows
+        return [parse_attachments(dict(row)) for row in results]
 
     except Exception as e:
         logger.error(f"Failed to get notes: {str(e)}")
@@ -249,6 +229,7 @@ def count_notes(
     search_query: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    user_id: Optional[int] = None,
     db: Connection = None
 ) -> int:
     try:
@@ -256,6 +237,10 @@ def count_notes(
 
         conditions = []
         params = []
+
+        if user_id:
+            conditions.append("n.user_id = %s")
+            params.append(user_id)
 
         if course_section_id:
             conditions.append("n.course_id = %s")
@@ -357,15 +342,12 @@ def update_note(note_id: int, note_data: NoteUpdate, notes_content: Optional[str
 def delete_note(note_id: int, db: Connection) -> bool:
     try:
         cursor = db.cursor()
-
         cursor.execute("DELETE FROM notes WHERE note_id = %s", (note_id,))
         db.commit()
         deleted = cursor.rowcount > 0
         cursor.close()
-
         logger.info(f"Deleted note {note_id}")
         return deleted
-
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to delete note {note_id}: {str(e)}")
@@ -375,13 +357,10 @@ def delete_note(note_id: int, db: Connection) -> bool:
 def check_note_exists(note_id: int, db: Connection) -> bool:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-
         cursor.execute("SELECT EXISTS(SELECT 1 FROM notes WHERE note_id = %s)", (note_id,))
         result = cursor.fetchone()
         cursor.close()
-
         return result['exists']
-
     except Exception as e:
         logger.error(f"Failed to check note {note_id}: {str(e)}")
         raise DatabaseException(f"Failed to check note: {str(e)}")

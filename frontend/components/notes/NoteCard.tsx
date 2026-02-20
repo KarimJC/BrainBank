@@ -9,8 +9,10 @@ interface NoteCardProps {
 }
 
 const formatDisplayDate = (dateStr: string): string => {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const [year, month, day] = dateStr.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
 };
 
 export default function NoteCard({ note, onPress }: NoteCardProps) {
@@ -22,13 +24,10 @@ export default function NoteCard({ note, onPress }: NoteCardProps) {
         </View>
         <Text style={styles.date}>{formatDisplayDate(note.dateUploaded)}</Text>
       </View>
-
       <Text style={styles.title}>{note.title}</Text>
-
       {note.description ? (
         <Text style={styles.description} numberOfLines={2}>{note.description}</Text>
       ) : null}
-
       <View style={styles.footer}>
         <Text style={styles.courseInfo} numberOfLines={1}>
           {note.courseName}{note.professorName ? ` · Prof. ${note.professorName}` : ''}

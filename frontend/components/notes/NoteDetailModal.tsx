@@ -22,8 +22,10 @@ interface NoteDetailModalProps {
 }
 
 const formatDisplayDate = (dateStr: string): string => {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const [year, month, day] = dateStr.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
 };
 
 export default function NoteDetailModal({ note, courseSections, onClose, onUpdated }: NoteDetailModalProps) {

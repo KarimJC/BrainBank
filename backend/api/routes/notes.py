@@ -10,15 +10,15 @@ from db.crud.notes import (
     get_notes_by_course_section, get_available_course_sections, count_notes
 )
 from db.crud.course_section import get_course_section_by_id
+from db.crud.user import get_user_by_auth_id
 from utils.ocr import extract_text
 from utils.storage import upload_file, delete_file
+from auth import get_current_user
 
 router = APIRouter(
     prefix="/api/notes",
     tags=["notes"]
 )
-
-DEFAULT_USER_ID = 5
 
 ALLOWED_MIME_TYPES = {
     "image/jpeg",
@@ -28,7 +28,7 @@ ALLOWED_MIME_TYPES = {
     "application/pdf",
 }
 
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
 def validate_upload(file: UploadFile, data: bytes):
@@ -50,10 +50,17 @@ async def create_note_endpoint(
     courseSectionId: int = Form(...),
     media: Optional[UploadFile] = File(None),
     file: Optional[UploadFile] = File(None),
+    current_user: dict = Depends(get_current_user),
     conn = Depends(get_db)
 ):
     if not media and not file:
         raise HTTPException(status_code=400, detail="At least one attachment required")
+
+    user = get_user_by_auth_id(current_user["auth_id"], conn)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_id = user["user_id"]
 
     course_section = get_course_section_by_id(courseSectionId, conn)
     if not course_section:
@@ -122,7 +129,7 @@ async def create_note_endpoint(
     try:
         note_record = create_note(
             note_data, media_url, file_name, file_url, file_size, notes_content,
-            DEFAULT_USER_ID, courseSectionId, conn
+            user_id, courseSectionId, conn
         )
         return NoteResponse(
             noteId=note_record['note_id'],
@@ -156,9 +163,14 @@ async def get_notes_endpoint(
     endDate: Optional[str] = None,
     limit: int = 50,
     skip: int = 0,
+    current_user: dict = Depends(get_current_user),
     conn = Depends(get_db)
 ):
     try:
+        user = get_user_by_auth_id(current_user["auth_id"], conn)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
         notes = get_all_notes(
             course_section_id=courseSectionId,
             search_query=search,
@@ -166,6 +178,7 @@ async def get_notes_endpoint(
             end_date=endDate,
             limit=limit,
             skip=skip,
+            user_id=user["user_id"],
             db=conn
         )
         return [
@@ -361,7 +374,6 @@ async def update_note_endpoint(
         if not updated_note:
             raise HTTPException(status_code=400, detail="No fields to update")
 
-        # Re-fetch the full note to include attachment data
         full_note = get_note_by_id(note_id, conn)
         course_section_id = courseSectionId or existing_note.get('course_id')
         course_section = get_course_section_by_id(course_section_id, conn) if course_section_id else None

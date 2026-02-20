@@ -1,6 +1,7 @@
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '@/app/config/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { supabase } from '@/services/supabase';
 
 export interface CourseSection {
   course_section_id: number;
@@ -71,60 +72,27 @@ const validateAttachment = (mimeType: string | undefined, size: number | undefin
   }
 };
 
-export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> => {
-  if (params.media) validateAttachment(params.media.mimeType, undefined);
-  if (params.file) validateAttachment(params.file.mimeType, params.file.size);
-
-  const formData = new FormData();
-  if (params.title) formData.append('title', params.title);
-  if (params.description !== undefined) formData.append('description', params.description);
-  if (params.notesContent !== undefined) formData.append('notesContent', params.notesContent);
-  if (params.date) formData.append('date', params.date);
-  if (params.courseSectionId) formData.append('courseSectionId', params.courseSectionId.toString());
-
-  if (params.media) {
-    const filename = params.media.uri.split('/').pop() || 'image.jpg';
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : 'image/jpeg';
-    formData.append('media', { uri: params.media.uri, name: filename, type } as any);
-  } else if (params.file) {
-    const filename = params.file.name || params.file.uri.split('/').pop() || 'file';
-    const mimeType = params.file.mimeType || 'application/octet-stream';
-    formData.append('file', { uri: params.file.uri, name: filename, type: mimeType } as any);
-  }
-
-  const response = await fetch(`${API_ENDPOINTS.NOTE_BY_ID(String(params.noteId))}`, {
-    method: 'PUT',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorMessage = `Update failed with status ${response.status}`;
-    try {
-      const errorData = JSON.parse(errorText);
-      errorMessage = errorData.detail || errorMessage;
-    } catch {}
-    throw new Error(errorMessage);
-  }
-
-  const n = await response.json();
-  return {
-    noteId: n.noteId ?? n.note_id,
-    title: n.title,
-    description: n.description,
-    dateUploaded: n.dateUploaded ?? n.date_uploaded,
-    courseSectionId: n.courseSectionId ?? n.course_section_id,
-    courseCode: n.courseCode ?? n.course_code,
-    courseName: n.courseName ?? n.course_name,
-    professorName: n.professorName ?? n.professor_name,
-    mediaUrl: n.mediaUrl ?? n.media_url,
-    fileName: n.fileName ?? n.file_name,
-    fileUrl: n.fileUrl ?? n.file_url,
-    fileSize: n.fileSize ?? n.file_size,
-    notesContent: n.notesContent ?? n.notes_content,
-  };
+const getAuthToken = async (): Promise<string> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('User is not authenticated.');
+  return session.access_token;
 };
+
+const mapNote = (n: any): NoteItem => ({
+  noteId: n.noteId ?? n.note_id,
+  title: n.title,
+  description: n.description,
+  dateUploaded: n.dateUploaded ?? n.date_uploaded,
+  courseSectionId: n.courseSectionId ?? n.course_section_id,
+  courseCode: n.courseCode ?? n.course_code,
+  courseName: n.courseName ?? n.course_name,
+  professorName: n.professorName ?? n.professor_name,
+  mediaUrl: n.mediaUrl ?? n.media_url,
+  fileName: n.fileName ?? n.file_name,
+  fileUrl: n.fileUrl ?? n.file_url,
+  fileSize: n.fileSize ?? n.file_size,
+  notesContent: n.notesContent ?? n.notes_content,
+});
 
 export const fetchNotes = async (params: FetchNotesParams = {}): Promise<NoteItem[]> => {
   const query = new URLSearchParams();
@@ -135,27 +103,22 @@ export const fetchNotes = async (params: FetchNotesParams = {}): Promise<NoteIte
   if (params.limit) query.append('limit', params.limit.toString());
   if (params.skip) query.append('skip', params.skip.toString());
 
+  const token = await getAuthToken();
   const url = `${API_ENDPOINTS.NOTES}${query.toString() ? `?${query.toString()}` : ''}`;
-  const response = await fetch(url, { method: 'GET' });
 
-  if (!response.ok) throw new Error('Failed to fetch notes');
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('fetchNotes failed:', response.status, errorText);
+    throw new Error(`Failed to fetch notes: ${response.status} ${errorText}`);
+  }
 
   const data = await response.json();
-  return data.map((n: any) => ({
-    noteId: n.noteId ?? n.note_id,
-    title: n.title,
-    description: n.description,
-    dateUploaded: n.dateUploaded ?? n.date_uploaded,
-    courseSectionId: n.courseSectionId ?? n.course_section_id,
-    courseCode: n.courseCode ?? n.course_code,
-    courseName: n.courseName ?? n.course_name,
-    professorName: n.professorName ?? n.professor_name,
-    mediaUrl: n.mediaUrl ?? n.media_url,
-    fileName: n.fileName ?? n.file_name,
-    fileUrl: n.fileUrl ?? n.file_url,
-    fileSize: n.fileSize ?? n.file_size,
-    notesContent: n.notesContent ?? n.notes_content,
-  }));
+  return data.map(mapNote);
 };
 
 export const fetchNoteCourseSections = async (): Promise<CourseSection[]> => {
@@ -173,6 +136,8 @@ export const fetchCourseSections = async (): Promise<CourseSection[]> => {
 export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
   if (params.media) validateAttachment(params.media.mimeType, undefined);
   if (params.file) validateAttachment(params.file.mimeType, params.file.size);
+
+  const token = await getAuthToken();
 
   const formData = new FormData();
   formData.append('title', params.title);
@@ -196,6 +161,7 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
 
   const response = await fetch(API_ENDPOINTS.NOTES, {
     method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
 
@@ -208,4 +174,47 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
     } catch {}
     throw new Error(errorMessage);
   }
+};
+
+export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> => {
+  if (params.media) validateAttachment(params.media.mimeType, undefined);
+  if (params.file) validateAttachment(params.file.mimeType, params.file.size);
+
+  const token = await getAuthToken();
+
+  const formData = new FormData();
+  if (params.title) formData.append('title', params.title);
+  if (params.description !== undefined) formData.append('description', params.description);
+  if (params.notesContent !== undefined) formData.append('notesContent', params.notesContent);
+  if (params.date) formData.append('date', params.date);
+  if (params.courseSectionId) formData.append('courseSectionId', params.courseSectionId.toString());
+
+  if (params.media) {
+    const filename = params.media.uri.split('/').pop() || 'image.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    formData.append('media', { uri: params.media.uri, name: filename, type } as any);
+  } else if (params.file) {
+    const filename = params.file.name || params.file.uri.split('/').pop() || 'file';
+    const mimeType = params.file.mimeType || 'application/octet-stream';
+    formData.append('file', { uri: params.file.uri, name: filename, type: mimeType } as any);
+  }
+
+  const response = await fetch(`${API_ENDPOINTS.NOTE_BY_ID(String(params.noteId))}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMessage = `Update failed with status ${response.status}`;
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMessage = errorData.detail || errorMessage;
+    } catch {}
+    throw new Error(errorMessage);
+  }
+
+  return mapNote(await response.json());
 };
