@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes.notes import router as notes_router
-from api.routes.course_sections import router as course_sections_router  # ADD THIS LINE
+from api.routes.course_section import router as course_sections_router
 
 app = FastAPI(
     title="BrainBank API",

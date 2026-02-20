@@ -18,19 +18,7 @@ import { useCameraPermissions } from 'expo-camera';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { API_ENDPOINTS } from '../config/api';
-
-interface CourseSection {
-  course_section_id: number;
-  course_id: number;
-  course_title: string;
-  course_CRN: number;
-  professor_id: number | null;
-  course_code: string;
-  course_name: string;
-  subject: string | null;
-  professor_name: string | null;
-}
+import { fetchCourseSections, uploadNote, CourseSection } from '@/app/services/notesService';
 
 interface NotesUploadPageProps {
   onClose?: () => void;
@@ -41,34 +29,27 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
   const [description, setDescription] = useState<string>('');
   const [date, setDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  
+
   const [courseSections, setCourseSections] = useState<CourseSection[]>([]);
   const [selectedCourseSection, setSelectedCourseSection] = useState<CourseSection | null>(null);
   const [showCourseSectionPicker, setShowCourseSectionPicker] = useState<boolean>(false);
   const [loadingCourseSections, setLoadingCourseSections] = useState<boolean>(true);
-  
+
   const [selectedMedia, setSelectedMedia] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
-  
+  const [isPickingFile, setIsPickingFile] = useState<boolean>(false);
+
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   useEffect(() => {
-    fetchCourseSections();
+    loadCourseSections();
   }, []);
 
-  const fetchCourseSections = async () => {
+  const loadCourseSections = async () => {
     try {
       setLoadingCourseSections(true);
-      const response = await fetch(`${API_ENDPOINTS.COURSE_SECTIONS}`, {
-        method: 'GET',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch course sections');
-      }
-
-      const data: CourseSection[] = await response.json();
+      const data = await fetchCourseSections();
       setCourseSections(data);
     } catch (error) {
       console.error('Failed to load course sections:', error);
@@ -83,21 +64,16 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
     return `${section.course_code} ${section.course_title}${professorPart}`;
   };
 
-  const formatDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+  const formatDate = (d: Date): string => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-    }
-    
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (selectedDate) setDate(selectedDate);
   };
 
   const handleDateDone = () => {
@@ -113,13 +89,11 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
           return;
         }
       }
-
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.8,
       });
-
       if (!result.canceled) {
         setSelectedMedia(result.assets[0]);
         setSelectedFile(null);
@@ -133,7 +107,6 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
   const pickImage = async (): Promise<void> => {
     try {
       const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
-      
       if (status !== 'granted') {
         const { status: newStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (newStatus !== 'granted') {
@@ -141,13 +114,11 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
           return;
         }
       }
-
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.8,
       });
-
       if (!result.canceled) {
         setSelectedMedia(result.assets[0]);
         setSelectedFile(null);
@@ -159,12 +130,13 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
   };
 
   const pickFile = async (): Promise<void> => {
+    if (isPickingFile) return;
     try {
+      setIsPickingFile(true);
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         copyToCacheDirectory: true,
       });
-
       if (!result.canceled) {
         setSelectedFile(result.assets[0]);
         setSelectedMedia(null);
@@ -172,11 +144,12 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
     } catch (error) {
       Alert.alert('Error', 'Failed to pick file');
       console.error(error);
+    } finally {
+      setIsPickingFile(false);
     }
   };
 
   const handleSubmit = async (): Promise<void> => {
-    // Validation
     if (!title.trim()) {
       Alert.alert('Validation Error', 'Please enter a title');
       return;
@@ -191,82 +164,34 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
     }
 
     setIsUploading(true);
-
     try {
-      const formData = new FormData();
-      
-      formData.append('title', title);
-      formData.append('date', formatDate(date));
-      formData.append('courseSectionId', selectedCourseSection.course_section_id.toString());
-      
-      if (description.trim()) {
-        formData.append('description', description);
-      }
-
-      if (selectedMedia) {
-        const filename = selectedMedia.uri.split('/').pop() || 'image.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-        
-        formData.append('media', {
-          uri: selectedMedia.uri,
-          name: filename,
-          type: type,
-        } as any);
-      } else if (selectedFile) {
-        const filename = selectedFile.name || selectedFile.uri.split('/').pop() || 'file';
-        const mimeType = selectedFile.mimeType || 'application/octet-stream';
-        
-        formData.append('file', {
-          uri: selectedFile.uri,
-          name: filename,
-          type: mimeType,
-        } as any);
-      }
-
-      const response = await fetch(API_ENDPOINTS.NOTES, {
-        method: 'POST',
-        body: formData,
+      await uploadNote({
+        title,
+        description,
+        date: formatDate(date),
+        courseSectionId: selectedCourseSection.course_section_id,
+        media: selectedMedia,
+        file: selectedFile,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = 'Upload failed';
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.detail || `Upload failed with status ${response.status}`;
-        } catch (e) {
-          errorMessage = `Upload failed with status ${response.status}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const responseData = await response.json();
-      console.log('✅ Note uploaded successfully!', responseData);
-
+      console.log('Note uploaded successfully!');
       Alert.alert('Success', 'Note uploaded successfully!', [
         {
           text: 'OK',
           onPress: () => {
             resetForm();
-            if (onClose) {
-              onClose();
-            }
+            if (onClose) onClose();
           },
         },
       ]);
     } catch (error) {
-      console.error('❌ Upload error:', error);
-      
+      console.error('Upload error:', error);
       let errorMessage = 'Failed to upload note.';
       if (error instanceof Error) {
-        if (error.message.includes('Network request failed')) {
-          errorMessage = 'Network request failed. Please check your connection.';
-        } else {
-          errorMessage = error.message;
-        }
+        errorMessage = error.message.includes('Network request failed')
+          ? 'Network request failed. Please check your connection.'
+          : error.message;
       }
-      
       Alert.alert('Upload Failed', errorMessage);
     } finally {
       setIsUploading(false);
@@ -287,25 +212,19 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
     setSelectedFile(null);
   };
 
-  const handleClose = (): void => {
-    if (onClose) {
-      onClose();
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <ScrollView 
-        style={styles.container} 
+      <ScrollView
+        style={styles.container}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>
           <View style={styles.headerContainer}>
             <Text style={styles.header}>Upload Notes</Text>
-            <TouchableOpacity 
-              style={styles.closeButton} 
-              onPress={handleClose}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => { if (onClose) onClose(); }}
               disabled={isUploading}
             >
               <Ionicons name="close" size={32} color="#000" />
@@ -341,7 +260,7 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Date</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dateInput}
               onPress={() => setShowDatePicker(true)}
               disabled={isUploading}
@@ -371,10 +290,10 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
 
           <View style={styles.mediaSection}>
             <Text style={styles.label}>Attachments *</Text>
-            
+
             <View style={styles.buttonRow}>
-              <TouchableOpacity 
-                style={styles.mediaButton} 
+              <TouchableOpacity
+                style={styles.mediaButton}
                 onPress={takePicture}
                 disabled={isUploading}
               >
@@ -382,8 +301,8 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
                 <Text style={styles.mediaButtonText}>Take Photo</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.mediaButton} 
+              <TouchableOpacity
+                style={styles.mediaButton}
                 onPress={pickImage}
                 disabled={isUploading}
               >
@@ -391,10 +310,10 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
                 <Text style={styles.mediaButtonText}>Upload Photo</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.mediaButton} 
+              <TouchableOpacity
+                style={styles.mediaButton}
                 onPress={pickFile}
-                disabled={isUploading}
+                disabled={isUploading || isPickingFile}
               >
                 <Ionicons name="document" size={28} color="#6B5BC7" />
                 <Text style={styles.mediaButtonText}>Upload File</Text>
@@ -403,9 +322,13 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
 
             {selectedMedia && (
               <View style={styles.preview}>
-                <Image source={{ uri: selectedMedia.uri }} style={styles.previewImage} />
-                <TouchableOpacity 
-                  style={styles.removeButton} 
+                <Image
+                  source={{ uri: selectedMedia.uri }}
+                  style={styles.previewImage}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={styles.removeButton}
                   onPress={removeMedia}
                   disabled={isUploading}
                 >
@@ -425,18 +348,15 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
                     {selectedFile.size ? (selectedFile.size / 1024).toFixed(2) : '0'} KB
                   </Text>
                 </View>
-                <TouchableOpacity 
-                  onPress={removeMedia}
-                  disabled={isUploading}
-                >
+                <TouchableOpacity onPress={removeMedia} disabled={isUploading}>
                   <Ionicons name="close-circle" size={28} color="#6B5BC7" />
                 </TouchableOpacity>
               </View>
             )}
           </View>
 
-          <TouchableOpacity 
-            style={[styles.submitButton, isUploading && styles.submitButtonDisabled]} 
+          <TouchableOpacity
+            style={[styles.submitButton, isUploading && styles.submitButtonDisabled]}
             onPress={handleSubmit}
             disabled={isUploading}
           >
@@ -452,7 +372,6 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
         </View>
       </ScrollView>
 
-      {/* Course Section Picker Modal */}
       <Modal
         visible={showCourseSectionPicker}
         transparent={true}
@@ -501,7 +420,6 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
         </View>
       </Modal>
 
-      {/* Date Picker Modal for iOS */}
       {Platform.OS === 'ios' && (
         <Modal
           visible={showDatePicker}
@@ -533,7 +451,6 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
         </Modal>
       )}
 
-      {/* Date Picker for Android */}
       {Platform.OS === 'android' && showDatePicker && (
         <DateTimePicker
           value={date}

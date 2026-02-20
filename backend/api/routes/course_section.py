@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from db.connection import get_db
-from db.crud.course_sections import get_all_course_sections, get_course_section_by_id
+from db.crud.course_section import get_all_course_sections, get_course_section_by_id
 from pydantic import BaseModel
 
 router = APIRouter(
