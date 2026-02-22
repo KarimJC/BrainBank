@@ -7,7 +7,7 @@ from db.crud.message import (
     get_message_by_id,
     get_messages_between_users,
     update_message as update_message_crud,
-    delete_message as delete_message_crud
+    delete_message as delete_message_crud,
 )
 
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
@@ -20,10 +20,7 @@ router = APIRouter()
 
 class MessageNotFoundException(HTTPException):
     def __init__(self, message_id: str):
-        super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Message with id {message_id} not found"
-        )
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=f"Message with id {message_id} not found")
 
 
 @router.post("/messages", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
@@ -56,7 +53,7 @@ def update_message(message_id: str, updated_message_data: MessageUpdate, db: Con
     current_message = get_message_by_id(message_id, db)
     if not current_message:
         raise MessageNotFoundException(message_id)
-    
+
     updated_message = update_message_crud(message_id, updated_message_data, db)
     return updated_message
 
@@ -67,6 +64,6 @@ def delete_message_route(message_id: str, db: Connection = Depends(get_db)) -> M
     message = get_message_by_id(message_id, db)
     if not message:
         raise MessageNotFoundException(message_id)
-    
+
     delete_message_crud(message_id, db)
     return MessageDeleteResponse(message=f"Successfully deleted message {message_id}", deleted_id=message_id)

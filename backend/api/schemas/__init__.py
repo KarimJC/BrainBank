@@ -14,5 +14,5 @@ __all__ = [
     "MessageCreate",
     "MessageUpdate",
     "MessageResponse",
-    "MessageDeleteResponse"
+    "MessageDeleteResponse",
 ]
