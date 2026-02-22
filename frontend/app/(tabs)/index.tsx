@@ -113,6 +113,23 @@ export default function HomeScreen() {
             Welcome, <Text style={styles.userName}>User!</Text>
           </Text>
 
+          {/* TEMPORARY TEST BUTTON - REMOVE LATER */}
+          <TouchableOpacity 
+            style={{
+              backgroundColor: '#6B4CE6',
+              padding: 16,
+              borderRadius: 12,
+              marginBottom: 20,
+              alignItems: 'center',
+            }}
+            onPress={() => router.push('/(tabs)/chatbotmodal')}
+          >
+            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '600' }}>
+              🤖 TEST CHATBOT MODAL
+            </Text>
+          </TouchableOpacity>
+          {/* delete */}
+
           {classes.map((classData) => (
             <ClassCard 
               key={classData.id} 
