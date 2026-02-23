@@ -1,6 +1,7 @@
-from fastapi import HTTPException, status, APIRouter, Depends
+from fastapi import HTTPException, status, APIRouter, Depends, WebSocket
 from psycopg2.extensions import connection as Connection
 from typing import List
+import json 
 
 from db.crud.message import (
     create_message as create_message_crud,
@@ -12,12 +13,39 @@ from db.crud.message import (
 
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
 from core.exceptions import DatabaseException
+from api.websocket_manager.connection_manager import ConnectionManager
 
 from db.connection import get_db
 
 
+
 router = APIRouter()
 
+websocket_manager = ConnectionManager() 
+
+@router.websocket("/ws/{user_id}")
+async def chat_websocket(websocket: WebSocket,  user_id: int, db: Connection = Depends(get_db)):
+    try:
+        await websocket_manager.connect(websocket, user_id)
+        while True:
+             data = await websocket.receive_text()
+             data_json = json.loads(data)
+             
+            
+            
+    
+            '''
+            receive input as a JSON 
+            parase into a MessageCreate object
+            send message to other person
+            if it works send it and save to db 
+            if it deoes not work, then save to db and the restendpoint should take care of it when they log in           
+            
+            '''
+            
+        
+    except:
+        '''catch for disconnect'''
 
 class MessageNotFoundException(HTTPException):
     def __init__(self, message_id: str):
