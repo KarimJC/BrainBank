@@ -55,5 +55,3 @@ export const checkBackendConnection = async (): Promise<boolean> => {
     return false;
   }
 };
-
-console.log('API Base URL:', API_BASE_URL);
