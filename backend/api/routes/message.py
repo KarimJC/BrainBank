@@ -14,7 +14,7 @@ from db.crud.message import (
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
 from core.exceptions import DatabaseException
 from api.websocket_manager.connection_manager import ConnectionManager
-from backend.db.crud.conversation import get_conversation_by_id
+from db.crud.conversation import get_conversation_by_id
 from db.connection import get_db
 
 
@@ -41,7 +41,7 @@ async def chat_websocket(websocket: WebSocket,  user_id: int, db: Connection = D
                 make_message = MessageCreate(**json_data)
                 find_conversation =  get_conversation_by_id(make_message.conversation_id, db)
                 if find_conversation:
-                    create_message(make_message, db) #save message regardless 
+                    create_message_crud(make_message, user_id, db)  
                     if user_id == find_conversation['initiator_id']:
                      await websocket_manager.send_message(find_conversation['recipient_id'], make_message.content)
                        
@@ -65,9 +65,9 @@ class MessageNotFoundException(HTTPException):
 
 
 @router.post("/messages", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
-def create_message(message_data: MessageCreate, db: Connection = Depends(get_db)):
+def create_message(message_data: MessageCreate, user_id: int, db: Connection = Depends(get_db)):
     """Create a new message"""
-    message = create_message_crud(message_data, db)
+    message = create_message_crud(message_data,user_id, db)
     return message
 
 
@@ -82,9 +82,9 @@ def get_message(message_id: str, db: Connection = Depends(get_db)):
 
 
 @router.get("/messages", response_model=List[MessageResponse], status_code=status.HTTP_200_OK)
-def get_messages(from_id: int, to_id: int, db: Connection = Depends(get_db)):
+def get_messages(conversation_id:int, db: Connection = Depends(get_db)):
     """Get all messages between two users"""
-    messages = get_messages_between_users(from_id, to_id, db)
+    messages = get_messages_between_users(conversation_id, db)
     return messages
 
 
