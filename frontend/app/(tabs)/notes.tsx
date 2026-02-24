@@ -13,12 +13,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
-import { fetchNotes, fetchNoteCourseSections, NoteItem, CourseSection } from '../services/notesService';
+import { fetchNotes, fetchCourseSections, NoteItem, CourseSection } from '../services/notesService';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
 import NotesFilterModal from '@/components/notes/NotesFilterModal';
-import CourseSectionPicker from '@/components/notes/CourseSectionPicker';
-import DateRangePicker from '@/components/notes/DateRangePicker';
 
 const formatDate = (d: Date): string => {
   const year = d.getFullYear();
@@ -43,12 +41,8 @@ export default function NotesListPage() {
 
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [activeDatePicker, setActiveDatePicker] = useState<'start' | 'end' | null>(null);
-  const [showStartPicker, setShowStartPicker] = useState<boolean>(false);
-  const [showEndPicker, setShowEndPicker] = useState<boolean>(false);
 
   const [showFilters, setShowFilters] = useState<boolean>(false);
-  const [showCoursePicker, setShowCoursePicker] = useState<boolean>(false);
 
   useEffect(() => {
     loadCourseSections();
@@ -65,7 +59,7 @@ export default function NotesListPage() {
 
   const loadCourseSections = async () => {
     try {
-      const data = await fetchNoteCourseSections();
+      const data = await fetchCourseSections();
       setCourseSections(data);
     } catch (error) {
       console.error('Failed to load course sections:', error);
@@ -91,12 +85,6 @@ export default function NotesListPage() {
     }
   };
 
-  const handleDateChange = (type: 'start' | 'end', date: Date | undefined) => {
-    if (!date) return;
-    if (type === 'start') setStartDate(date);
-    else setEndDate(date);
-  };
-
   const clearFilters = () => {
     setSelectedCourseSection(null);
     setStartDate(null);
@@ -113,11 +101,7 @@ export default function NotesListPage() {
   const activeFilterCount = [selectedCourseSection, startDate, endDate].filter(Boolean).length;
 
   return (
-    <AppLayout
-      userName="User"
-      onNavigate={handleNavigate}
-      activeRoute="notes"
-    >
+    <AppLayout userName="User" onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
         <Text style={styles.header}>My Notes</Text>
 
@@ -228,30 +212,12 @@ export default function NotesListPage() {
         selectedCourseSection={selectedCourseSection}
         startDate={startDate}
         endDate={endDate}
-        onOpenCoursePicker={() => setShowCoursePicker(true)}
-        onOpenStartDate={() => { setActiveDatePicker('start'); setShowStartPicker(true); setShowFilters(false); }}
-        onOpenEndDate={() => { setActiveDatePicker('end'); setShowEndPicker(true); setShowFilters(false); }}
+        courseSections={courseSections}
+        onSelectCourse={setSelectedCourseSection}
+        onSelectStartDate={setStartDate}
+        onSelectEndDate={setEndDate}
         onReset={clearFilters}
         onClose={() => setShowFilters(false)}
-      />
-
-      <CourseSectionPicker
-        visible={showCoursePicker}
-        sections={courseSections}
-        selected={selectedCourseSection}
-        onSelect={setSelectedCourseSection}
-        onClose={() => setShowCoursePicker(false)}
-        showAllOption={true}
-      />
-
-      <DateRangePicker
-        startDate={startDate}
-        endDate={endDate}
-        activePicker={activeDatePicker}
-        showStartPicker={showStartPicker}
-        showEndPicker={showEndPicker}
-        onDateChange={handleDateChange}
-        onClose={() => { setShowStartPicker(false); setShowEndPicker(false); setActiveDatePicker(null); }}
       />
     </AppLayout>
   );

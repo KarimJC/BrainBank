@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@/app/config/api';
+import { API_ENDPOINTS } from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '@/services/supabase';
@@ -113,7 +113,6 @@ export const fetchNotes = async (params: FetchNotesParams = {}): Promise<NoteIte
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('fetchNotes failed:', response.status, errorText);
     throw new Error(`Failed to fetch notes: ${response.status} ${errorText}`);
   }
 

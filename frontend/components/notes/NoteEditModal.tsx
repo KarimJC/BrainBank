@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,9 @@ import {
   ActivityIndicator,
   Image,
   Platform,
+  Animated,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +30,10 @@ interface NoteEditModalProps {
   onClose: () => void;
   onUpdated: (updated: NoteItem) => void;
 }
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
+const SWIPE_VELOCITY = 0.3;
 
 export default function NoteEditModal({ note, courseSections, onClose, onUpdated }: NoteEditModalProps) {
   const insets = useSafeAreaInsets();
@@ -46,8 +53,19 @@ export default function NoteEditModal({ note, courseSections, onClose, onUpdated
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
+  const translateX = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
   useEffect(() => {
     if (note) {
+      translateX.setValue(SCREEN_WIDTH);
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+
       setTitle(note.title);
       setDescription(note.description || '');
       setNotesContent(note.notesContent || '');
@@ -58,6 +76,50 @@ export default function NoteEditModal({ note, courseSections, onClose, onUpdated
       setSelectedFile(null);
     }
   }, [note]);
+
+  const handleDismiss = () => {
+    Animated.timing(translateX, {
+      toValue: SCREEN_WIDTH,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => onCloseRef.current());
+  };
+
+  const handleDismissRef = useRef(handleDismiss);
+  handleDismissRef.current = handleDismiss;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, { dx, dy }) =>
+        dx > 5 && Math.abs(dx) > Math.abs(dy),
+
+      onPanResponderGrant: () => {
+        translateX.setValue(0);
+      },
+      onPanResponderMove: (_, { dx }) => {
+        if (dx > 0) translateX.setValue(dx);
+      },
+      onPanResponderRelease: (_, { dx, vx }) => {
+        if (dx > SWIPE_THRESHOLD || vx > SWIPE_VELOCITY) {
+          handleDismissRef.current();
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 12,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
 
   const formatDate = (d: Date): string => {
     const year = d.getFullYear();
@@ -138,18 +200,29 @@ export default function NoteEditModal({ note, courseSections, onClose, onUpdated
   };
 
   return (
-    <Modal visible={!!note} transparent={false} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={!!note} transparent={true} animationType="none" onRequestClose={handleDismiss}>
       {note && (
-        <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-          <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            {/* Header */}
-            <View style={styles.headerRow}>
-              <TouchableOpacity onPress={onClose} disabled={isSaving}>
-                <Ionicons name="chevron-back" size={32} color="#000" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Edit Note</Text>
-              <View style={{ width: 32 }} />
-            </View>
+        <Animated.View
+          style={[
+            styles.safeArea,
+            { paddingTop: insets.top, paddingBottom: insets.bottom },
+            { transform: [{ translateX }] },
+          ]}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity onPress={handleDismiss} disabled={isSaving} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
+              <Ionicons name="chevron-back" size={32} color="#000" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Edit Note</Text>
+            <View style={{ width: 32 }} />
+          </View>
+
+          <ScrollView
+            style={styles.container}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={{ height: 8 }} />
 
             {/* Title */}
             <View style={styles.inputGroup}>
@@ -258,7 +331,7 @@ export default function NoteEditModal({ note, courseSections, onClose, onUpdated
                   <Text style={styles.currentAttachmentText} numberOfLines={1}>
                     {currentAttachmentLabel()}
                   </Text>
-                  {(selectedFile) && (
+                  {selectedFile && (
                     <TouchableOpacity onPress={() => setSelectedFile(null)}>
                       <Ionicons name="close-circle" size={20} color="#6B5BC7" />
                     </TouchableOpacity>
@@ -285,6 +358,9 @@ export default function NoteEditModal({ note, courseSections, onClose, onUpdated
 
             <View style={{ height: 40 }} />
           </ScrollView>
+
+          {/* Invisible left-edge strip that owns the swipe gesture */}
+          <View style={styles.swipeZone} {...panResponder.panHandlers} />
 
           {/* iOS Date Picker */}
           {Platform.OS === 'ios' && showDatePicker && (
@@ -330,7 +406,7 @@ export default function NoteEditModal({ note, courseSections, onClose, onUpdated
             onSelect={setSelectedCourseSection}
             onClose={() => setShowCoursePicker(false)}
           />
-        </View>
+        </Animated.View>
       )}
     </Modal>
   );
@@ -341,29 +417,39 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
+  swipeZone: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 30,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    marginBottom: 24,
+  header: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: '#000',
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
   inputGroup: {
     marginBottom: 20,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6B5BC7',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
     marginBottom: 8,
   },
   input: {

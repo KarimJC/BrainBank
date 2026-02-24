@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   Linking,
   Modal,
   StyleSheet,
+  Animated,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,35 +24,102 @@ interface NoteDetailModalProps {
   onUpdated: (updated: NoteItem) => void;
 }
 
-const formatDisplayDate = (dateStr: string): string => {
-  const [year, month, day] = dateStr.slice(0, 10).split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  });
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
+const SWIPE_VELOCITY = 0.3;
+
+const formatDisplayDate = (dateStr?: string | null): string => {
+  if (!dateStr) return '';
+  try {
+    const [year, month, day] = dateStr.slice(0, 10).split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
 };
 
 export default function NoteDetailModal({ note, courseSections, onClose, onUpdated }: NoteDetailModalProps) {
   const insets = useSafeAreaInsets();
   const [showEdit, setShowEdit] = useState(false);
-  const [currentNote, setCurrentNote] = useState<NoteItem | null>(note);
+  const translateX = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
-    setCurrentNote(note);
+    if (note) {
+      translateX.setValue(SCREEN_WIDTH);
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
   }, [note]);
+
+  const handleDismiss = () => {
+    Animated.timing(translateX, {
+      toValue: SCREEN_WIDTH,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => onCloseRef.current());
+  };
+
+  const handleDismissRef = useRef(handleDismiss);
+  handleDismissRef.current = handleDismiss;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, { dx, dy }) =>
+        dx > 5 && Math.abs(dx) > Math.abs(dy),
+
+      onPanResponderGrant: () => {
+        translateX.setValue(0);
+      },
+      onPanResponderMove: (_, { dx }) => {
+        if (dx > 0) translateX.setValue(dx);
+      },
+      onPanResponderRelease: (_, { dx, vx }) => {
+        if (dx > SWIPE_THRESHOLD || vx > SWIPE_VELOCITY) {
+          handleDismissRef.current();
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 12,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
 
   return (
     <Modal
       visible={!!note}
-      transparent={false}
-      animationType="slide"
-      onRequestClose={onClose}
+      transparent={true}
+      animationType="none"
+      onRequestClose={handleDismiss}
     >
       {note && (
-        <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <Animated.View
+          style={[
+            styles.safeArea,
+            { paddingTop: insets.top, paddingBottom: insets.bottom },
+            { transform: [{ translateX }] },
+          ]}
+        >
           <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-
             <View style={styles.headerRow}>
-              <TouchableOpacity onPress={onClose}>
+              <TouchableOpacity onPress={handleDismiss} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
                 <Ionicons name="chevron-back" size={32} color="#000" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.editButton} onPress={() => setShowEdit(true)}>
@@ -131,13 +201,16 @@ export default function NoteDetailModal({ note, courseSections, onClose, onUpdat
             <View style={{ height: 40 }} />
           </ScrollView>
 
+          {/* Invisible left-edge strip that owns the swipe gesture */}
+          <View style={styles.swipeZone} {...panResponder.panHandlers} />
+
           <NoteEditModal
             note={showEdit ? note : null}
             courseSections={courseSections}
             onClose={() => setShowEdit(false)}
             onUpdated={(updated) => { onUpdated(updated); setShowEdit(false); }}
           />
-        </View>
+        </Animated.View>
       )}
     </Modal>
   );
@@ -147,6 +220,13 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  swipeZone: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 30,
   },
   container: {
     flex: 1,

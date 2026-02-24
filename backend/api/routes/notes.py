@@ -41,6 +41,119 @@ def validate_upload(file: UploadFile, data: bytes):
         raise HTTPException(status_code=400, detail="File size exceeds 10MB limit.")
 
 
+@router.get("/course-sections", response_model=List[dict])
+async def get_available_course_sections_endpoint(conn=Depends(get_db)):
+    try:
+        return get_available_course_sections(conn)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/count", response_model=dict)
+async def count_notes_endpoint(
+    courseSectionId: Optional[int] = None,
+    search: Optional[str] = None,
+    startDate: Optional[str] = None,
+    endDate: Optional[str] = None,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db)
+):
+    try:
+        user = get_user_by_auth_id(current_user["auth_id"], conn)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        total = count_notes(
+            course_section_id=courseSectionId,
+            search_query=search,
+            start_date=startDate,
+            end_date=endDate,
+            user_id=user["user_id"],
+            db=conn
+        )
+        return {"count": total}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/course-section/{course_section_id}", response_model=List[NoteResponse])
+async def get_notes_by_course_section_endpoint(
+    request: Request,
+    course_section_id: int,
+    conn=Depends(get_db)
+):
+    try:
+        notes = get_notes_by_course_section(course_section_id, conn)
+        return [
+            NoteResponse(
+                noteId=note['note_id'],
+                title=note['title'],
+                description=note['description'],
+                dateUploaded=str(note['date_uploaded']),
+                courseSectionId=note.get('course_section_id'),
+                courseCode=note.get('course_name'),
+                courseName=note.get('course_code'),
+                professorName=note.get('professor_name'),
+                notesContent=note.get('notes_content'),
+                mediaUrl=note.get('media_url'),
+                fileName=note.get('file_name'),
+                fileUrl=note.get('file_url'),
+                fileSize=note.get('file_size')
+            )
+            for note in notes
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("", response_model=List[NoteResponse])
+async def get_notes_endpoint(
+    request: Request,
+    courseSectionId: Optional[int] = None,
+    search: Optional[str] = None,
+    startDate: Optional[str] = None,
+    endDate: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0,
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db)
+):
+    try:
+        user = get_user_by_auth_id(current_user["auth_id"], conn)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        notes = get_all_notes(
+            course_section_id=courseSectionId,
+            search_query=search,
+            start_date=startDate,
+            end_date=endDate,
+            limit=limit,
+            skip=skip,
+            user_id=user["user_id"],
+            db=conn
+        )
+        return [
+            NoteResponse(
+                noteId=note['note_id'],
+                title=note['title'],
+                description=note['description'],
+                dateUploaded=str(note['date_uploaded']),
+                courseSectionId=note.get('course_section_id'),
+                courseCode=note.get('course_name'),
+                courseName=note.get('course_code'),
+                professorName=note.get('professor_name'),
+                notesContent=note.get('notes_content'),
+                mediaUrl=note.get('media_url'),
+                fileName=note.get('file_name'),
+                fileUrl=note.get('file_url'),
+                fileSize=note.get('file_size')
+            )
+            for note in notes
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("", response_model=NoteResponse, status_code=201)
 async def create_note_endpoint(
     request: Request,
@@ -51,7 +164,7 @@ async def create_note_endpoint(
     media: Optional[UploadFile] = File(None),
     file: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_user),
-    conn = Depends(get_db)
+    conn=Depends(get_db)
 ):
     if not media and not file:
         raise HTTPException(status_code=400, detail="At least one attachment required")
@@ -137,8 +250,8 @@ async def create_note_endpoint(
             description=note_record['description'],
             dateUploaded=str(note_record['date_uploaded']),
             courseSectionId=courseSectionId,
-            courseCode=course_section['course_code'],
-            courseName=course_section['course_name'],
+            courseCode=course_section['course_name'],
+            courseName=course_section['course_code'],
             professorName=course_section.get('professor_name'),
             notesContent=note_record.get('notes_content'),
             mediaUrl=media_url,
@@ -154,118 +267,11 @@ async def create_note_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("", response_model=List[NoteResponse])
-async def get_notes_endpoint(
-    request: Request,
-    courseSectionId: Optional[int] = None,
-    search: Optional[str] = None,
-    startDate: Optional[str] = None,
-    endDate: Optional[str] = None,
-    limit: int = 50,
-    skip: int = 0,
-    current_user: dict = Depends(get_current_user),
-    conn = Depends(get_db)
-):
-    try:
-        user = get_user_by_auth_id(current_user["auth_id"], conn)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        notes = get_all_notes(
-            course_section_id=courseSectionId,
-            search_query=search,
-            start_date=startDate,
-            end_date=endDate,
-            limit=limit,
-            skip=skip,
-            user_id=user["user_id"],
-            db=conn
-        )
-        return [
-            NoteResponse(
-                noteId=note['note_id'],
-                title=note['title'],
-                description=note['description'],
-                dateUploaded=str(note['date_uploaded']),
-                courseSectionId=note.get('course_section_id'),
-                courseCode=note.get('course_name'),
-                courseName=note.get('course_code'),
-                professorName=note.get('professor_name'),
-                notesContent=note.get('notes_content'),
-                mediaUrl=note.get('media_url'),
-                fileName=note.get('file_name'),
-                fileUrl=note.get('file_url'),
-                fileSize=note.get('file_size')
-            )
-            for note in notes
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/course-sections", response_model=List[dict])
-async def get_available_course_sections_endpoint(conn = Depends(get_db)):
-    try:
-        return get_available_course_sections(conn)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/count", response_model=dict)
-async def count_notes_endpoint(
-    courseSectionId: Optional[int] = None,
-    search: Optional[str] = None,
-    startDate: Optional[str] = None,
-    endDate: Optional[str] = None,
-    conn = Depends(get_db)
-):
-    try:
-        total = count_notes(
-            course_section_id=courseSectionId,
-            search_query=search,
-            start_date=startDate,
-            end_date=endDate,
-            db=conn
-        )
-        return {"count": total}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/course-section/{course_section_id}", response_model=List[NoteResponse])
-async def get_notes_by_course_section_endpoint(
-    request: Request,
-    course_section_id: int,
-    conn = Depends(get_db)
-):
-    try:
-        notes = get_notes_by_course_section(course_section_id, conn)
-        return [
-            NoteResponse(
-                noteId=note['note_id'],
-                title=note['title'],
-                description=note['description'],
-                dateUploaded=str(note['date_uploaded']),
-                courseSectionId=note.get('course_section_id'),
-                courseCode=note.get('course_code'),
-                courseName=note.get('course_name'),
-                professorName=note.get('professor_name'),
-                mediaUrl=note.get('media_url'),
-                fileName=note.get('file_name'),
-                fileUrl=note.get('file_url'),
-                fileSize=note.get('file_size')
-            )
-            for note in notes
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.get("/{note_id}", response_model=NoteResponse)
 async def get_note_endpoint(
     request: Request,
     note_id: int,
-    conn = Depends(get_db)
+    conn=Depends(get_db)
 ):
     try:
         note = get_note_by_id(note_id, conn)
@@ -277,9 +283,10 @@ async def get_note_endpoint(
             description=note['description'],
             dateUploaded=str(note['date_uploaded']),
             courseSectionId=note.get('course_section_id'),
-            courseCode=note.get('course_code'),
-            courseName=note.get('course_name'),
+            courseCode=note.get('course_name'),
+            courseName=note.get('course_code'),
             professorName=note.get('professor_name'),
+            notesContent=note.get('notes_content'),
             mediaUrl=note.get('media_url'),
             fileName=note.get('file_name'),
             fileUrl=note.get('file_url'),
@@ -301,7 +308,7 @@ async def update_note_endpoint(
     courseSectionId: Optional[int] = Form(None),
     media: Optional[UploadFile] = File(None),
     file: Optional[UploadFile] = File(None),
-    conn = Depends(get_db)
+    conn=Depends(get_db)
 ):
     if not check_note_exists(note_id, conn):
         raise HTTPException(status_code=404, detail="Note not found")
@@ -375,7 +382,7 @@ async def update_note_endpoint(
             raise HTTPException(status_code=400, detail="No fields to update")
 
         full_note = get_note_by_id(note_id, conn)
-        course_section_id = courseSectionId or existing_note.get('course_id')
+        course_section_id = courseSectionId or existing_note.get('course_section_id')
         course_section = get_course_section_by_id(course_section_id, conn) if course_section_id else None
 
         return NoteResponse(
@@ -398,7 +405,7 @@ async def update_note_endpoint(
 
 
 @router.delete("/{note_id}", response_model=DeleteResponse)
-async def delete_note_endpoint(note_id: int, conn = Depends(get_db)):
+async def delete_note_endpoint(note_id: int, conn=Depends(get_db)):
     try:
         note = get_note_by_id(note_id, conn)
         if not note:
