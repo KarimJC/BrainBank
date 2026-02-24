@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, APIRouter, Depends, WebSocket
+from fastapi import HTTPException, status, APIRouter, Depends, WebSocket, WebSocketDisconnect
 from psycopg2.extensions import connection as Connection
 from typing import List
 import json 
@@ -14,7 +14,7 @@ from db.crud.message import (
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
 from core.exceptions import DatabaseException
 from api.websocket_manager.connection_manager import ConnectionManager
-
+from backend.db.crud.conversation import get_conversation_by_id
 from db.connection import get_db
 
 
@@ -25,27 +25,36 @@ websocket_manager = ConnectionManager()
 
 @router.websocket("/ws/{user_id}")
 async def chat_websocket(websocket: WebSocket,  user_id: int, db: Connection = Depends(get_db)):
+    '''
+    receive input as a JSON 
+    parase into a MessageCreate object
+    send message to other person
+    if it works send it and save to db 
+    if it deoes not work, then save to db and the restendpoint should take care of it when they log in            
+    '''
     try:
         await websocket_manager.connect(websocket, user_id)
         while True:
              data = await websocket.receive_text()
-             data_json = json.loads(data)
-             
-            
-            
-    
-            '''
-            receive input as a JSON 
-            parase into a MessageCreate object
-            send message to other person
-            if it works send it and save to db 
-            if it deoes not work, then save to db and the restendpoint should take care of it when they log in           
-            
-            '''
-            
+             json_data = json.loads(data)
+             try:
+                make_message = MessageCreate(**json_data)
+                find_conversation =  get_conversation_by_id(make_message.conversation_id, db)
+                if find_conversation:
+                    create_message(make_message, db) #save message regardless 
+                    if user_id == find_conversation['initiator_id']:
+                     await websocket_manager.send_message(find_conversation['recipient_id'], make_message.content)
+                       
+                    else:
+                        await websocket_manager.send_message(find_conversation['initiator_id'],make_message.content)  
+             except Exception as e:
+                  await websocket.send_json({"status": "error", "message": f"Validation error: {e}"}) 
+    except WebSocketDisconnect:
         
-    except:
-        '''catch for disconnect'''
+        await websocket_manager.disconnect(user_id)
+        
+        
+        
 
 class MessageNotFoundException(HTTPException):
     def __init__(self, message_id: str):
