@@ -17,7 +17,7 @@ def get_user_by_id(user_id: int, db: Connection):
         cursor = db.cursor(cursor_factory=RealDictCursor)
         
         query = """
-            SELECT user_id, auth_id, neu_email, first_name, last_name, profile_picture, created_at
+            SELECT user_id, auth_id, neu_email, first_name, last_name, profile_picture
             FROM public.user
             WHERE user_id = %s
         """

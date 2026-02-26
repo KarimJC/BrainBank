@@ -12,7 +12,7 @@ from db.crud.message import (
 )
 
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
-from core.exceptions import DatabaseException
+from core.exceptions import DatabaseException, MessageNotFoundException
 from api.websocket_manager.connection_manager import ConnectionManager
 from db.crud.conversation import get_conversation_by_id
 from db.connection import get_db
@@ -55,14 +55,6 @@ async def chat_websocket(websocket: WebSocket,  user_id: int, db: Connection = D
         
         
         
-
-class MessageNotFoundException(HTTPException):
-    def __init__(self, message_id: str):
-        super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Message with id {message_id} not found"
-        )
-
 
 @router.post("/messages", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
 def create_message(message_data: MessageCreate, user_id: int, db: Connection = Depends(get_db)):
