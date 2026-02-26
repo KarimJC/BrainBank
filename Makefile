@@ -1,4 +1,4 @@
-.PHONY: backend frontend dev
+.PHONY: backend frontend dev lint
 
 backend:
 	cd backend && uvicorn main:app --reload
