@@ -3,16 +3,16 @@ from api.schemas.courses import CourseCreate, CourseUpdate, CourseResponse, Cour
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
 
 __all__ = [
-    "UserUpdate", 
+    "UserUpdate",
     "UserResponse",
     "DeleteResponse",
     "CourseCreate",
     "CourseUpdate",
     "CourseResponse",
     "CourseList",
-    "CourseDeleteResponse"
+    "CourseDeleteResponse",
     "MessageCreate",
     "MessageUpdate",
     "MessageResponse",
-    "MessageDeleteResponse"
+    "MessageDeleteResponse",
 ]
