@@ -16,10 +16,13 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import {
   ChatMessage,
   DocumentType,
+  GeneratedDocument,
+  DOC_LABEL,
   sendChatMessage,
   loadChatHistory,
   generateDocument,
   shareAsPdf,
+  openPdfInBrowser,
 } from '@/services/chatService';
 
 const COLORS = {
@@ -46,12 +49,6 @@ const DOC_BUTTONS: { type: DocumentType; label: string }[] = [
   { type: 'summary', label: 'Summary' },
 ];
 
-const DOC_LABEL: Record<DocumentType, string> = {
-  'study-guide': 'Study Guide',
-  'practice-exam': 'Practice Exam',
-  'summary': 'Course Summary',
-};
-
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 const TypingIndicator = () => (
@@ -73,10 +70,12 @@ interface MessageBubbleProps {
   msg: ChatMessage;
   courseName: string;
   onSharePdf: (msg: ChatMessage) => void;
+  onViewPdf: (msg: ChatMessage) => void;
   sharingId: string | null;
+  viewingId: string | null;
 }
 
-const MessageBubble = ({ msg, courseName, onSharePdf, sharingId }: MessageBubbleProps) => (
+const MessageBubble = ({ msg, courseName, onSharePdf, onViewPdf, sharingId, viewingId }: MessageBubbleProps) => (
   <View
     style={[
       styles.bubbleWrapper,
@@ -113,17 +112,30 @@ const MessageBubble = ({ msg, courseName, onSharePdf, sharingId }: MessageBubble
         </Text>
       </View>
       {msg.isDocument && (
-        <TouchableOpacity
-          style={[styles.pdfButton, sharingId === msg.id && styles.pdfButtonLoading]}
-          onPress={() => onSharePdf(msg)}
-          disabled={sharingId === msg.id}
-        >
-          {sharingId === msg.id ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <Text style={styles.pdfButtonText}>📤 Share as PDF</Text>
-          )}
-        </TouchableOpacity>
+        <View style={styles.docButtonRow}>
+          <TouchableOpacity
+            style={[styles.pdfButton, styles.pdfButtonView, viewingId === msg.id && styles.pdfButtonLoading]}
+            onPress={() => onViewPdf(msg)}
+            disabled={viewingId === msg.id || sharingId === msg.id}
+          >
+            {viewingId === msg.id ? (
+              <ActivityIndicator size="small" color={COLORS.darkPurple} />
+            ) : (
+              <Text style={[styles.pdfButtonText, styles.pdfButtonTextView]}>📄 View PDF</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.pdfButton, sharingId === msg.id && styles.pdfButtonLoading]}
+            onPress={() => onSharePdf(msg)}
+            disabled={sharingId === msg.id || viewingId === msg.id}
+          >
+            {sharingId === msg.id ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.pdfButtonText}>📤 Share</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   </View>
@@ -147,6 +159,7 @@ export default function ChatbotScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [docGenerating, setDocGenerating] = useState<DocumentType | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   // On mount: load chat history
   useEffect(() => {
@@ -216,13 +229,14 @@ export default function ChatbotScreen() {
     setDocGenerating(type);
 
     try {
-      const content = await generateDocument(userId, sectionId, type);
+      const doc: GeneratedDocument = await generateDocument(userId, sectionId, type);
       const docMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content,
+        content: `Your ${DOC_LABEL[type]} is ready! Tap the button below to open and share the PDF.`,
         isDocument: true,
         docType: type,
+        docId: doc.docId,
       };
       setMessages((prev) => [...prev, docMsg]);
     } catch (e) {
@@ -237,15 +251,29 @@ export default function ChatbotScreen() {
     }
   };
 
+  // ── View a document PDF in-app ────────────────────────────────────────────
+
+  const handleViewPdf = async (msg: ChatMessage) => {
+    if (!msg.docId) return;
+    setViewingId(msg.id);
+    try {
+      await openPdfInBrowser(msg.docId);
+    } catch (e) {
+      Alert.alert('View Error', 'Could not open the PDF. Please try again.');
+    } finally {
+      setViewingId(null);
+    }
+  };
+
   // ── Share a document as PDF ────────────────────────────────────────────────
 
   const handleSharePdf = async (msg: ChatMessage) => {
-    if (!msg.docType) return;
+    if (!msg.docType || !msg.docId) return;
     setSharingId(msg.id);
     try {
-      await shareAsPdf(courseName, msg.docType as DocumentType, msg.content);
+      await shareAsPdf(msg.docId, msg.docType as DocumentType, courseName);
     } catch (e) {
-      Alert.alert('PDF Error', 'Could not create the PDF. Please try again.');
+      Alert.alert('PDF Error', 'Could not fetch the PDF from the server. Please try again.');
     } finally {
       setSharingId(null);
     }
@@ -327,7 +355,9 @@ export default function ChatbotScreen() {
             msg={msg}
             courseName={courseName}
             onSharePdf={handleSharePdf}
+            onViewPdf={handleViewPdf}
             sharingId={sharingId}
+            viewingId={viewingId}
           />
         ))}
         {(isLoading || docGenerating) && <TypingIndicator />}
@@ -524,14 +554,24 @@ const styles = StyleSheet.create({
   bubbleTextBot: {
     color: COLORS.black,
   },
+  docButtonRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   pdfButton: {
+    flex: 1,
     backgroundColor: COLORS.darkPurple,
     borderRadius: 20,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 36,
+  },
+  pdfButtonView: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1.5,
+    borderColor: COLORS.darkPurple,
   },
   pdfButtonLoading: {
     opacity: 0.7,
@@ -540,6 +580,9 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 13,
     fontWeight: '600',
+  },
+  pdfButtonTextView: {
+    color: COLORS.darkPurple,
   },
   inputBar: {
     flexDirection: 'row',
