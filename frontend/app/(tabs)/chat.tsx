@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 const MOCK_COURSES = [
-  { id: '7', code: 'CS 2510', description: 'Fundamentals of Computer Science 2' },
-  { id: '7', code: 'MATH 1201', description: 'Calculus and Differential Equations' },
+  { key: 'cs2510', sectionId: '7', code: 'CS 2510', description: 'Fundamentals of Computer Science 2' },
+  { key: 'math1201', sectionId: '7', code: 'MATH 1201', description: 'Calculus and Differential Equations' },
 ];
 
 export default function ChatScreen() {
@@ -34,14 +34,14 @@ export default function ChatScreen() {
             Pick a course to chat with the AI or generate documents from your notes.
           </Text>
           {MOCK_COURSES.map((course) => (
-            <View key={course.id} style={styles.card}>
+            <View key={course.key} style={styles.card}>
               <View style={styles.cardInfo}>
                 <Text style={styles.courseCode}>{course.code}</Text>
                 <Text style={styles.courseDesc}>{course.description}</Text>
               </View>
               <TouchableOpacity
                 style={styles.chatButton}
-                onPress={() => openChat(course.id, course.code)}
+                onPress={() => openChat(course.sectionId, course.code)}
               >
                 <IconSymbol name="message" size={18} color="#FFFFFF" />
                 <Text style={styles.chatButtonText}>Chat with AI</Text>
