@@ -1,8 +1,10 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
+
 
 class CourseCreate(BaseModel):
     """Schema for creating a new course"""
+
     course: str
     title: str
     subject: str
@@ -19,8 +21,10 @@ class CourseCreate(BaseModel):
         }
     )
 
+
 class CourseUpdate(BaseModel):
     """Schema for updating an existing course - all fields optional"""
+
     course: Optional[str] = None
     title: Optional[str] = None
     subject: Optional[str] = None
@@ -35,8 +39,10 @@ class CourseUpdate(BaseModel):
         }
     )
 
+
 class CourseResponse(BaseModel):
     """Schema for course response"""
+
     id: int
     course: str
     title: str
@@ -75,7 +81,7 @@ class CourseList(BaseModel):
                             "course": "Data Structures",
                             "title": "CS2500",
                             "subject": "CS",
-                        }
+                        },
                     ]
                 }
             ]
@@ -87,11 +93,6 @@ class CourseDeleteResponse(BaseModel):
     message: str
     deleted_id: int
 
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "message": "Successfully deleted course 1",
-                "deleted_id": 1
-            }
-        }
-    }
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"message": "Successfully deleted course 1", "deleted_id": 1}}
+    )
