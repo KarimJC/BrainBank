@@ -45,8 +45,7 @@ class MessageAlreadyDeletedException(HTTPException):
 class CourseSectionNotFoundException(HTTPException):
     def __init__(self, course_section_id: int):
         super().__init__(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=detail
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Course section with id {course_section_id} not found"
         )
 
 
