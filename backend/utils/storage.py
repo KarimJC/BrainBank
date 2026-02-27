@@ -22,7 +22,7 @@ def upload_file(data: bytes, path: str, mime_type: str) -> str:
                 file_options={"content-type": mime_type, "upsert": "true"},
             )
             return _client.storage.from_(BUCKET_NAME).get_public_url(path)
-        except Exception as e:
+        except Exception:
             if attempt < MAX_RETRIES - 1:
                 time.sleep(1 * (attempt + 1))
             else:
