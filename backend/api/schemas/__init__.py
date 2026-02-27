@@ -8,7 +8,7 @@ __all__ = [
     # "PaginatedResponse"
     "ProfessorCreate",
     "ProfessorUpdate",
-    "Professor"
+    "Professor",
     "UserCreate",
     "UserUpdate", 
     "UserResponse",
