@@ -37,4 +37,7 @@ jobs:
         run: ruff check .
 
       - name: Build check (verify app imports)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python -c "from main import app; print('OK')"

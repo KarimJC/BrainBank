@@ -28,7 +28,7 @@
     "expo-image": "~3.0.11",
     "expo-image-picker": "~17.0.10",
     "expo-linking": "~8.0.11",
-    "expo-print": "^55.0.8",
+    "expo-network": "~8.0.8",
     "expo-router": "~6.0.22",
     "expo-sharing": "^55.0.11",
     "expo-splash-screen": "~31.0.13",
