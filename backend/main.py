@@ -18,9 +18,11 @@ app.add_middleware(
 
 app.include_router(api_router, prefix="/api/v1")
 
+
 @app.get("/")
 def read_root():
     return {"message": "NEU Notes Hub Backend is running"}
+
 
 @app.get("/health")
 def health_check():

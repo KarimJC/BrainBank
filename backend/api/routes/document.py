@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status, APIRouter, Depends, Query
+from fastapi.responses import Response
 from psycopg2.extensions import connection as Connection
 from typing import Optional
 
@@ -9,6 +10,7 @@ from db.crud.document import (
     create_document
 )
 from core.ai_service import ai_service
+from core.pdf_service import pdf_service
 from api.schemas.document import DocumentResponse, DocumentDeleteResponse
 from core.exceptions import DatabaseException
 from db.connection import get_db
@@ -37,6 +39,39 @@ def get_document(doc_id: str, db: Connection = Depends(get_db)):
     return document
 
 
+@router.get("/documents/{doc_id}/pdf")
+def download_document_pdf(doc_id: str, db: Connection = Depends(get_db)):
+    """
+    Download a document as a PDF file.
+    Returns the PDF bytes with proper headers for viewing/downloading.
+    """
+    document = get_document_by_id(doc_id, db)
+    if not document:
+        raise DocumentNotFoundException(doc_id)
+
+    try:
+        pdf_bytes = pdf_service.markdown_to_pdf(
+            document["doc_content"],
+            document["doc_type"]
+        )
+
+        filename = f"{document['doc_type']}_{doc_id[:8]}.pdf"
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"inline; filename={filename}"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to generate PDF for document {doc_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate PDF: {str(e)}"
+        )
+
+
 @router.get("/documents", response_model=list[DocumentResponse], status_code=status.HTTP_200_OK)
 def get_documents(
     user_id: Optional[int] = Query(None, description="Filter by user ID"),
@@ -59,6 +94,7 @@ def delete_document_route(doc_id: str, db: Connection = Depends(get_db)):
         message=f"Successfully deleted document {doc_id}",
         deleted_id=doc_id
     )
+
 @router.post("/documents/generate/study-guide", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 def generate_study_guide(user_id: int, section_id: int, db: Connection = Depends(get_db)):
     """Generate a study guide from course materials and save it as a document"""

@@ -6,6 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def create_course_section(course_section_data: CourseSectionCreate, db: Connection):
     """Create a new course section"""
     try:
@@ -15,48 +16,49 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
         VALUES (%s, %s, %s, %s)
         RETURNING course_id, id, course_title, "course_CRN", professor_id
         """
-        cursor.execute(query, (
-            course_section_data.course_id, 
-            course_section_data.course_title,
-            course_section_data.course_CRN, 
-            course_section_data.professor_id
-        ))
+        cursor.execute(
+            query,
+            (
+                course_section_data.course_id,
+                course_section_data.course_title,
+                course_section_data.course_CRN,
+                course_section_data.professor_id,
+            ),
+        )
         result = cursor.fetchone()
         db.commit()
         cursor.close()
         logger.info(f"Created course section ID {result['id']} with CRN {result['course_CRN']}")
         return result
-        
+
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to create section - Course ID: {course_section_data.course_id}, CRN: {course_section_data.course_CRN}: {str(e)}")
+        logger.error(
+            f"Failed to create section - Course ID: {course_section_data.course_id}, CRN: {course_section_data.course_CRN}: {str(e)}"
+        )
         raise DatabaseException()
-
-
 
 
 def get_course_section_by_id(section_id: int, db: Connection):
     """Get course section by ID"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-        query = 'SELECT * FROM public.course_section WHERE id = %s'
+        query = "SELECT * FROM public.course_section WHERE id = %s"
         cursor.execute(query, (section_id,))
         row = cursor.fetchone()
         cursor.close()
         if row:
-            return row 
+            return row
         else:
-            return None 
+            return None
     except Exception as e:
         logger.error(f"Failed to find section_id {section_id}: {str(e)}")
         raise DatabaseException()
-        
-
 
 
 def get_course_sections_by_subject(subject: str, db: Connection):
     """Get all course sections for a given subject (requires JOIN with course table)"""
-    try: 
+    try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         query = """
         SELECT * FROM  public.course_section INNER JOIN 
@@ -70,20 +72,17 @@ def get_course_sections_by_subject(subject: str, db: Connection):
             return result
         else:
             return []
-        
-
 
     except Exception as e:
         logger.error(f"Failed to get subject {subject}: {str(e)}")
         raise DatabaseException(f"Failed to get subject {subject}: {str(e)}")
-        
 
 
 def update_course_section(section_id: int, course_section_data: CourseSectionUpdate, db: Connection):
     """Update an existing course section"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-        
+
         update_fields = []
         values = []
 
@@ -99,54 +98,51 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
             update_fields.append('"course_CRN" = %s')
             values.append(course_section_data.course_CRN)
 
-        if  course_section_data.professor_id is not None:
+        if course_section_data.professor_id is not None:
             update_fields.append("professor_id = %s")
             values.append(course_section_data.professor_id)
-        
+
         values.append(section_id)
 
-        query = f'''
+        query = f"""
             UPDATE public.course_section
-            SET {', '.join(update_fields)}
+            SET {", ".join(update_fields)}
              WHERE id = %s
              RETURNING course_id, id, course_title, "course_CRN", professor_id 
-             '''
+             """
         cursor.execute(query, values)
         result = cursor.fetchone()
         db.commit()
         cursor.close()
         logger.info(f"Updated section_id {section_id}")
         if result:
-            return result 
-        else: 
+            return result
+        else:
             return None
-    
+
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update section_id {section_id}: {str(e)}")
         raise DatabaseException(f"Failed to update section_id {section_id}: {str(e)}")
-
-            
 
 
 def delete_course_section(section_id: int, db: Connection):
     """Delete a course section"""
     try:
         cursor = db.cursor()
-        query = 'DELETE FROM public.course_section WHERE id = %s'
+        query = "DELETE FROM public.course_section WHERE id = %s"
         cursor.execute(query, (section_id,))
         db.commit()
         deleted = cursor.rowcount > 0
         cursor.close()
-        
+
         logger.info(f"Deleted section_id  {section_id}")
         return deleted
-    
+
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to delete section_id {section_id}: {str(e)}")
         raise DatabaseException(f"Failed to delete section_id {section_id}: {str(e)}")
-
 
 
 def check_crn_exists(crn: int, db: Connection):
@@ -157,7 +153,7 @@ def check_crn_exists(crn: int, db: Connection):
         cursor.execute(query, (crn,))
         exists = cursor.fetchone()[0]
         cursor.close()
-        return exists 
+        return exists
     except Exception as e:
         logger.error(f"Failed to find crn {crn}: {str(e)}")
         raise DatabaseException(f"Failed to find crn {crn}: {str(e)}")

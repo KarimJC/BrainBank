@@ -5,6 +5,7 @@ psycopg2-binary==2.9.9
 pydantic==2.5.0
 pydantic-settings==2.1.0
 python-dotenv==1.0.0
-google-generativeai==0.3.2
+google-genai>=1.0.0
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.6
+fpdf2>=2.7.0
