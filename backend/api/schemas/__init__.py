@@ -4,18 +4,19 @@ from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, M
 from api.schemas.document import DocumentResponse, DocumentDeleteResponse
 
 __all__ = [
-    "UserUpdate", 
+    "UserUpdate",
     "UserResponse",
     "DeleteResponse",
     "CourseCreate",
     "CourseUpdate",
     "CourseResponse",
     "CourseList",
-    "CourseDeleteResponse"
+    "CourseDeleteResponse",
     "MessageCreate",
     "MessageUpdate",
     "MessageResponse",
     "MessageDeleteResponse",
     DocumentResponse,
     DocumentDeleteResponse
+]
 ]
