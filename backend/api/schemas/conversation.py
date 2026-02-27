@@ -42,3 +42,7 @@ class ConversationResponse(BaseModel):
     status: str
     blocked_by: Optional[int] = None
     created_at: datetime
+    initiator_name: str
+    initiator_profile_picture: Optional[str] = None
+    recipient_name: str
+    recipient_profile_picture: Optional[str] = None

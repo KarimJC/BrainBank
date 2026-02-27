@@ -32,7 +32,7 @@ def create_message(message_data: MessageCreate, sender_id: int, db: Connection) 
         query = """
             INSERT INTO message (sender_id, conversation_id, content)
             VALUES (%s, %s, %s)
-            RETURNING message_id, sender_id, content, created_at
+            RETURNING message_id, sender_id, conversation_id, content, created_at
         """
         
         cursor.execute(query, (

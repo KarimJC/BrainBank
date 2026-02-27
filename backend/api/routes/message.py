@@ -2,6 +2,9 @@ from fastapi import HTTPException, status, APIRouter, Depends, WebSocket, WebSoc
 from psycopg2.extensions import connection as Connection
 from typing import List
 import json 
+from auth import get_current_user
+from db.crud.user import get_user_by_auth_id
+from core.exceptions import UserNotFoundException
 
 from db.crud.message import (
     create_message as create_message_crud,
@@ -57,9 +60,16 @@ async def chat_websocket(websocket: WebSocket,  user_id: int, db: Connection = D
         
 
 @router.post("/messages", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
-def create_message(message_data: MessageCreate, user_id: int, db: Connection = Depends(get_db)):
+def create_message(
+    message_data: MessageCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Connection = Depends(get_db)
+):
     """Create a new message"""
-    message = create_message_crud(message_data,user_id, db)
+    user = get_user_by_auth_id(current_user["auth_id"], db)
+    if not user:
+        raise UserNotFoundException(current_user["auth_id"])
+    message = create_message_crud(message_data, user["user_id"], db)
     return message
 
 

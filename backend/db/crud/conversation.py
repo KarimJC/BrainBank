@@ -14,14 +14,14 @@ def create_conversation(initiator_id: int, recipient_id: int, db: Connection) ->
         query = """
             INSERT INTO conversation (initiator_id, recipient_id, status)
             VALUES (%s, %s, 'pending')
-            RETURNING id AS conversation_id, initiator_id, recipient_id, status, blocked_by, created_at
+            RETURNING id
         """
         cursor.execute(query, (initiator_id, recipient_id))
         result = cursor.fetchone()
         db.commit()
         cursor.close()
         logger.info(f"Created conversation between {initiator_id} and {recipient_id}")
-        return dict(result)
+        return get_conversation_by_id(result['id'], db)
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to create conversation: {str(e)}")
@@ -29,13 +29,25 @@ def create_conversation(initiator_id: int, recipient_id: int, db: Connection) ->
 
 
 def get_conversation_by_id(conversation_id: int, db: Connection) -> dict | None:
-    """Get a single conversation by its ID"""
+    """Get a single conversation by its ID with participant names"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         query = """
-            SELECT id AS conversation_id, initiator_id, recipient_id, status, blocked_by, created_at
-            FROM conversation
-            WHERE id = %s
+            SELECT 
+                c.id AS conversation_id,
+                c.initiator_id,
+                c.recipient_id,
+                c.status,
+                c.blocked_by,
+                c.created_at,
+                initiator.first_name || ' ' || initiator.last_name AS initiator_name,
+                initiator.profile_picture AS initiator_profile_picture,
+                recipient.first_name || ' ' || recipient.last_name AS recipient_name,
+                recipient.profile_picture AS recipient_profile_picture
+            FROM conversation c
+            JOIN public.user initiator ON c.initiator_id = initiator.user_id
+            JOIN public.user recipient ON c.recipient_id = recipient.user_id
+            WHERE c.id = %s
         """
         cursor.execute(query, (conversation_id,))
         result = cursor.fetchone()
@@ -47,14 +59,26 @@ def get_conversation_by_id(conversation_id: int, db: Connection) -> dict | None:
 
 
 def get_user_conversations(user_id: int, db: Connection) -> list[dict]:
-    """Get all conversations for a user"""
+    """Get all conversations for a user with participant names"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         query = """
-            SELECT id AS conversation_id, initiator_id, recipient_id, status, blocked_by, created_at
-            FROM conversation
-            WHERE initiator_id = %s OR recipient_id = %s
-            ORDER BY created_at DESC
+            SELECT 
+                c.id AS conversation_id,
+                c.initiator_id,
+                c.recipient_id,
+                c.status,
+                c.blocked_by,
+                c.created_at,
+                initiator.first_name || ' ' || initiator.last_name AS initiator_name,
+                initiator.profile_picture AS initiator_profile_picture,
+                recipient.first_name || ' ' || recipient.last_name AS recipient_name,
+                recipient.profile_picture AS recipient_profile_picture
+            FROM conversation c
+            JOIN public.user initiator ON c.initiator_id = initiator.user_id
+            JOIN public.user recipient ON c.recipient_id = recipient.user_id
+            WHERE c.initiator_id = %s OR c.recipient_id = %s
+            ORDER BY c.created_at DESC
         """
         cursor.execute(query, (user_id, user_id))
         results = cursor.fetchall()
@@ -73,14 +97,13 @@ def update_conversation_status(conversation_id: int, status: str, blocked_by: in
             UPDATE conversation
             SET status = %s, blocked_by = %s
             WHERE id = %s
-            RETURNING id AS conversation_id, initiator_id, recipient_id, status, blocked_by, created_at
+            RETURNING id
         """
         cursor.execute(query, (status, blocked_by, conversation_id))
-        result = cursor.fetchone()
         db.commit()
         cursor.close()
-        logger.info(f"Updated conversation {conversation_id} to status {status}")
-        return dict(result) if result else None
+        # Fetch the updated conversation with names using existing function
+        return get_conversation_by_id(conversation_id, db)
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update conversation {conversation_id}: {str(e)}")
