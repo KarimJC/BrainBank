@@ -58,7 +58,7 @@ class NoteResponse(BaseModel):
     courseCode: Optional[str]
     courseName: Optional[str]
     professorName: Optional[str]
-    notesContent: Optional[str] = None  # ← added
+    notesContent: Optional[str] = None
     mediaUrl: Optional[str] = None
     fileName: Optional[str] = None
     fileUrl: Optional[str] = None

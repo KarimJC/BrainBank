@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, APIRouter, Depends, Query
+from fastapi import status, APIRouter, Depends, Query
 from psycopg2.extensions import connection as Connection
 from typing import Optional
 
@@ -7,16 +7,10 @@ from db.crud.course import (
     get_course_by_id,
     get_all_courses as get_all_courses_crud,
     update_course as update_course_crud,
-    delete_course as delete_course_crud
+    delete_course as delete_course_crud,
 )
 
-from api.schemas.courses import (
-    CourseCreate,
-    CourseUpdate,
-    CourseResponse,
-    CourseList,
-    CourseDeleteResponse
-)
+from api.schemas.courses import CourseCreate, CourseUpdate, CourseResponse, CourseList, CourseDeleteResponse
 
 from core.exceptions import CourseNotFoundException
 
@@ -45,8 +39,7 @@ def get_course(course_id: int, db: Connection = Depends(get_db)):
 
 @router.get("/courses", response_model=CourseList, status_code=status.HTTP_200_OK)
 def get_courses(
-    db: Connection = Depends(get_db),
-    subject: Optional[str] = Query(None, description="Filter courses by subject")
+    db: Connection = Depends(get_db), subject: Optional[str] = Query(None, description="Filter courses by subject")
 ):
     """Get all courses, optionally filtered by subject"""
     courses = get_all_courses_crud(db, subject=subject)
@@ -54,17 +47,13 @@ def get_courses(
 
 
 @router.put("/courses/{course_id}", response_model=CourseResponse, status_code=status.HTTP_200_OK)
-def update_course(
-    course_id: int,
-    course_data: CourseUpdate,
-    db: Connection = Depends(get_db)
-):
+def update_course(course_id: int, course_data: CourseUpdate, db: Connection = Depends(get_db)):
     """Update a course by ID"""
     # Check if course exists
     existing_course = get_course_by_id(course_id, db)
     if not existing_course:
         raise CourseNotFoundException(course_id)
-    
+
     updated_course = update_course_crud(course_id, course_data, db)
     return updated_course
 
@@ -76,9 +65,6 @@ def delete_course(course_id: int, db: Connection = Depends(get_db)):
     existing_course = get_course_by_id(course_id, db)
     if not existing_course:
         raise CourseNotFoundException(course_id)
-    
+
     delete_course_crud(course_id, db)
-    return CourseDeleteResponse(
-        message=f"Successfully deleted course {course_id}",
-        deleted_id=course_id
-    )
+    return CourseDeleteResponse(message=f"Successfully deleted course {course_id}", deleted_id=course_id)
