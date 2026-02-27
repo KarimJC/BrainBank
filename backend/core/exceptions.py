@@ -62,4 +62,3 @@ class DocumentNotFoundException(HTTPException):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Document with id {doc_id} not found"
         )
-        super().__init__(status_code=status.HTTP_409_CONFLICT, detail=f"Course section with CRN {crn} already exists")
