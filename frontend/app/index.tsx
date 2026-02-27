@@ -304,22 +304,23 @@ const SplashScreen = () => {
   const bottomHalf = useRef(new Animated.Value(0)).current;
   const fadeOut = useRef(new Animated.Value(1)).current;
 
-  useEffect(() =>{ 
-    checkAuth(); 
+  useEffect(() => {
+    checkAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: run once on mount
   }, []);
 
-  // Idea is that since we already have the spinning animation, while that animation's playing 
-  // we can route the user to either the home page if alrdy authenticated or the homepage 
+  // Idea is that since we already have the spinning animation, while that animation's playing
+  // we can route the user to either the home page if alrdy authenticated or the homepage
   const checkAuth = async () => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
-      
+
       // If there's an error with the session, clear it
       if (error) {
         console.log('Session error:', error);
         await supabase.auth.signOut();
       }
-      
+
       setTimeout(() => {
         playAnimation(session);
       }, 500);

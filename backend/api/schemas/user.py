@@ -7,15 +7,11 @@ class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     profile_picture: Optional[str] = None
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
-                {
-                    "first_name": "Angel",
-                    "last_name": "El Moucary",
-                    "profile_picture": "https://pfp.com/pfp.jpg"
-                }
+                {"first_name": "Angel", "last_name": "El Moucary", "profile_picture": "https://pfp.com/pfp.jpg"}
             ]
         }
     )
@@ -29,7 +25,7 @@ class UserResponse(BaseModel):
     last_name: str
     profile_picture: Optional[str]
     created_at: Optional[datetime] = None
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
@@ -40,7 +36,7 @@ class UserResponse(BaseModel):
                     "first_name": "Angel",
                     "last_name": "El Moucary",
                     "profile_picture": "https://pfp.com/pfp.jpg",
-                    "created_at": "2024-02-12T10:30:00Z"
+                    "created_at": "2024-02-12T10:30:00Z",
                 }
             ]
         }
