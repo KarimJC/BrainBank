@@ -1,8 +1,10 @@
 import { supabase } from './supabase';
 
+
 // IMPORTANT: Replace with YOUR computer's IP address
 // Find it in your Expo terminal (where it says exp://YOUR_IP:8081)
-const API_URL = 'http://10.110.227.1:8000'; // Example: http://192.168.1.5:8000
+const API_URL = 'http://10.37.152.236:8000'; // Example: http://192.168.1.5:8000
+export const WS_URL = 'ws://10.37.152.236:8000';
 
 async function getAuthHeaders() {
   const { data: { session } } = await supabase.auth.getSession();

@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { api } from '@/services/api';
+import { api, WS_URL} from '@/services/api';
 
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams();
@@ -21,24 +21,41 @@ export default function ConversationScreen() {
   const [conversation, setConversation] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-
-  useEffect(() => {
-    loadConversation();
-  }, [id]);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null); 
+  const wsRef = useRef<WebSocket | null>(null);
+useEffect(() => {
+  setLoading(true);
+  setConversation(null);
+  setMessages([]);
+  loadConversation();
+}, [id]);
   
   useEffect(() => {
-  const interval = setInterval(async () => {
-    try {
-      const msgs = await api.getMessages(Number(id));
-      setMessages(msgs);
-    } catch (error) {
-      console.error('Failed to poll messages:', error);
-    }
-  }, 3000); // every 3 seconds
+  if (!currentUserId) return;
 
-  return () => clearInterval(interval); // cleanup on unmount
-}, [id]);
+  const ws = new WebSocket(`${WS_URL}/api/v1/ws/${currentUserId}`);
+
+  ws.onopen = () => console.log('WebSocket connected');
+
+  ws.onmessage = (event) => {
+    try {
+      const incoming = JSON.parse(event.data);
+      // only add message if it belongs to current conversation
+      if (incoming.conversation_id === Number(id)) {
+        setMessages(prev => [...prev, incoming]);
+      }
+    } catch (e) {
+      console.error('Failed to parse message:', e);
+    }
+  };
+
+  ws.onerror = (error) => console.error('WebSocket error:', error);
+  ws.onclose = () => console.log('WebSocket disconnected');
+
+  wsRef.current = ws;
+
+  return () => ws.close();
+}, [currentUserId]);
 
   const loadConversation = async () => {
     try {
@@ -57,13 +74,26 @@ export default function ConversationScreen() {
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
-    try {
-      const newMessage = await api.sendMessage(Number(id), inputText.trim());
-      setMessages(prev => [...prev, newMessage]);
-      setInputText('');
-    } catch (error) {
-      console.error('Failed to send message:', error);
+    if (!wsRef.current || wsRef.current.readyState != WebSocket.OPEN) {
+      console.error('Websocket is not ready')
+      return;
     }
+    const messageData = {
+    conversation_id: Number(id),
+    content: inputText.trim(),
+  };
+
+  wsRef.current.send(JSON.stringify(messageData));
+
+  setMessages(prev => [...prev, {
+    message_id: Date.now().toString(), 
+    sender_id: currentUserId, 
+    content: inputText.trim(), 
+    conversation_id: Number(id), 
+    created_at: new Date().toISOString(), 
+  }]);
+
+  setInputText('');
   };
 
   const handleAccept = async () => {

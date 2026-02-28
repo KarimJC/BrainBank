@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status, APIRouter, Depends
 from psycopg2.extensions import connection as Connection
 
+
 from db.crud.user import (
     # Remove: create_user as create_user_crud,
     get_user_by_id,

@@ -5,6 +5,7 @@ import json
 from auth import get_current_user
 from db.crud.user import get_user_by_auth_id
 from core.exceptions import UserNotFoundException
+from db.crud.conversation import get_conversation_by_id
 
 from db.crud.message import (
     create_message as create_message_crud,
@@ -38,22 +39,36 @@ async def chat_websocket(websocket: WebSocket,  user_id: int, db: Connection = D
     try:
         await websocket_manager.connect(websocket, user_id)
         while True:
-             data = await websocket.receive_text()
-             json_data = json.loads(data)
-             try:
+            data = await websocket.receive_text()
+            json_data = json.loads(data)
+            try:
                 make_message = MessageCreate(**json_data)
-                find_conversation =  get_conversation_by_id(make_message.conversation_id, db)
+                find_conversation = get_conversation_by_id(make_message.conversation_id, db)
                 if find_conversation:
-                    create_message_crud(make_message, user_id, db)  
-                    if user_id == find_conversation['initiator_id']:
-                     await websocket_manager.send_message(find_conversation['recipient_id'], make_message.content)
-                       
-                    else:
-                        await websocket_manager.send_message(find_conversation['initiator_id'],make_message.content)  
-             except Exception as e:
-                  await websocket.send_json({"status": "error", "message": f"Validation error: {e}"}) 
+                    # save message to db
+                    saved_message = create_message_crud(make_message, user_id, db)
+                    
+                    # determine recipient
+                    recipient_id = (
+                        find_conversation['recipient_id']
+                        if user_id == find_conversation['initiator_id']
+                        else find_conversation['initiator_id']
+                    )
+                    
+                    # send full message object as JSON
+                    await websocket_manager.send_message(
+                        recipient_id,
+                        json.dumps({
+                            "message_id": str(saved_message['message_id']),
+                            "sender_id": saved_message['sender_id'],
+                            "content": saved_message['content'],
+                            "conversation_id": saved_message['conversation_id'],
+                            "created_at": str(saved_message['created_at'])
+                        })
+                    )
+            except Exception as e:
+                await websocket.send_json({"status": "error", "message": str(e)})
     except WebSocketDisconnect:
-        
         await websocket_manager.disconnect(user_id)
         
         
