@@ -47,6 +47,15 @@ class CourseSectionResponse(BaseModel):
         }
     )
 
+class CourseSectionsForUserResponse(BaseModel):
+    course_name: str
+    course_title: str
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"course_name": "Calculus One For Science and Engineering", "course_title": "CS3000"}
+        }
+    )
+
 
 class DeleteResponse(BaseModel):
     message: str

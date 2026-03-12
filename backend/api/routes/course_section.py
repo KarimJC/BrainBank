@@ -6,12 +6,13 @@ from db.crud.course_section import (
     create_course_section as create_course_section_crud,
     get_course_section_by_id,
     get_course_sections_by_subject as get_course_sections_by_subject_crud,
+    get_course_sections_by_user_id as get_course_sections_by_user_id_crud,
     update_course_section as update_course_section_crud,
     delete_course_section as delete_course_section_crud,
     check_crn_exists,
 )
 
-from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate, CourseSectionResponse, DeleteResponse
+from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate, CourseSectionResponse, CourseSectionsForUserResponse, DeleteResponse
 
 from core.exceptions import CourseSectionNotFoundException, CourseSectionAlreadyExistsException, DatabaseException
 
@@ -43,6 +44,12 @@ def get_course_sections_by_subject(subject: str, db: Connection = Depends(get_db
     course_sections = get_course_sections_by_subject_crud(subject, db)
     return course_sections
 
+
+
+@router.get("/course_sections/user/{user_id}", response_model=list[CourseSectionsForUserResponse], status_code=status.HTTP_200_OK)
+def get_course_sections_by_user_id(user_id: int, db: Connection = Depends(get_db)):
+    course_sections = get_course_sections_by_user_id_crud(user_id, db)
+    return course_sections
 
 @router.patch("/course_sections/{section_id}", response_model=CourseSectionResponse, status_code=status.HTTP_200_OK)
 def update_course_section(

@@ -77,6 +77,25 @@ def get_course_sections_by_subject(subject: str, db: Connection):
         logger.error(f"Failed to get subject {subject}: {str(e)}")
         raise DatabaseException(f"Failed to get subject {subject}: {str(e)}")
 
+def get_course_sections_by_user_id(user_id: int, db: Connection):
+    """Get all course sections for a given user ID"""
+    try:
+        with db.cursor(cursor_factory=RealDictCursor) as cursor:
+            query = """
+                SELECT 
+                    c.course AS course_name,
+                    c.title AS course_title
+                FROM public.user_course_sections ucs
+                JOIN public.course_section cs ON ucs.course_section_id = cs.id
+                JOIN public.course c ON cs.course_id = c.id
+                WHERE ucs.user_id = %s
+            """
+            cursor.execute(query, (user_id,))
+            return cursor.fetchall()
+
+    except Exception as e:
+        logger.error(f"Failed to get course sections for user_id {user_id}: {str(e)}")
+        raise DatabaseException(f"Failed to get course sections for user_id {user_id}: {str(e)}")
 
 def update_course_section(section_id: int, course_section_data: CourseSectionUpdate, db: Connection):
     """Update an existing course section"""
