@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class UserUpdate(BaseModel):
+    neu_email: Optional[str] = None  # ← ADD THIS LINE
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     profile_picture: Optional[str] = None
@@ -12,6 +13,7 @@ class UserUpdate(BaseModel):
         json_schema_extra={
             "examples": [
                 {
+                    "neu_email": "test.something@northeastern.edu",
                     "first_name": "Angel",
                     "last_name": "El Moucary",
                     "profile_picture": "https://pfp.com/pfp.jpg"
@@ -19,7 +21,6 @@ class UserUpdate(BaseModel):
             ]
         }
     )
-
 
 class UserResponse(BaseModel):
     user_id: int

@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, APIRouter, Depends
+from fastapi import HTTPException, status, APIRouter, Depends, Request
 from psycopg2.extensions import connection as Connection
 
 
@@ -105,6 +105,27 @@ def update_user(
     
     updated_user = update_user_crud(user_id, updated_user_data, db)
     return updated_user
+
+@router.put("/me/profile-picture")
+async def update_my_profile_picture(
+   request: Request,
+   current_user: dict = Depends(get_current_user),
+   db: Connection = Depends(get_db)
+):
+   """Update the current user's profile picture URL"""
+   body = await request.json()
+   profile_picture_url = body.get("profile_picture_url")
+  
+   if not profile_picture_url:
+       raise HTTPException(status_code=400, detail="profile_picture_url is required")
+  
+   user_data = UserUpdate(profile_picture=profile_picture_url)
+   updated_user = update_user_by_auth_id(current_user["auth_id"], user_data, db)
+  
+   if not updated_user:
+       raise HTTPException(status_code=404, detail="User not found")
+  
+   return updated_user
 
 @router.delete("/user/{user_id}", response_model=DeleteResponse, status_code=status.HTTP_200_OK)
 def delete_user_route(
