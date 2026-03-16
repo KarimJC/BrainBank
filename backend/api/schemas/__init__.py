@@ -1,9 +1,10 @@
 from api.schemas.user import UserUpdate, UserResponse, DeleteResponse
 from api.schemas.courses import CourseCreate, CourseUpdate, CourseResponse, CourseList, CourseDeleteResponse
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
+from api.schemas.conversation import ConversationCreate,ConversationUpdate,ConversationResponse
 
 __all__ = [
-    "UserUpdate",
+    "UserUpdate", 
     "UserResponse",
     "DeleteResponse",
     "CourseCreate",
@@ -15,4 +16,8 @@ __all__ = [
     "MessageUpdate",
     "MessageResponse",
     "MessageDeleteResponse",
+    "ConversationCreate",
+    "ConversationUpdate",
+    "ConversationResponse",
+    
 ]
