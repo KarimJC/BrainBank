@@ -4,6 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Ionicons } from '@expo/vector-icons';
 
 // Bookmark Icon component with toggle
 interface BookmarkIconProps {
@@ -36,9 +37,10 @@ interface ClassCardProps {
   };
   onPress: () => void;
   onBookmarkPress: (id: string) => void;
+  onAiPress: () => void;
 }
 
-const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPress }) => (
+const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPress, onAiPress }) => (
   <View style={styles.card}>
     <View style={styles.cardHeader}>
       <Text style={styles.classCode}>{classData.code}</Text>
@@ -48,14 +50,19 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPre
       />
     </View>
     <Text style={styles.classDescription}>{classData.description}</Text>
-    <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
-      <IconSymbol 
-        name="folder" 
-        size={20} 
-        color="#FFFFFF" 
-      />
-      <Text style={styles.viewNotesText}>View All Notes</Text>
-    </TouchableOpacity>
+    <View style={styles.buttonRow}>
+      <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
+        <IconSymbol 
+          name="folder" 
+          size={20} 
+          color="#FFFFFF" 
+        />
+        <Text style={styles.viewNotesText}>View All Notes</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.aiButton} onPress={onAiPress}>
+        <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+      </TouchableOpacity>
+    </View>
   </View>
 );
 
@@ -91,6 +98,13 @@ export default function HomeScreen() {
     console.log(`Viewing notes for class: ${classId}`);
   };
 
+  const handleOpenAiChat = (classId: string, classCode: string) => {
+    router.push({
+      pathname: '/(tabs)/chatbot',
+      params: { sectionId: classId, courseName: classCode },
+    });
+  };
+
   const handleBookmarkToggle = (classId: string) => {
     setClasses(prevClasses => 
       prevClasses.map(cls => 
@@ -119,6 +133,7 @@ export default function HomeScreen() {
               classData={classData}
               onPress={() => handleViewNotes(classData.id)}
               onBookmarkPress={handleBookmarkToggle}
+              onAiPress={() => handleOpenAiChat(classData.id, classData.code)}
             />
           ))}
         </View>
@@ -166,6 +181,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     lineHeight: 20,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   viewNotesButton: {
     backgroundColor: '#6B5BC7',
     borderRadius: 24,
@@ -181,5 +201,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     marginLeft: 8,
+  },
+  aiButton: {
+    backgroundColor: '#6B5BC7',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
