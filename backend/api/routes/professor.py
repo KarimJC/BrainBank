@@ -15,14 +15,17 @@ from core.exceptions import ProfessorNotFoundException, ProfessorAlreadyExistsEx
 
 from db.connection import get_db
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/api/professors",
+    tags=["professors"]
+)
 
 
 @router.post("/professors", response_model=ProfessorResponse, status_code=status.HTTP_201_CREATED)
 def create_professor(professor_data: ProfessorCreate, db: Connection = Depends(get_db)):
     """Create a new professor"""
-    if check_professor_email_exists(professor_data.neu_email, db):
-        raise ProfessorAlreadyExistsException(professor_data.neu_email)
+    if check_professor_email_exists(professor_data.email, db):
+        raise ProfessorAlreadyExistsException(professor_data.email)
     else:
         professor = create_professor_crud(professor_data, db)
         return professor
@@ -45,10 +48,10 @@ def update_professor(professor_id: int, updated_professor_data: ProfessorUpdate,
     if not current_professor:
         raise ProfessorNotFoundException(professor_id)
     else:
-        if (updated_professor_data.neu_email
-            and current_professor['neu_email'] != updated_professor_data.neu_email
-            and check_professor_email_exists(updated_professor_data.neu_email, db)):
-            raise ProfessorAlreadyExistsException(updated_professor_data.neu_email)
+        if (updated_professor_data.email
+            and current_professor['email'] != updated_professor_data.email
+            and check_professor_email_exists(updated_professor_data.email, db)):
+            raise ProfessorAlreadyExistsException(updated_professor_data.email)
         else:
             updated_professor = update_professor_crud(professor_id, updated_professor_data, db)
             return updated_professor

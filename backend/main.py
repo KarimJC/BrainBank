@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from api.routes.notes import router as notes_router
 from api.routes.course_section import router as course_sections_router
+from api.routes.professor import router as professor_router
 
 load_dotenv()
 
@@ -20,6 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(professor_router, prefix="/api/professors", tags=["professors"])
 app.include_router(notes_router)
 app.include_router(course_sections_router)
 

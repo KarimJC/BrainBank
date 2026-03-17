@@ -2,7 +2,7 @@ from api.schemas.user import UserUpdate, UserResponse, DeleteResponse
 from api.schemas.courses import CourseCreate, CourseUpdate, CourseResponse, CourseList, CourseDeleteResponse
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
 
-from .professor import (ProfessorCreate, ProfessorUpdate, Professor)
+from .professor import (ProfessorCreate, ProfessorUpdate, ProfessorResponse, DeleteResponse)
 
 __all__ = [
 
@@ -10,9 +10,9 @@ __all__ = [
     # "PaginatedResponse"
     "ProfessorCreate",
     "ProfessorUpdate",
-    "Professor",
+    "ProfessorResponse",
+    "DeleteResponse",
     "UserCreate",
-    "UserUpdate", 
     "UserUpdate",
     "UserResponse",
     "DeleteResponse",

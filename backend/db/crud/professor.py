@@ -12,23 +12,21 @@ def create_professor(professor_data: ProfessorCreate, db: Connection) -> dict:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         
         query = """
-            INSERT INTO public.professor (name, subject, neu_email, password)
-            VALUES (%s, %s, %s, %s)
-            RETURNING professor_id, name, subject, neu_email
+            INSERT INTO public.professor (name, email)
+            VALUES (%s, %s)
+            RETURNING professor_id, name, email
         """
         
         cursor.execute(query, (
             professor_data.name,
-            professor_data.subject,
-            professor_data.neu_email,
-            professor_data.password
+            professor_data.email,
         ))
         
         result = cursor.fetchone()
         db.commit()
         cursor.close()
         
-        logger.info(f"Created professor with email: {professor_data.neu_email}")
+        logger.info(f"Created professor with email: {professor_data.email}")
         return dict(result)
         
     except Exception as e:
@@ -43,7 +41,7 @@ def get_professor_by_id(professor_id: int, db: Connection):
         cursor = db.cursor(cursor_factory=RealDictCursor)
         
         query = """
-            SELECT professor_id, name, subject, neu_email
+            SELECT professor_id, name, email
             FROM public.professor
             WHERE professor_id = %s
         """
@@ -71,17 +69,9 @@ def update_professor(professor_id: int, professor_data: ProfessorUpdate, db: Con
             update_fields.append("name = %s")
             values.append(professor_data.name)
         
-        if professor_data.subject is not None:
-            update_fields.append("subject = %s")
-            values.append(professor_data.subject)
-        
-        if professor_data.neu_email is not None:
-            update_fields.append("neu_email = %s")
-            values.append(professor_data.neu_email)
-        
-        if professor_data.password is not None:
-            update_fields.append("password = %s")
-            values.append(professor_data.password)
+        if professor_data.email is not None:
+            update_fields.append("email = %s")
+            values.append(professor_data.email)
         
         values.append(professor_id)
         
@@ -89,7 +79,7 @@ def update_professor(professor_id: int, professor_data: ProfessorUpdate, db: Con
             UPDATE public.professor
             SET {', '.join(update_fields)}
             WHERE professor_id = %s
-            RETURNING professor_id, name, subject, neu_email
+            RETURNING professor_id, name, email
         """
         
         cursor.execute(query, values)
@@ -132,7 +122,7 @@ def check_professor_email_exists(email: str, db: Connection) -> bool:
     try:
         cursor = db.cursor()
         
-        query = "SELECT EXISTS(SELECT 1 FROM public.professor WHERE neu_email = %s)"
+        query = "SELECT EXISTS(SELECT 1 FROM public.professor WHERE email = %s)"
         cursor.execute(query, (email,))
         
         exists = cursor.fetchone()[0]

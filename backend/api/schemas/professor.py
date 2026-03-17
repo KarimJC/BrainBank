@@ -3,18 +3,14 @@ from pydantic import BaseModel, ConfigDict
 
 class ProfessorCreate(BaseModel):
     name: str
-    subject: str
-    neu_email: str
-    password: str
+    email: str
     
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
                     "name": "Dr. Jane Smith",
-                    "subject": "Computer Science",
-                    "neu_email": "j.smith@northeastern.edu",
-                    "password": "password123"
+                    "email": "j.smith@northeastern.edu",
                 }
             ]
         }
@@ -23,16 +19,14 @@ class ProfessorCreate(BaseModel):
 
 class ProfessorUpdate(BaseModel):
     name: Optional[str] = None
-    subject: Optional[str] = None
-    neu_email: Optional[str] = None
-    password: Optional[str] = None
+    email: Optional[str] = None
     
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
                     "name": "Dr. Jane Smith",
-                    "subject": "Data Science"
+                    "email": "j.smith@northeastern.edu",
                 }
             ]
         }
@@ -42,8 +36,7 @@ class ProfessorUpdate(BaseModel):
 class ProfessorResponse(BaseModel):
     professor_id: int
     name: str
-    subject: str
-    neu_email: str
+    email: str
     
     model_config = ConfigDict(
         json_schema_extra={
@@ -51,8 +44,7 @@ class ProfessorResponse(BaseModel):
                 {
                     "professor_id": 1,
                     "name": "Dr. Jane Smith",
-                    "subject": "Computer Science",
-                    "neu_email": "j.smith@northeastern.edu"
+                    "email": "j.smith@northeastern.edu"
                 }
             ]
         }
