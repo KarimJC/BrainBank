@@ -9,6 +9,13 @@ export default function TabLayout() {
           display: 'none',   // Hide default tabs (using custom BottomNav)
         },
       }}
-    />
+    >
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="chat" />
+      <Tabs.Screen name="notes" />
+      <Tabs.Screen name="profile" />
+      <Tabs.Screen name="chatbot" options={{ headerShown: false }} />
+      <Tabs.Screen name="course" options={{ headerShown: false }} />
+    </Tabs>
   );
 }
