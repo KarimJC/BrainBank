@@ -1,8 +1,7 @@
 from api.schemas.user import UserUpdate, UserResponse, DeleteResponse
 from api.schemas.courses import CourseCreate, CourseUpdate, CourseResponse, CourseList, CourseDeleteResponse
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
-
-from .professor import (ProfessorCreate, ProfessorUpdate, ProfessorResponse, DeleteResponse)
+from api.schemas.professor import ProfessorCreate, ProfessorUpdate, ProfessorResponse, ProfessorDeleteResponse
 
 __all__ = [
 
@@ -15,7 +14,7 @@ __all__ = [
     "UserCreate",
     "UserUpdate",
     "UserResponse",
-    "DeleteResponse",
+    "ProfessorDeleteResponse",
     "CourseCreate",
     "CourseUpdate",
     "CourseResponse",

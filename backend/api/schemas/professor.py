@@ -51,6 +51,6 @@ class ProfessorResponse(BaseModel):
     )
 
 
-class DeleteResponse(BaseModel):
+class ProfessorDeleteResponse(BaseModel):
     message: str
     deleted_id: int

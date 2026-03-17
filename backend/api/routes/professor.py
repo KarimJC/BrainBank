@@ -9,7 +9,7 @@ from db.crud.professor import (
     check_professor_email_exists
 )
 
-from api.schemas.professor import ProfessorCreate, ProfessorUpdate, ProfessorResponse, DeleteResponse
+from api.schemas.professor import ProfessorCreate, ProfessorUpdate, ProfessorResponse, ProfessorDeleteResponse
 
 from core.exceptions import ProfessorNotFoundException, ProfessorAlreadyExistsException
 
@@ -57,11 +57,11 @@ def update_professor(professor_id: int, updated_professor_data: ProfessorUpdate,
             return updated_professor
 
 
-@router.delete("/professors/{professor_id}", response_model=DeleteResponse, status_code=status.HTTP_200_OK)
-def delete_professor_route(professor_id: int, db: Connection = Depends(get_db)) -> DeleteResponse:
+@router.delete("/professors/{professor_id}", response_model=ProfessorDeleteResponse, status_code=status.HTTP_200_OK)
+def delete_professor_route(professor_id: int, db: Connection = Depends(get_db)) -> ProfessorDeleteResponse:
     """Delete a professor"""
     professor = get_professor_by_id(professor_id, db)
     if not professor:
         raise ProfessorNotFoundException(professor_id)
     delete_professor_crud(professor_id, db)
-    return DeleteResponse(message=f"Successfully deleted professor {professor_id}", deleted_id=professor_id)
+    return ProfessorDeleteResponse(message=f"Successfully deleted professor {professor_id}", deleted_id=professor_id)
