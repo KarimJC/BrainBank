@@ -4,17 +4,14 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-<<<<<<< HEAD
 import { api } from '@/services/api';
+import { Ionicons } from '@expo/vector-icons';
 
 interface CourseSection {
   course_name: string;
   course_title: string;
   bookmarked: boolean;
 }
-=======
-import { Ionicons } from '@expo/vector-icons';
->>>>>>> b19555753c34e1c464aa7ba4f6b7641c74478424
 
 interface BookmarkIconProps {
   filled: boolean;
@@ -39,12 +36,8 @@ const BookmarkIcon: React.FC<BookmarkIconProps> = ({ filled, onPress }) => (
 interface ClassCardProps {
   classData: CourseSection;
   onPress: () => void;
-<<<<<<< HEAD
-  onBookmarkPress: (name: string) => void;
-=======
   onBookmarkPress: (id: string) => void;
   onAiPress: () => void;
->>>>>>> b19555753c34e1c464aa7ba4f6b7641c74478424
 }
 
 const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPress, onAiPress }) => (
@@ -56,13 +49,6 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPre
         onPress={() => onBookmarkPress(classData.course_name)}
       />
     </View>
-<<<<<<< HEAD
-    <Text style={styles.classDescription}>{classData.course_title}</Text>
-    <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
-      <IconSymbol name="folder" size={20} color="#FFFFFF" />
-      <Text style={styles.viewNotesText}>View All Notes</Text>
-    </TouchableOpacity>
-=======
     <Text style={styles.classDescription}>{classData.description}</Text>
     <View style={styles.buttonRow}>
       <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
@@ -77,7 +63,6 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPre
         <Ionicons name="sparkles" size={18} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
->>>>>>> b19555753c34e1c464aa7ba4f6b7641c74478424
   </View>
 );
 
@@ -155,7 +140,6 @@ export default function HomeScreen() {
     <AppLayout userName={userName} onNavigate={handleNavigation} activeRoute="home">
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
-<<<<<<< HEAD
           {loading ? (
             <ActivityIndicator size="large" color="#6B5BC7" style={{ marginTop: 40 }} />
           ) : error ? (
@@ -179,21 +163,6 @@ export default function HomeScreen() {
               )}
             </>
           )}
-=======
-          <Text style={styles.welcome}>
-            Welcome, <Text style={styles.userName}>User!</Text>
-          </Text>
-
-          {classes.map((classData) => (
-            <ClassCard 
-              key={classData.id} 
-              classData={classData}
-              onPress={() => handleViewNotes(classData.id)}
-              onBookmarkPress={handleBookmarkToggle}
-              onAiPress={() => handleOpenAiChat(classData.id, classData.code)}
-            />
-          ))}
->>>>>>> b19555753c34e1c464aa7ba4f6b7641c74478424
         </View>
       </ScrollView>
     </AppLayout>
@@ -201,7 +170,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
   container: { paddingVertical: 20 },
   welcome: { fontSize: 32, fontWeight: '600', color: '#000', marginBottom: 24 },
   userName: { color: '#6B5BC7' },
@@ -214,73 +182,4 @@ const styles = StyleSheet.create({
   viewNotesText: { color: '#FFFFFF', fontSize: 16, fontWeight: '500', marginLeft: 8 },
   errorText: { color: '#CC0000', fontSize: 16, textAlign: 'center', marginTop: 40 },
   emptyText: { color: '#666666', fontSize: 16, textAlign: 'center', marginTop: 40 },
-=======
-  container: {
-    paddingVertical: 20,
-  },
-  welcome: {
-    fontSize: 32,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 24,
-  },
-  userName: {
-    color: '#6B5BC7',
-  },
-  card: {
-    backgroundColor: '#E8E5F5',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  classCode: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#000',
-  },
-  bookmarkTouchable: {
-    padding: 4,
-  },
-  classDescription: {
-    fontSize: 15,
-    color: '#666666',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  viewNotesButton: {
-    backgroundColor: '#6B5BC7',
-    borderRadius: 24,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-start',
-  },
-  viewNotesText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 8,
-  },
-  aiButton: {
-    backgroundColor: '#6B5BC7',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
->>>>>>> b19555753c34e1c464aa7ba4f6b7641c74478424
 });
