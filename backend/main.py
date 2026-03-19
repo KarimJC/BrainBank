@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from api.routes.notes import router as notes_router
 from api.routes.course_section import router as course_sections_router
+from api.routes.user import router as user_router
+from api.routes.course_sections_v1 import router as course_sections_v1_router
 
 load_dotenv()
 
@@ -25,6 +27,8 @@ app.add_middleware(
 
 app.include_router(notes_router)
 app.include_router(course_sections_router)
+app.include_router(user_router, prefix="/api/v1/user", tags=["user"])
+app.include_router(course_sections_v1_router)
 
 
 @app.get("/")

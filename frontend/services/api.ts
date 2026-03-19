@@ -1,59 +1,57 @@
-import { Platform } from 'react-native';
-import Constants from 'expo-constants';
+import { supabase } from './supabase';
 
-const getApiUrl = (): string => {
-  if (Constants.expoConfig?.extra?.apiUrl) {
-    return Constants.expoConfig.extra.apiUrl;
-  }
+class AuthRequiredError extends Error {
+  override name = 'AuthRequiredError';
+}
 
-  if (__DEV__) {
-    if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:8000';
+function getApiBaseUrl() {
+  const explicit = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (explicit) return explicit.replace(/\/+$/, '');
+
+  const ip = process.env.EXPO_PUBLIC_LOCAL_IP?.trim();
+  if (ip) return `http://${ip}:8000`;
+
+  // Reasonable fallback for web / local dev.
+  return 'http://localhost:8000';
+}
+
+const API_URL = getApiBaseUrl();
+
+async function getAuthHeaders(requireAuth: boolean = true) {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+
+  if (!session?.access_token && requireAuth) throw new AuthRequiredError('No active session');
+  return headers;
+}
+
+export const api = {
+  AuthRequiredError,
+  async getCurrentUser() {
+    const headers = await getAuthHeaders();
+    console.log('Calling:', `${API_URL}/api/v1/user/me`);
+    const response = await fetch(`${API_URL}/api/v1/user/me`, { headers });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('API Error:', error);
+      throw new Error(`Failed to fetch user: ${error}`);
+    }
+    
+    return response.json();
+  },
+  
+  async getUserCourseSections(userId: number) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/v1/course_sections/user/${userId}`, { headers });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to fetch course sections: ${error}`);
     }
 
-    const port = process.env.EXPO_PUBLIC_API_PORT || '8000';
-
-    // Try to get IP from Expo's Metro bundler host
-    const hostUri = Constants.expoConfig?.hostUri;
-    console.log('hostUri:', hostUri);
-    if (hostUri) {
-      const host = hostUri.split(':')[0];
-      return `http://${host}:${port}`;
-    }
-
-    // Fall back to manually set IP in .env
-    const localIp = process.env.EXPO_PUBLIC_LOCAL_IP;
-    if (localIp) {
-      return `http://${localIp}:${port}`;
-    }
-
-    return 'http://localhost:8000';
-  }
-
-  return process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+    return response.json();
+  },
 };
-
-export const API_BASE_URL = getApiUrl();
-
-export const API_ENDPOINTS = {
-  BASE: API_BASE_URL,
-  NOTES: `${API_BASE_URL}/api/notes`,
-  NOTE_BY_ID: (id: string) => `${API_BASE_URL}/api/notes/${id}`,
-  NOTES_BY_COURSE: (course: string) => `${API_BASE_URL}/api/notes/course/${course}`,
-  NOTES_COUNT: `${API_BASE_URL}/api/notes/count`,
-  NOTES_COURSE_SECTIONS: `${API_BASE_URL}/api/notes/course-sections`,
-  COURSE_SECTIONS: `${API_BASE_URL}/api/course-sections`,
-  COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/course-sections/${id}`,
-  HEALTH: `${API_BASE_URL}/health`,
-};
-
-export const checkBackendConnection = async (): Promise<boolean> => {
-  try {
-    const response = await fetch(API_ENDPOINTS.HEALTH, { method: 'GET' } as any);
-    return response.ok;
-  } catch (error) {
-    return false;
-  }
-};
-
-console.log('API Base URL:', API_BASE_URL);
