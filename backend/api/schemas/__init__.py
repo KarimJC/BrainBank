@@ -17,5 +17,5 @@ __all__ = [
     "MessageResponse",
     "MessageDeleteResponse",
     DocumentResponse,
-    DocumentDeleteResponse
+    DocumentDeleteResponse,
 ]

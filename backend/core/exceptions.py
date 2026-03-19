@@ -51,14 +51,9 @@ class CourseSectionNotFoundException(HTTPException):
 
 class CourseSectionAlreadyExistsException(HTTPException):
     def __init__(self, crn: int):
-        super().__init__(
-            status_code= status.HTTP_409_CONFLICT,
-            detail= f"Course section with CRN {crn} already exists"
-        )
+        super().__init__(status_code=status.HTTP_409_CONFLICT, detail=f"Course section with CRN {crn} already exists")
+
 
 class DocumentNotFoundException(HTTPException):
     def __init__(self, doc_id: str):
-        super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Document with id {doc_id} not found"
-        )
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document with id {doc_id} not found")

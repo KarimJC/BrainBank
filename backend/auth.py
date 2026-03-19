@@ -21,10 +21,7 @@ def get_jwks():
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not SUPABASE_URL:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Supabase URL not configured"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Supabase URL not configured")
 
     token = credentials.credentials
 
@@ -46,12 +43,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        payload = jwt.decode(
-            token,
-            public_key,
-            algorithms=["ES256"],
-            audience="authenticated"
-        )
+        payload = jwt.decode(token, public_key, algorithms=["ES256"], audience="authenticated")
 
         auth_id: str = payload.get("sub")
         email: str = payload.get("email")

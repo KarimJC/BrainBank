@@ -59,7 +59,7 @@ def update_user(user_id: int, user_data: UserUpdate, db: Connection) -> dict:
         values.append(user_id)
         query = f"""
             UPDATE public.user
-            SET {', '.join(update_fields)}
+            SET {", ".join(update_fields)}
             WHERE user_id = %s
             RETURNING {USER_COLUMNS}
         """
@@ -103,7 +103,7 @@ def update_user_by_auth_id(auth_id: str, user_data: UserUpdate, db: Connection) 
         values.append(auth_id)
         query = f"""
             UPDATE public.user
-            SET {', '.join(update_fields)}
+            SET {", ".join(update_fields)}
             WHERE auth_id = %s
             RETURNING {USER_COLUMNS}
         """
