@@ -18,7 +18,6 @@ from db.crud.message import (
 from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
 from core.exceptions import DatabaseException, MessageNotFoundException
 from api.websocket_manager.connection_manager import ConnectionManager
-from db.crud.conversation import get_conversation_by_id
 from db.connection import get_db
 
 
