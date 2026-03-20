@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 const MOCK_COURSES = [
-  { key: 'cs2510', sectionId: '7', code: 'CS 2510', description: 'Fundamentals of Computer Science 2' },
-  { key: 'math1201', sectionId: '7', code: 'MATH 1201', description: 'Calculus and Differential Equations' },
+  { key: 'cs2510', sectionId: '10', code: 'CS 2510', description: 'Fundamentals of Computer Science 2' },
+  { key: 'math1201', sectionId: '11', code: 'MATH 1201', description: 'Calculus and Differential Equations' },
 ];
 
 export default function ChatScreen() {
