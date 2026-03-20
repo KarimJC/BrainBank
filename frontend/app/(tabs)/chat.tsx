@@ -97,15 +97,17 @@ export default function ChatScreen() {
   };
 
   const handleNavigation = (route: string) => {
-    if (route === 'home') {
-      router.push('/(tabs)');
-    } else if (route === 'notes') {
-      router.push('/(tabs)/notes');
-    } else if (route === 'chat') {
-      router.push('/(tabs)/chat');
-    } else if (route === 'profile') {
-      router.push('/(tabs)/profile');
-    }
+    if (route === 'home') router.push('/(tabs)');
+    else if (route === 'notes') router.push('/(tabs)/notes');
+    else if (route === 'chat') router.push('/(tabs)/chat');
+    else if (route === 'profile') router.push('/(tabs)/profile');
+  };
+
+  const openChat = (courseId: string, courseCode: string) => {
+    router.push({
+      pathname: '/(tabs)/chatbot',
+      params: { sectionId: courseId, courseName: courseCode },
+    });
   };
 
   if (initialLoad) {

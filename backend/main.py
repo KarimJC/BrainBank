@@ -1,10 +1,16 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes import api_router
 
-app = FastAPI(title="BrainBank")
+app = FastAPI(
+    title="BrainBank API",
+    description="Backend API for the BrainBank notes application",
+    version="1.0.0",
+)
 
-# CORS middleware for React Native
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,9 +22,13 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
-def read_root():
-    return {"message": "NEU Notes Hub Backend is running"}
+async def root():
+    return {"message": "Welcome to BrainBank API"}
 
 @app.get("/health")
-def health_check():
+async def health_check():
     return {"status": "healthy"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

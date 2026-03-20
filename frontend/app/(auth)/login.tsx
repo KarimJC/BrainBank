@@ -64,7 +64,7 @@ const LoginScreen: React.FC = () => {
             <Text style={styles.titlePurple}>Brain</Text>
             <Text style={styles.titleBlack}>Bank</Text>
           </Text>
-          <Text style={styles.subtitle}>Deposit Notes, Withdraw A's</Text>
+          <Text style={styles.subtitle}>Deposit Notes, Withdraw A&apos;s</Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -103,7 +103,7 @@ const LoginScreen: React.FC = () => {
           </TouchableOpacity>
 
           <View style={styles.signupPrompt}>
-            <Text style={styles.signupPromptText}>Don't have an account? </Text>
+            <Text style={styles.signupPromptText}>Don&apos;t have an account? </Text>
             <TouchableOpacity onPress={handleSignUp}>
               <Text style={styles.signupLink}>Sign Up</Text>
             </TouchableOpacity>

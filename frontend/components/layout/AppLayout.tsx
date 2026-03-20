@@ -3,7 +3,7 @@ import { View, StyleSheet, Modal } from 'react-native';
 import Header from '../ui/Header';
 import BottomNav from '../ui/BottomNav';
 import ActionMenu from '../ui/ActionMenu';
-// import NotesUploadPage from '../../app/(tabs)/NotesUploadPage';
+import NotesUploadPage from '../../app/(tabs)/NotesUploadPage';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -13,71 +13,53 @@ interface AppLayoutProps {
   activeRoute?: string;
 }
 
-const AppLayout: React.FC<AppLayoutProps> = ({ 
-  children, 
-  userName = "User", 
+const AppLayout: React.FC<AppLayoutProps> = ({
+  children,
+  userName = "User",
   profileImage,
   onNavigate,
   activeRoute = 'home'
 }) => {
   const [showActionMenu, setShowActionMenu] = useState(false);
-  // const [showNotesUpload, setShowNotesUpload] = useState(false);
+  const [showNotesUpload, setShowNotesUpload] = useState(false);
 
   const handleAction = (action: string) => {
-    console.log(`Action selected: ${action}`);
     setShowActionMenu(false);
-    
-    // Handle different actions
     switch (action) {
       case 'upload-notes':
-        // setShowNotesUpload(true);
-        console.log('Upload notes - NotesUploadPage not implemented yet');
+        setShowNotesUpload(true);
         break;
       case 'add-class':
-        // Handle add class action
-        if (onNavigate) {
-          onNavigate('add-class');
-        }
+        if (onNavigate) onNavigate('add-class');
         break;
       case 'generate-document':
-        // Handle generate document action
-        if (onNavigate) {
-          onNavigate('generate-document');
-        }
+        if (onNavigate) onNavigate('generate-document');
         break;
       default:
-        if (onNavigate) {
-          onNavigate(action);
-        }
+        if (onNavigate) onNavigate(action);
     }
   };
 
   const handleNavigation = (route: string) => {
-    if (onNavigate) {
-      onNavigate(route);
-    }
+    if (onNavigate) onNavigate(route);
   };
 
-  // const handleCloseNotesUpload = () => {
-  //   setShowNotesUpload(false);
-  // };
+  const handleCloseNotesUpload = () => {
+    setShowNotesUpload(false);
+  };
 
   return (
     <View style={styles.container}>
       <Header userName={userName} profileImage={profileImage} />
-      
       <View style={styles.content}>
         {children}
       </View>
-
-      <ActionMenu 
+      <ActionMenu
         visible={showActionMenu}
         onClose={() => setShowActionMenu(false)}
         onAction={handleAction}
       />
-
-      {/* Modal for Notes Upload - NOT IMPLEMENTED YET */}
-      {/* <Modal
+      <Modal
         visible={showNotesUpload}
         animationType="slide"
         presentationStyle="pageSheet"
@@ -86,9 +68,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         <View style={styles.modalContainer}>
           <NotesUploadPage onClose={handleCloseNotesUpload} />
         </View>
-      </Modal> */}
-
-      <BottomNav 
+      </Modal>
+      <BottomNav
         onNavigate={handleNavigation}
         onPressAdd={() => setShowActionMenu(true)}
         activeRoute={activeRoute}
