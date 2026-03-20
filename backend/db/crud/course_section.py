@@ -16,7 +16,6 @@ def get_all_course_sections(db: Connection) -> List[dict]:
             SELECT
                 cs.id as course_section_id,
                 cs.course_id,
-                cs.course_title,
                 cs."course_CRN" as course_crn,
                 cs.professor_id,
                 c.course as course_code,
@@ -26,7 +25,7 @@ def get_all_course_sections(db: Connection) -> List[dict]:
             FROM course_section cs
             JOIN course c ON cs.course_id = c.id
             LEFT JOIN professor p ON cs.professor_id = p.professor_id
-            ORDER BY c.course, cs.course_title
+            ORDER BY c.course, c.title
         """
         cursor.execute(query)
         results = cursor.fetchall()
@@ -45,7 +44,6 @@ def get_course_section_by_id(section_id: int, db: Connection) -> Optional[dict]:
             SELECT
                 cs.id as course_section_id,
                 cs.course_id,
-                cs.course_title,
                 cs."course_CRN" as course_crn,
                 cs.professor_id,
                 c.course as course_code,
@@ -71,13 +69,12 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         query = """
-        INSERT INTO public.course_section (course_id, course_title, "course_CRN", professor_id)
-        VALUES (%s, %s, %s, %s)
-        RETURNING course_id, id, course_title, "course_CRN", professor_id
+        INSERT INTO public.course_section (course_id, "course_CRN", professor_id)
+        VALUES (%s, %s, %s)
+        RETURNING course_id, id,"course_CRN", professor_id
         """
         cursor.execute(query, (
             course_section_data.course_id,
-            course_section_data.course_title,
             course_section_data.course_CRN,
             course_section_data.professor_id
         ))
@@ -122,10 +119,6 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
             update_fields.append("course_id = %s")
             values.append(course_section_data.course_id)
 
-        if course_section_data.course_title is not None:
-            update_fields.append("course_title = %s")
-            values.append(course_section_data.course_title)
-
         if course_section_data.course_CRN is not None:
             update_fields.append('"course_CRN" = %s')
             values.append(course_section_data.course_CRN)
@@ -135,12 +128,16 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
             values.append(course_section_data.professor_id)
 
         values.append(section_id)
+        
+        if  len(update_fields) ==0: #if we have not updated the fields, we want to close and return early 
+            cursor.close()
+            return get_course_section_by_id(section_id, db)
 
         query = f'''
             UPDATE public.course_section
             SET {', '.join(update_fields)}
             WHERE id = %s
-            RETURNING course_id, id, course_title, "course_CRN", professor_id
+            RETURNING course_id, id, "course_CRN", professor_id
         '''
         cursor.execute(query, values)
         result = cursor.fetchone()
