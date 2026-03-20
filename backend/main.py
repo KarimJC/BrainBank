@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from api.routes.notes import router as notes_router
-from api.routes.course_section import router as course_sections_router
+from api.routes import api_router
 
 load_dotenv()
 
@@ -20,9 +19,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(notes_router)
-app.include_router(course_sections_router)
 
+app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
@@ -37,3 +35,5 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+    
+    
