@@ -88,7 +88,17 @@ export default function HomeScreen() {
   };
 
   const handleViewNotes = (classId: string) => {
-    console.log(`Viewing notes for class: ${classId}`);
+    const classData = classes.find(c => c.id === classId);
+    if (!classData) return;
+
+    router.push({
+      pathname: '/(tabs)/course' as any,
+      params: {
+        courseId: classData.id,
+        courseCode: classData.code,
+        professorName: classData.description, // bc we dont have prof yet 
+      },
+    });
   };
 
   const handleBookmarkToggle = (classId: string) => {

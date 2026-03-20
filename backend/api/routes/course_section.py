@@ -66,7 +66,7 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
 
 
 # GET course sections by subject
-@router.get("/subject/{subject}", response_model=list[CourseSectionResponse], status_code=status.HTTP_200_OK)
+@router.get("/subject/{subject}", response_model=List[CourseSectionResponse], status_code=status.HTTP_200_OK)
 def get_course_sections_by_subject(subject: str, db: Connection = Depends(get_db)):
     return get_course_sections_by_subject_crud(subject, db)
 
