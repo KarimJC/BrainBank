@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status, APIRouter, Depends
-from typing import List
+from typing import List, Optional
 from psycopg2.extensions import connection as Connection
 from db.connection import get_db
 from db.crud.course_section import (
@@ -16,7 +16,7 @@ from core.exceptions import CourseSectionNotFoundException, CourseSectionAlready
 from pydantic import BaseModel
 
 router = APIRouter(
-    prefix="/api/course-sections",
+    prefix="/course-sections",
     tags=["course-sections"]
 )
 
@@ -26,11 +26,11 @@ class CourseSectionDetailResponse(BaseModel):
     course_id: int
     course_title: str
     course_crn: int
-    professor_id: int | None
+    professor_id: Optional[int] = None
+    professor_name: Optional[str] = None
     course_code: str
     course_name: str
-    subject: str | None
-    professor_name: str | None
+    subject: Optional[str] = None
 
 
 # GET all course sections with joined course and professor details (used by frontend)
@@ -66,7 +66,7 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
 
 
 # GET course sections by subject
-@router.get("/subject/{subject}", response_model=list[CourseSectionResponse], status_code=status.HTTP_200_OK)
+@router.get("/subject/{subject}", response_model=List[CourseSectionResponse], status_code=status.HTTP_200_OK)
 def get_course_sections_by_subject(subject: str, db: Connection = Depends(get_db)):
     return get_course_sections_by_subject_crud(subject, db)
 
