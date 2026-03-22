@@ -1,10 +1,11 @@
 from fastapi import HTTPException, status, APIRouter, Depends
-from typing import List
+from typing import List, Optional
 from psycopg2.extensions import connection as Connection
 from db.connection import get_db
 from db.crud.course_section import (
     get_all_course_sections,
     get_course_section_by_id,
+    get_course_sections_for_user,
     create_course_section as create_course_section_crud,
     get_course_sections_by_subject as get_course_sections_by_subject_crud,
     update_course_section as update_course_section_crud,
@@ -15,18 +16,18 @@ from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate,
 from core.exceptions import CourseSectionNotFoundException, CourseSectionAlreadyExistsException
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/course-sections", tags=["course-sections"])
+router = APIRouter(prefix="/course-sections", tags=["course-sections"])
 
 
 class CourseSectionDetailResponse(BaseModel):
     course_section_id: int
     course_id: int
     course_crn: int
-    professor_id: int | None
+    professor_id: Optional[int] = None
+    professor_name: Optional[str] = None
     course_code: str
     course_name: str
-    subject: str | None
-    professor_name: str | None
+    subject: Optional[str] = None
 
 
 # GET all course sections with joined course and professor details (used by frontend)
@@ -35,6 +36,14 @@ async def get_course_sections_endpoint(conn=Depends(get_db)):
     try:
         course_sections = get_all_course_sections(conn)
         return course_sections
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/user/{user_id}", response_model=List[CourseSectionDetailResponse])
+async def get_course_sections_for_user_endpoint(user_id: int, conn=Depends(get_db)):
+    try:
+        return get_course_sections_for_user(user_id, conn)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -62,7 +71,7 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
 
 
 # GET course sections by subject
-@router.get("/subject/{subject}", response_model=list[CourseSectionResponse], status_code=status.HTTP_200_OK)
+@router.get("/subject/{subject}", response_model=List[CourseSectionResponse], status_code=status.HTTP_200_OK)
 def get_course_sections_by_subject(subject: str, db: Connection = Depends(get_db)):
     return get_course_sections_by_subject_crud(subject, db)
 

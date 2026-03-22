@@ -25,9 +25,24 @@ class CourseNotFoundException(HTTPException):
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=f"Course with id {course_id} not found")
 
 
+class ConversationAlreadyExists(HTTPException):
+    def __init__(self, initiator_id: int, recipeint_id: int):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Conversation between initiator_id {initiator_id} and recipeint_id {recipeint_id} already exists",
+        )
+
+
+class ConversationNotFound(HTTPException):
+    def __init__(self, conversation_id: int):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Conversation with id {conversation_id} not found"
+        )
+
+
 # Exceptions related to messages
 class MessageNotFoundException(HTTPException):
-    def __init__(self, message_id: int):
+    def __init__(self, message_id: str):
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=f"Message with id {message_id} not found")
 
 
@@ -37,7 +52,7 @@ class InvalidMessageRecipientException(HTTPException):
 
 
 class MessageAlreadyDeletedException(HTTPException):
-    def __init__(self, message_id: int):
+    def __init__(self, message_id: str):
         super().__init__(status_code=status.HTTP_410_GONE, detail=f"Message {message_id} has already been deleted")
 
 

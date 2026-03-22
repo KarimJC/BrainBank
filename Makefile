@@ -1,4 +1,4 @@
-.PHONY: backend frontend dev lint format
+.PHONY: backend frontend dev lint format fix
 
 backend:
 	cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -15,3 +15,10 @@ format:
 lint:
 	cd frontend && npm run lint
 	cd backend && ruff check . && ruff format --check .
+
+fix:
+	@echo "==> Fixing backend (ruff)..."
+	cd backend && ruff check --fix . && ruff format .
+	@echo "==> Fixing frontend (eslint)..."
+	cd frontend && npx expo lint --fix
+	@echo "==> Done."

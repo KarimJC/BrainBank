@@ -4,12 +4,18 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { api } from '@/services/api';
+import { api, AuthRequiredError } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 
 interface CourseSection {
+  course_section_id: number;
+  course_id: number;
+  course_crn: number;
+  professor_id?: number | null;
+  professor_name?: string | null;
+  course_code: string;
   course_name: string;
-  course_title: string;
+  subject?: string | null;
   bookmarked: boolean;
 }
 
@@ -43,13 +49,13 @@ interface ClassCardProps {
 const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPress, onAiPress }) => (
   <View style={styles.card}>
     <View style={styles.cardHeader}>
-      <Text style={styles.classCode}>{classData.course_name}</Text>
+      <Text style={styles.classCode}>{classData.course_code}</Text>
       <BookmarkIcon
         filled={classData.bookmarked}
-        onPress={() => onBookmarkPress(classData.course_name)}
+        onPress={() => onBookmarkPress(String(classData.course_section_id))}
       />
     </View>
-    <Text style={styles.classDescription}>{classData.description}</Text>
+    <Text style={styles.classDescription}>{classData.course_name}</Text>
     <View style={styles.buttonRow}>
       <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
         <IconSymbol 
@@ -87,7 +93,7 @@ export default function HomeScreen() {
         console.log('Got sections:', sections);
         setClasses(sections.map((s: CourseSection) => ({ ...s, bookmarked: false })));
       } catch (err) {
-        if (err instanceof api.AuthRequiredError) {
+        if (err instanceof AuthRequiredError) {
           router.replace('/(auth)/login');
           return;
         }
@@ -112,10 +118,14 @@ export default function HomeScreen() {
     else if (route === 'profile') router.push('/(tabs)/profile');
   };
 
-  const handleViewNotes = (courseName: string) => {
+  const handleViewNotes = (section: CourseSection) => {
     router.push({
-      pathname: '/(tabs)/course/[courseName]',
-      params: { courseName },
+      pathname: '/(tabs)/course',
+      params: {
+        courseId: String(section.course_section_id),
+        courseCode: section.course_code,
+        professorName: section.professor_name ?? '',
+      },
     });
   };
 
@@ -129,7 +139,7 @@ export default function HomeScreen() {
   const handleBookmarkToggle = (classId: string) => {
     setClasses(prevClasses => 
       prevClasses.map(cls => 
-        cls.id === classId 
+        String(cls.course_section_id) === classId 
           ? { ...cls, bookmarked: !cls.bookmarked }
           : cls
       )
@@ -154,10 +164,11 @@ export default function HomeScreen() {
               ) : (
                 classes.map(classData => (
                   <ClassCard
-                    key={classData.course_name}
+                    key={classData.course_section_id}
                     classData={classData}
-                    onPress={() => handleViewNotes(classData.course_name)}
+                    onPress={() => handleViewNotes(classData)}
                     onBookmarkPress={handleBookmarkToggle}
+                    onAiPress={() => handleOpenAiChat(String(classData.course_section_id), classData.course_code)}
                   />
                 ))
               )}
@@ -178,7 +189,9 @@ const styles = StyleSheet.create({
   classCode: { fontSize: 24, fontWeight: '600', color: '#000' },
   bookmarkTouchable: { padding: 4 },
   classDescription: { fontSize: 15, color: '#666666', marginBottom: 20, lineHeight: 20 },
+  buttonRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   viewNotesButton: { backgroundColor: '#6B5BC7', borderRadius: 24, paddingVertical: 14, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
+  aiButton: { backgroundColor: '#6B5BC7', borderRadius: 24, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   viewNotesText: { color: '#FFFFFF', fontSize: 16, fontWeight: '500', marginLeft: 8 },
   errorText: { color: '#CC0000', fontSize: 16, textAlign: 'center', marginTop: 40 },
   emptyText: { color: '#666666', fontSize: 16, textAlign: 'center', marginTop: 40 },

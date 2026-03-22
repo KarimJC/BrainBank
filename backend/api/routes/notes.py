@@ -21,7 +21,7 @@ from utils.ocr import extract_text
 from utils.storage import upload_file, delete_file
 from auth import get_current_user
 
-router = APIRouter(prefix="/api/notes", tags=["notes"])
+router = APIRouter(prefix="/notes", tags=["notes"])
 
 ALLOWED_MIME_TYPES = {
     "image/jpeg",
