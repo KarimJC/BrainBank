@@ -20,6 +20,6 @@ __all__ = [
     "ConversationCreate",
     "ConversationUpdate",
     "ConversationResponse",
-    DocumentResponse,
-    DocumentDeleteResponse,
+    "DocumentResponse",
+    "DocumentDeleteResponse",
 ]
