@@ -3,14 +3,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-<<<<<<< HEAD
-from dotenv import load_dotenv
 from api.routes import api_router
-
-load_dotenv()
-=======
-from api.routes import api_router
->>>>>>> 220070e15075518a14682137ae578c84030089e7
 
 app = FastAPI(
     title="BrainBank API",
