@@ -94,3 +94,19 @@ class CourseSectionAlreadyExistsException(HTTPException):
             status_code= status.HTTP_409_CONFLICT,
             detail= f"Course section with CRN {crn} already exists"
         )
+
+
+class ProfessorNotFoundException(HTTPException):
+    def __init__(self, professor_id: int):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Professor with id {professor_id} not found"
+        )
+
+
+class ProfessorAlreadyExistsException(HTTPException):
+    def __init__(self, email: str):
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Professor with email {email} already exists"
+        )

@@ -96,28 +96,11 @@ export default function ChatScreen() {
     }
   };
 
-  const pendingCount = conversations.filter(c => c.status === 'pending').length;
-
-  useFocusEffect(
-    useCallback(() => {
-      loadConversations();
-    }, [])
-  );
-
-  const loadConversations = async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      const user = await api.getCurrentUser();
-      setCurrentUserId(user.user_id);
-      const data = await api.getConversations(user.user_id);
-      setConversations(data);
-    } catch (error) {
-      console.error('Failed to load conversations:', error);
-    } finally {
-      setLoading(false);
-      setInitialLoad(false);
-    }
+  const handleNavigation = (route: string) => {
+    if (route === 'home') router.push('/(tabs)');
+    else if (route === 'notes') router.push('/(tabs)/notes');
+    else if (route === 'chat') router.push('/(tabs)/chat');
+    else if (route === 'profile') router.push('/(tabs)/profile');
   };
 
   if (initialLoad) {
