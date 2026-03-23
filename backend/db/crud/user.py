@@ -36,7 +36,6 @@ def get_user_by_auth_id(auth_id: str, db: Connection):
 def update_user(user_id: int, user_data: UserUpdate, db: Connection) -> dict:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-
         update_fields = []
         values = []
 
@@ -80,7 +79,6 @@ def update_user(user_id: int, user_data: UserUpdate, db: Connection) -> dict:
 def update_user_by_auth_id(auth_id: str, user_data: UserUpdate, db: Connection) -> dict:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-
         update_fields = []
         values = []
 
