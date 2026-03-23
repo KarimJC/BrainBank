@@ -16,7 +16,7 @@ from core.exceptions import ProfessorNotFoundException, ProfessorAlreadyExistsEx
 from db.connection import get_db
 
 router = APIRouter(
-    prefix="/api/professors",
+    prefix="/professors",
     tags=["professors"]
 )
 
