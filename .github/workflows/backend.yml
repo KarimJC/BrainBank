@@ -13,6 +13,9 @@ jobs:
     defaults:
       run:
         working-directory: backend
+  
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4

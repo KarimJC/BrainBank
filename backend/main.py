@@ -1,9 +1,16 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+<<<<<<< HEAD
 from dotenv import load_dotenv
 from api.routes import api_router
 
 load_dotenv()
+=======
+from api.routes import api_router
+>>>>>>> 220070e15075518a14682137ae578c84030089e7
 
 app = FastAPI(
     title="BrainBank API",
@@ -15,10 +22,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-
 
 app.include_router(api_router, prefix="/api/v1")
 
@@ -26,11 +32,9 @@ app.include_router(api_router, prefix="/api/v1")
 async def root():
     return {"message": "Welcome to BrainBank API"}
 
-
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
-
 
 if __name__ == "__main__":
     import uvicorn
