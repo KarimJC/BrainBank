@@ -78,7 +78,6 @@ class MessageAlreadyDeletedException(HTTPException):
         super().__init__(
             status_code=status.HTTP_410_GONE,
             detail=f"Message {message_id} has already been deleted"
-
         )
         
 #Course Section Exceptions 

@@ -7,7 +7,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 def get_user_by_id(user_id: int, db: Connection):
-    """Get a user by their ID"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         query = """
@@ -25,7 +24,6 @@ def get_user_by_id(user_id: int, db: Connection):
 
 
 def get_user_by_auth_id(auth_id: str, db: Connection):
-    """Get a user by their auth_id (from Supabase JWT)"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         query = """
@@ -43,7 +41,6 @@ def get_user_by_auth_id(auth_id: str, db: Connection):
 
 
 def update_user(user_id: int, user_data: UserUpdate, db: Connection) -> dict:
-    """Update a user's information by user_id"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         update_fields = []
@@ -52,11 +49,9 @@ def update_user(user_id: int, user_data: UserUpdate, db: Connection) -> dict:
         if user_data.neu_email is not None:
             update_fields.append("neu_email = %s")
             values.append(user_data.neu_email)
-
         if user_data.first_name is not None:
             update_fields.append("first_name = %s")
             values.append(user_data.first_name)
-
         if user_data.last_name is not None:
             update_fields.append("last_name = %s")
             values.append(user_data.last_name)
@@ -88,7 +83,6 @@ def update_user(user_id: int, user_data: UserUpdate, db: Connection) -> dict:
 
 
 def update_user_by_auth_id(auth_id: str, user_data: UserUpdate, db: Connection) -> dict:
-    """Update a user's information by auth_id"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         update_fields = []
@@ -97,15 +91,12 @@ def update_user_by_auth_id(auth_id: str, user_data: UserUpdate, db: Connection) 
         if user_data.neu_email is not None:
             update_fields.append("neu_email = %s")
             values.append(user_data.neu_email)
-
         if user_data.first_name is not None:
             update_fields.append("first_name = %s")
             values.append(user_data.first_name)
-
         if user_data.last_name is not None:
             update_fields.append("last_name = %s")
             values.append(user_data.last_name)
-
         if user_data.profile_picture is not None:
             update_fields.append("profile_picture = %s")
             values.append(user_data.profile_picture)
@@ -133,7 +124,6 @@ def update_user_by_auth_id(auth_id: str, user_data: UserUpdate, db: Connection) 
 
 
 def delete_user(user_id: int, db: Connection) -> bool:
-    """Delete a user from the database by user_id"""
     try:
         cursor = db.cursor()
         query = "DELETE FROM public.user WHERE user_id = %s"
@@ -150,7 +140,6 @@ def delete_user(user_id: int, db: Connection) -> bool:
 
 
 def delete_user_by_auth_id(auth_id: str, db: Connection) -> bool:
-    """Delete a user from the database by auth_id"""
     try:
         cursor = db.cursor()
         query = "DELETE FROM public.user WHERE auth_id = %s"
@@ -167,7 +156,6 @@ def delete_user_by_auth_id(auth_id: str, db: Connection) -> bool:
 
 
 def check_email_exists(email: str, db: Connection) -> bool:
-    """Check if an email already exists in the database"""
     try:
         cursor = db.cursor()
         query = "SELECT EXISTS(SELECT 1 FROM public.user WHERE neu_email = %s)"

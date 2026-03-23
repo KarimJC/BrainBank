@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 
+
 class MessageCreate(BaseModel):
     conversation_id: int
     content: str

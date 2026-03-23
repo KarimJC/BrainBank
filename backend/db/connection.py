@@ -13,5 +13,6 @@ def get_db() -> Connection:
         conn = connect(os.getenv("DATABASE_URL"))
         yield conn
     finally:
+        conn.close()
         if conn:
             conn.close()

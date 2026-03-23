@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Path } from 'react-native-svg';
+import { api } from '@/services/api';
 
 // ─── Colors ──────────────────────────────────────────────────
 const COLORS = {
