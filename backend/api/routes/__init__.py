@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from api.routes.user import router as user_router
 from api.routes.courses import router as courses_router
 from api.routes.message import router as message_router
-from api.routes.course_section import router as course_section_router 
+from api.routes.course_section import router as course_section_router
 from api.routes.conversation import router as conversation_router
 from api.routes.notes import router as notes_router  
 from api.routes.ai_chat import router as ai_chat_router 
