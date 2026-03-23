@@ -42,10 +42,7 @@ async def chat_websocket(websocket: WebSocket,  user_id: int, db: Connection = D
             json_data = json.loads(data)
             try:
                 make_message = MessageCreate(**json_data)
-                find_conversation = 
-                
-                
-                (make_message.conversation_id, db)
+                find_conversation = get_conversation_by_id(make_message.conversation_id, db)
                 if find_conversation:
                     # save message to db
                     saved_message = create_message_crud(make_message, user_id, db)
