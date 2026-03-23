@@ -16,7 +16,7 @@ from core.exceptions import CourseSectionNotFoundException, CourseSectionAlready
 from pydantic import BaseModel
 
 router = APIRouter(
-    prefix="/api/course-sections",
+    prefix="/course-sections",
     tags=["course-sections"]
 )
 
@@ -26,11 +26,12 @@ class CourseSectionDetailResponse(BaseModel):
     course_id: int
     course_title: str
     course_crn: int
-    professor_id: Optional[int]
+    professor_id: Optional[int] = None
+    professor_name: Optional[str] = None
     course_code: str
     course_name: str
-    subject: Optional[str]
-    professor_name: Optional[str]
+    subject: str | None
+    professor_name: str | None
 
 
 # GET all course sections with joined course and professor details (used by frontend)

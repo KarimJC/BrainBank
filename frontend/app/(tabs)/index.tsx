@@ -64,8 +64,8 @@ export default function HomeScreen() {
 
   // Mock class data with bookmark state
   const [classes, setClasses] = useState([
-    { id: '1', code: 'CS 2510', description: 'This is a short description of the class.', bookmarked: true },
-    { id: '2', code: 'MATH 1201', description: 'This is a short description of the class.', bookmarked: true },
+    { id: '10', code: 'CS 2510', description: 'This is a short description of the class.', bookmarked: true },
+    { id: '11', code: 'MATH 1201', description: 'This is a short description of the class.', bookmarked: true },
   ]);
 
   const handleNavigation = (route: string) => {

@@ -25,10 +25,31 @@ class CourseNotFoundException(HTTPException):
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=f"Course with id {course_id} not found")
 
 
+
+class ConversationAlreadyExists(HTTPException):
+     def __init__(self, initiator_id: int, recipeint_id: int):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Conversation between initiator_id {initiator_id} and recipeint_id {recipeint_id} already exists"
+        )
+        
+class ConversationNotFound(HTTPException):
+     def __init__(self, conversation_id: int):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Conversation with id {conversation_id} not found"
+        )
+    
+    
+    
+    
 # Exceptions related to messages
 class MessageNotFoundException(HTTPException):
-    def __init__(self, message_id: int):
-        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=f"Message with id {message_id} not found")
+    def __init__(self, message_id: str):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Message with id {message_id} not found"
+        )
 
 
 class InvalidMessageRecipientException(HTTPException):
@@ -37,8 +58,11 @@ class InvalidMessageRecipientException(HTTPException):
 
 
 class MessageAlreadyDeletedException(HTTPException):
-    def __init__(self, message_id: int):
-        super().__init__(status_code=status.HTTP_410_GONE, detail=f"Message {message_id} has already been deleted")
+    def __init__(self, message_id: str):
+        super().__init__(
+            status_code=status.HTTP_410_GONE,
+            detail=f"Message {message_id} has already been deleted"
+        )
 
 
 # Course Section Exceptions
@@ -66,4 +90,14 @@ class ProfessorAlreadyExistsException(HTTPException):
 
 class CourseSectionAlreadyExistsException(HTTPException):
     def __init__(self, crn: int):
-        super().__init__(status_code=status.HTTP_409_CONFLICT, detail=f"Course section with CRN {crn} already exists")
+        super().__init__(
+            status_code= status.HTTP_409_CONFLICT,
+            detail= f"Course section with CRN {crn} already exists"
+        )
+
+class DocumentNotFoundException(HTTPException):
+    def __init__(self, doc_id: str):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document with id {doc_id} not found"
+        )

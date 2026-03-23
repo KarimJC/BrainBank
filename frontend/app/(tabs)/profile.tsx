@@ -2,6 +2,7 @@ import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert } from 'rea
 import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/services/supabase';
+import { api } from '@/services/api';
 
 const COLORS = {
   darkPurple: '#6B4CE6',
@@ -48,6 +49,17 @@ export default function ProfileScreen() {
     );
   };
 
+  const testCreateConversation = async () => {
+  try {
+    const currentUser = await api.getCurrentUser();
+    await api.createConversation(currentUser.user_id, 16); // replace with real id
+    Alert.alert('Success', 'Conversation created!');
+  } catch (error) {
+    console.error('Failed:', error);
+    Alert.alert('Error', 'Failed to create conversation');
+  }
+};
+
   return (
     <AppLayout 
       userName="User" 
@@ -61,6 +73,12 @@ export default function ProfileScreen() {
             
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.testButton} 
+              onPress={testCreateConversation}
+            >
+            <Text style={styles.testButtonText}>Test: Start Conversation</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -94,4 +112,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  testButton: {
+  backgroundColor: COLORS.darkPurple,
+  borderRadius: 12,
+  paddingVertical: 16,
+  alignItems: 'center',
+  marginTop: 8,
+},
+testButtonText: {
+  color: COLORS.white,
+  fontSize: 16,
+  fontWeight: '600',
+},
 });
