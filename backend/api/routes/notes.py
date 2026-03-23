@@ -16,7 +16,7 @@ from utils.storage import upload_file, delete_file
 from auth import get_current_user
 
 router = APIRouter(
-    prefix="/api/notes",
+    prefix="/notes",
     tags=["notes"]
 )
 

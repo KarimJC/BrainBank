@@ -53,7 +53,7 @@ NOTE_SELECT = """
         n.date_uploaded,
         n.notes_content,
         n.attachments,
-        cs.course_title,
+        c.title as course_title,
         cs.id as course_section_id,
         c.course as course_code,
         c.title as course_name,
@@ -204,13 +204,13 @@ def get_available_course_sections(db: Connection) -> List[dict]:
                 cs.id as course_section_id,
                 c.course as course_code,
                 c.title as course_name,
-                cs.course_title,
+                c.title as course_title,
                 p.name as professor_name
             FROM notes n
             JOIN course_section cs ON n.course_id = cs.id
             JOIN course c ON cs.course_id = c.id
             LEFT JOIN professor p ON cs.professor_id = p.professor_id
-            ORDER BY c.course, cs.course_title
+            ORDER BY c.course, c.title
         """
 
         cursor.execute(query)

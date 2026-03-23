@@ -40,13 +40,13 @@ export const API_BASE_URL = getApiUrl();
 
 export const API_ENDPOINTS = {
   BASE: API_BASE_URL,
-  NOTES: `${API_BASE_URL}/api/notes`,
-  NOTE_BY_ID: (id: string) => `${API_BASE_URL}/api/notes/${id}`,
-  NOTES_BY_COURSE: (course: string) => `${API_BASE_URL}/api/notes/course/${course}`,
-  NOTES_COUNT: `${API_BASE_URL}/api/notes/count`,
-  NOTES_COURSE_SECTIONS: `${API_BASE_URL}/api/notes/course-sections`,
-  COURSE_SECTIONS: `${API_BASE_URL}/api/course-sections`,
-  COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/course-sections/${id}`,
+  NOTES: `${API_BASE_URL}/api/v1/notes`,
+  NOTE_BY_ID: (id: string) => `${API_BASE_URL}/api/v1/notes/${id}`,
+  NOTES_BY_COURSE: (course: string) => `${API_BASE_URL}/api/v1/notes/course/${course}`,
+  NOTES_COUNT: `${API_BASE_URL}/api/v1/notes/count`,
+  NOTES_COURSE_SECTIONS: `${API_BASE_URL}/api/v1/notes/course-sections`,
+  COURSE_SECTIONS: `${API_BASE_URL}/api/v1/course-sections`,
+  COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/course-sections/${id}`,
   HEALTH: `${API_BASE_URL}/health`,
 };
 

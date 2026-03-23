@@ -20,6 +20,7 @@ def get_all_course_sections(db: Connection) -> List[dict]:
                 cs.professor_id,
                 c.course as course_code,
                 c.title as course_name,
+                c.title as course_title,
                 c.subject,
                 p.name as professor_name
             FROM course_section cs
@@ -48,6 +49,7 @@ def get_course_section_by_id(section_id: int, db: Connection) -> Optional[dict]:
                 cs.professor_id,
                 c.course as course_code,
                 c.title as course_name,
+                c.title as course_title,
                 c.subject,
                 p.name as professor_name
             FROM course_section cs
@@ -82,7 +84,7 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
         db.commit()
         cursor.close()
         logger.info(f"Created course section ID {result['id']} with CRN {result['course_CRN']}")
-        return result
+        return get_course_section_by_id(result['id'], db)
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to create section - Course ID: {course_section_data.course_id}, CRN: {course_section_data.course_CRN}: {str(e)}")
@@ -144,7 +146,7 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
         db.commit()
         cursor.close()
         logger.info(f"Updated section_id {section_id}")
-        return dict(result) if result else None
+        return get_course_section_by_id(section_id, db) if result else None
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update section_id {section_id}: {str(e)}")
