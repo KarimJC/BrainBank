@@ -21,7 +21,7 @@ router = APIRouter(
 )
 
 
-@router.post("/professors", response_model=ProfessorResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProfessorResponse, status_code=status.HTTP_201_CREATED)
 def create_professor(professor_data: ProfessorCreate, db: Connection = Depends(get_db)):
     """Create a new professor"""
     if check_professor_email_exists(professor_data.email, db):
@@ -31,7 +31,7 @@ def create_professor(professor_data: ProfessorCreate, db: Connection = Depends(g
         return professor
 
 
-@router.get("/professors/{professor_id}", response_model=ProfessorResponse, status_code=status.HTTP_200_OK)
+@router.get("/{professor_id}", response_model=ProfessorResponse, status_code=status.HTTP_200_OK)
 def get_professor(professor_id: int, db: Connection = Depends(get_db)):
     """Get a professor by ID"""
     professor = get_professor_by_id(professor_id, db)
@@ -41,7 +41,7 @@ def get_professor(professor_id: int, db: Connection = Depends(get_db)):
         raise ProfessorNotFoundException(professor_id)
 
 
-@router.patch("/professors/{professor_id}", response_model=ProfessorResponse, status_code=status.HTTP_200_OK)
+@router.patch("/{professor_id}", response_model=ProfessorResponse, status_code=status.HTTP_200_OK)
 def update_professor(professor_id: int, updated_professor_data: ProfessorUpdate, db: Connection = Depends(get_db)):
     """Update a professor's information"""
     current_professor = get_professor_by_id(professor_id, db)
@@ -57,7 +57,7 @@ def update_professor(professor_id: int, updated_professor_data: ProfessorUpdate,
             return updated_professor
 
 
-@router.delete("/professors/{professor_id}", response_model=ProfessorDeleteResponse, status_code=status.HTTP_200_OK)
+@router.delete("/{professor_id}", response_model=ProfessorDeleteResponse, status_code=status.HTTP_200_OK)
 def delete_professor_route(professor_id: int, db: Connection = Depends(get_db)) -> ProfessorDeleteResponse:
     """Delete a professor"""
     professor = get_professor_by_id(professor_id, db)

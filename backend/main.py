@@ -21,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(professor_router, prefix="/api/professors", tags=["professors"])
+app.include_router(professor_router, tags=["professors"])
 app.include_router(notes_router)
 app.include_router(course_sections_router)
 
