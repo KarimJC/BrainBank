@@ -84,7 +84,7 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
         db.commit()
         cursor.close()
         logger.info(f"Created course section ID {result['id']} with CRN {result['course_CRN']}")
-        return get_course_section_by_id(result['id'], db)
+        return result
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to create section - Course ID: {course_section_data.course_id}, CRN: {course_section_data.course_CRN}: {str(e)}")
@@ -146,7 +146,7 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
         db.commit()
         cursor.close()
         logger.info(f"Updated section_id {section_id}")
-        return get_course_section_by_id(section_id, db) if result else None
+        return dict(result) if result else None
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update section_id {section_id}: {str(e)}")
