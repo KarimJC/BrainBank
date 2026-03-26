@@ -4,6 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { CourseSection } from '@/components/ui/AddClassModal';
 
 // Bookmark Icon component with toggle
 interface BookmarkIconProps {
@@ -78,8 +79,6 @@ export default function HomeScreen() {
       router.push('/(tabs)/chat');
     } else if (route === 'profile') {
       router.push('/(tabs)/profile');
-    } else if (route === 'add-class') {
-      console.log('Add class clicked');
     } else if (route === 'upload-notes') {
       console.log('Upload notes clicked');
     } else if (route === 'generate-document') {
@@ -111,11 +110,29 @@ export default function HomeScreen() {
     );
   };
 
+  const handleAddClass = (section: CourseSection) => {
+    const alreadyExists = classes.some((c) => c.id === String(section.course_section_id));
+    if (alreadyExists) return;
+    setClasses((prev) => [
+      ...prev,
+      {
+        id: String(section.course_section_id),
+        code: section.course_code,
+        description: section.professor_name
+          ? `Prof. ${section.professor_name}`
+          : section.course_name,
+        bookmarked: false,
+      },
+    ]);
+  };
+
   return (
-    <AppLayout 
-      userName="User" 
+    <AppLayout
+      userName="User"
       onNavigate={handleNavigation}
       activeRoute="home"
+      onAddClass={handleAddClass}
+      addedClassIds={classes.map((c) => c.id)}
     >
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>

@@ -4,6 +4,7 @@ import Header from '../ui/Header';
 import BottomNav from '../ui/BottomNav';
 import ActionMenu from '../ui/ActionMenu';
 import NotesUploadPage from '../../app/(tabs)/NotesUploadPage';
+import AddClassModal, { CourseSection } from '../ui/AddClassModal';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,8 @@ interface AppLayoutProps {
   profileImage?: any;
   onNavigate?: (route: string) => void;
   activeRoute?: string;
+  onAddClass?: (section: CourseSection) => void;
+  addedClassIds?: string[];
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({
@@ -18,10 +21,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   userName = "User",
   profileImage,
   onNavigate,
-  activeRoute = 'home'
+  activeRoute = 'home',
+  onAddClass,
+  addedClassIds = [],
 }) => {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showNotesUpload, setShowNotesUpload] = useState(false);
+  const [showAddClass, setShowAddClass] = useState(false);
 
   const handleAction = (action: string) => {
     setShowActionMenu(false);
@@ -30,7 +36,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         setShowNotesUpload(true);
         break;
       case 'add-class':
-        if (onNavigate) onNavigate('add-class');
+        setShowAddClass(true);
         break;
       case 'generate-document':
         if (onNavigate) onNavigate('generate-document');
@@ -69,6 +75,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           <NotesUploadPage onClose={handleCloseNotesUpload} />
         </View>
       </Modal>
+      <AddClassModal
+        visible={showAddClass}
+        onClose={() => setShowAddClass(false)}
+        onAdd={(section) => {
+          if (onAddClass) onAddClass(section);
+        }}
+        alreadyAdded={addedClassIds}
+      />
       <BottomNav
         onNavigate={handleNavigation}
         onPressAdd={() => setShowActionMenu(true)}
