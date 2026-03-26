@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ScrollView,
   View,
@@ -17,7 +17,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Path } from 'react-native-svg';
-import { api } from '@/services/api';
+import { fetchUserProfile, updateUserName, updateProfilePicture } from '@/services/profileService';
 
 // ─── Colors ──────────────────────────────────────────────────
 const COLORS = {
@@ -33,8 +33,6 @@ const COLORS = {
   red: '#FF3B30',
   green: '#34C759',
 };
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 // ─── Icons ───────────────────────────────────────────────────
 const EditIcon = () => (
@@ -198,11 +196,6 @@ export default function ProfileScreen() {
     fetchUser();
   }, []);
 
-  const getAuthToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token;
-  };
-
   const fetchUser = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -219,19 +212,10 @@ export default function ProfileScreen() {
       }
 
       // Get backend user info (for name + profile picture)
-      const token = session.access_token;
-      const response = await fetch(`${API_URL}/api/v1/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        setFirstName(userData.first_name || '');
-        setLastName(userData.last_name || '');
-      }
+      const userData = await fetchUserProfile();
+      setUser(userData);
+      setFirstName(userData.first_name || '');
+      setLastName(userData.last_name || '');
     } catch (error) {
       console.error('Error fetching user:', error);
       Alert.alert('Error', 'Failed to load profile');
@@ -283,7 +267,7 @@ export default function ProfileScreen() {
       const response = await fetch(uri);
       const arrayBuffer = await response.arrayBuffer();
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('profile-pictures')
         .upload(filePath, arrayBuffer, {
           contentType: `image/${fileExt}`,
@@ -310,22 +294,8 @@ export default function ProfileScreen() {
 
   const updateProfilePictureUrl = async (url: string) => {
     try {
-      const token = await getAuthToken();
-
-      const response = await fetch(`${API_URL}/api/v1/me/profile-picture`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ profile_picture_url: url }),
-      });
-
-      if (response.ok) {
-        await fetchUser();
-      } else {
-        throw new Error('Failed to update profile picture');
-      }
+      await updateProfilePicture(url);
+      await fetchUser();
     } catch (error) {
       console.error('Error updating profile picture URL:', error);
       throw error;
@@ -356,26 +326,9 @@ export default function ProfileScreen() {
 
     try {
       setSaving(true);
-      const token = await getAuthToken();
-
-      const response = await fetch(`${API_URL}/api/v1/me`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          first_name: trimFirst,
-          last_name: trimLast,
-        }),
-      });
-
-      if (response.ok) {
-        await fetchUser();
-        setIsEditing(false);
-      } else {
-        throw new Error('Failed to update profile');
-      }
+      await updateUserName(trimFirst, trimLast);
+      await fetchUser();
+      setIsEditing(false);
     } catch (err: any) {
       console.error('Failed to save name:', err);
       Alert.alert('Error', err.message || 'Failed to save name.');
