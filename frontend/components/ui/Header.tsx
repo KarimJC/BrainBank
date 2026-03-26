@@ -3,37 +3,47 @@ import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 
 interface HeaderProps {
   userName: string;
-  profileImage?: any;
+  profileImage?: string | null;
   onProfilePress?: () => void;
+  hideProfile?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ 
-  userName, 
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return parts[0][0].toUpperCase();
+};
+
+const Header: React.FC<HeaderProps> = ({
+  userName,
   profileImage,
-  onProfilePress 
+  onProfilePress,
+  hideProfile = false,
 }) => {
   return (
     <View style={styles.header}>
       <Text style={styles.logo}>
         Brain<Text style={styles.logoAccent}>Bank</Text>
       </Text>
-      <TouchableOpacity 
-        style={styles.profileButton}
-        onPress={onProfilePress}
-      >
-        {profileImage ? (
-          <Image
-            source={profileImage}
-            style={styles.profileImage}
-          />
-        ) : (
-          <View style={styles.defaultProfile}>
-            <Text style={styles.defaultProfileText}>
-              {userName.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      {!hideProfile && (
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={onProfilePress}
+        >
+          {profileImage ? (
+            <Image
+              source={{ uri: profileImage }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.defaultProfile}>
+              <Text style={styles.defaultProfileText}>
+                {getInitials(userName)}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -74,7 +84,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   defaultProfileText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#6B5BC7',
   },

@@ -46,16 +46,12 @@ def update_user(user_id: int, user_data: UserUpdate, db: Connection) -> dict:
         update_fields = []
         values = []
 
-        if user_data.neu_email is not None:
-            update_fields.append("neu_email = %s")
-            values.append(user_data.neu_email)
         if user_data.first_name is not None:
             update_fields.append("first_name = %s")
             values.append(user_data.first_name)
         if user_data.last_name is not None:
             update_fields.append("last_name = %s")
             values.append(user_data.last_name)
-
         if user_data.profile_picture is not None:
             update_fields.append("profile_picture = %s")
             values.append(user_data.profile_picture)
@@ -88,9 +84,6 @@ def update_user_by_auth_id(auth_id: str, user_data: UserUpdate, db: Connection) 
         update_fields = []
         values = []
 
-        if user_data.neu_email is not None:
-            update_fields.append("neu_email = %s")
-            values.append(user_data.neu_email)
         if user_data.first_name is not None:
             update_fields.append("first_name = %s")
             values.append(user_data.first_name)

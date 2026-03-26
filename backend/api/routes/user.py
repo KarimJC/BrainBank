@@ -9,7 +9,6 @@ from db.crud.user import (
     update_user as update_user_crud,
     update_user_by_auth_id,  # Add this
     delete_user as delete_user_crud,
-    check_email_exists
 )
 
 from api.schemas.user import UserUpdate, UserResponse, DeleteResponse  # Remove UserCreate
@@ -49,12 +48,6 @@ def update_current_user_profile(
     current_user_data = get_user_by_auth_id(current_user["auth_id"], db)
     if not current_user_data:
         raise UserNotFoundException(current_user["auth_id"])
-    
-    # Check if email is being changed and if it already exists
-    if (updated_user_data.neu_email
-        and current_user_data['neu_email'] != updated_user_data.neu_email
-        and check_email_exists(updated_user_data.neu_email, db)):
-        raise UserAlreadyExistsException(updated_user_data.neu_email)
     
     # Update using auth_id instead of user_id
     updated_user = update_user_by_auth_id(current_user["auth_id"], updated_user_data, db)
@@ -97,11 +90,6 @@ def update_user(
     # Check if user is updating their own data
     if current_user_db['auth_id'] != current_user['auth_id']:
         raise HTTPException(status_code=403, detail="You can only update your own profile")
-    
-    if (updated_user_data.neu_email
-        and current_user_db['neu_email'] != updated_user_data.neu_email
-        and check_email_exists(updated_user_data.neu_email, db)):
-        raise UserAlreadyExistsException(updated_user_data.neu_email)
     
     updated_user = update_user_crud(user_id, updated_user_data, db)
     return updated_user

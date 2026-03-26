@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
+import { fetchUserProfile } from '@/services/profileService';
 import Svg, { Path } from 'react-native-svg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
@@ -61,6 +62,11 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPre
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchUserProfile().then(u => setProfileImage(u.profile_picture ?? null)).catch(() => {});
+  }, []);
 
   // Mock class data with bookmark state
   const [classes, setClasses] = useState([
@@ -112,8 +118,9 @@ export default function HomeScreen() {
   };
 
   return (
-    <AppLayout 
-      userName="User" 
+    <AppLayout
+      userName="User"
+      profileImage={profileImage}
       onNavigate={handleNavigation}
       activeRoute="home"
     >

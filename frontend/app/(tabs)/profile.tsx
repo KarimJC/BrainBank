@@ -409,7 +409,7 @@ export default function ProfileScreen() {
   // ─── Loading ─────────────────────────────────────────────
   if (loading) {
     return (
-      <AppLayout userName="User" onNavigate={handleNavigation} activeRoute="profile">
+      <AppLayout userName="User" hideProfile onNavigate={handleNavigation} activeRoute="profile">
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={COLORS.purple} />
           <Text style={styles.loadingText}>Loading profile...</Text>
@@ -424,7 +424,7 @@ export default function ProfileScreen() {
 
   // ─── Render ──────────────────────────────────────────────
   return (
-    <AppLayout userName={displayName} onNavigate={handleNavigation} activeRoute="profile">
+    <AppLayout userName={displayName} profileImage={user?.profile_picture} hideProfile onNavigate={handleNavigation} activeRoute="profile">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
