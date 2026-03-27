@@ -1,10 +1,11 @@
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
+
 class ProfessorCreate(BaseModel):
     name: str
     email: str
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
@@ -20,7 +21,7 @@ class ProfessorCreate(BaseModel):
 class ProfessorUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
@@ -37,16 +38,10 @@ class ProfessorResponse(BaseModel):
     professor_id: int
     name: str
     email: str
-    
+
     model_config = ConfigDict(
         json_schema_extra={
-            "examples": [
-                {
-                    "professor_id": 1,
-                    "name": "Dr. Jane Smith",
-                    "email": "j.smith@northeastern.edu"
-                }
-            ]
+            "examples": [{"professor_id": 1, "name": "Dr. Jane Smith", "email": "j.smith@northeastern.edu"}]
         }
     )
 
