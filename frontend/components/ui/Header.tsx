@@ -1,36 +1,84 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { supabase } from '@/services/supabase';
+
+const API_BASE_URL = `http://${process.env.EXPO_PUBLIC_LOCAL_IP}:8000`;
+
+interface UserProfile {
+  user_id: number;
+  auth_id: string;
+  neu_email: string;
+  first_name: string;
+  last_name: string;
+  profile_picture?: string | null;
+}
 
 interface HeaderProps {
-  userName: string;
-  profileImage?: any;
   onProfilePress?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ 
-  userName, 
-  profileImage,
-  onProfilePress 
-}) => {
+const Header: React.FC<HeaderProps> = ({ onProfilePress }) => {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session) {
+          console.error('No active session:', sessionError?.message);
+          return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/v1/me`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          }
+        });
+
+        if (!response.ok) {
+          console.error('Failed to fetch user, status:', response.status);
+          return;
+        }
+
+        const data: UserProfile = await response.json();
+        setUser(data);
+      } catch (err) {
+        console.error('Header fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const initials = user
+    ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
+    : '?';
+
   return (
     <View style={styles.header}>
       <Text style={styles.logo}>
         Brain<Text style={styles.logoAccent}>Bank</Text>
       </Text>
-      <TouchableOpacity 
-        style={styles.profileButton}
-        onPress={onProfilePress}
-      >
-        {profileImage ? (
+
+      <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
+        {loading ? (
+          <View style={styles.defaultProfile}>
+            <ActivityIndicator size="small" color="#6B5BC7" />
+          </View>
+        ) : user?.profile_picture ? (
           <Image
-            source={profileImage}
+            source={{ uri: user.profile_picture }}
             style={styles.profileImage}
+            onError={() => setUser((prev) => prev ? { ...prev, profile_picture: null } : null)}
           />
         ) : (
           <View style={styles.defaultProfile}>
-            <Text style={styles.defaultProfileText}>
-              {userName.charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.defaultProfileText}>{initials}</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -49,7 +97,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   logo: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#000',
   },
@@ -57,9 +105,9 @@ const styles = StyleSheet.create({
     color: '#6B5BC7',
   },
   profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     overflow: 'hidden',
   },
   profileImage: {
@@ -74,7 +122,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   defaultProfileText: {
-    fontSize: 18,
+    fontSize: 32,
     fontWeight: '600',
     color: '#6B5BC7',
   },
