@@ -26,11 +26,7 @@ def get_document_by_id(doc_id: str, db: Connection) -> Optional[dict]:
         raise DatabaseException(f"Failed to get document: {str(e)}")
 
 
-def get_all_documents(
-    db: Connection,
-    user_id: Optional[int] = None,
-    course_id: Optional[int] = None
-) -> list[dict]:
+def get_all_documents(db: Connection, user_id: Optional[int] = None, course_id: Optional[int] = None) -> list[dict]:
     """Get all documents, optionally filtered by user_id and/or course_id"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)

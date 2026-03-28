@@ -29,7 +29,6 @@ class CourseSectionUpdate(BaseModel):
 class CourseSectionResponse(BaseModel):
     id: int
     course_id: int
-    course_title: Optional[str] = None
     course_CRN: int
     professor_id: int
     model_config = ConfigDict(
@@ -37,7 +36,6 @@ class CourseSectionResponse(BaseModel):
             "example": {
                 "id": 100,  # database id to refer
                 "course_id": 1,  # represents the id for a class and all of its sections share the same id
-                "course_title": "Calculus One For Science and Engineering",
                 "course_CRN": 30186,  # represents CRN, a section of a class
                 "professor_id": 1,  # represents the id for a professor teaching this section
             }

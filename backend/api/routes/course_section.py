@@ -5,26 +5,23 @@ from db.connection import get_db
 from db.crud.course_section import (
     get_all_course_sections,
     get_course_section_by_id,
+    get_course_sections_for_user,
     create_course_section as create_course_section_crud,
     get_course_sections_by_subject as get_course_sections_by_subject_crud,
     update_course_section as update_course_section_crud,
     delete_course_section as delete_course_section_crud,
-    check_crn_exists
+    check_crn_exists,
 )
 from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate, CourseSectionResponse, DeleteResponse
 from core.exceptions import CourseSectionNotFoundException, CourseSectionAlreadyExistsException
 from pydantic import BaseModel
 
-router = APIRouter(
-    prefix="/course-sections",
-    tags=["course-sections"]
-)
+router = APIRouter(prefix="/course-sections", tags=["course-sections"])
 
 
 class CourseSectionDetailResponse(BaseModel):
     course_section_id: int
     course_id: int
-    course_title: str
     course_crn: int
     professor_id: Optional[int] = None
     professor_name: Optional[str] = None
@@ -36,7 +33,7 @@ class CourseSectionDetailResponse(BaseModel):
 
 # GET all course sections with joined course and professor details (used by frontend)
 @router.get("", response_model=List[CourseSectionDetailResponse])
-async def get_course_sections_endpoint(conn = Depends(get_db)):
+async def get_course_sections_endpoint(conn=Depends(get_db)):
     try:
         course_sections = get_all_course_sections(conn)
         return course_sections
@@ -44,9 +41,17 @@ async def get_course_sections_endpoint(conn = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/user/{user_id}", response_model=List[CourseSectionDetailResponse])
+async def get_course_sections_for_user_endpoint(user_id: int, conn=Depends(get_db)):
+    try:
+        return get_course_sections_for_user(user_id, conn)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # GET a specific course section with joined details
 @router.get("/{course_section_id}", response_model=CourseSectionDetailResponse)
-async def get_course_section_endpoint(course_section_id: int, conn = Depends(get_db)):
+async def get_course_section_endpoint(course_section_id: int, conn=Depends(get_db)):
     try:
         course_section = get_course_section_by_id(course_section_id, conn)
         if not course_section:
@@ -74,13 +79,17 @@ def get_course_sections_by_subject(subject: str, db: Connection = Depends(get_db
 
 # PATCH update a course section
 @router.patch("/{section_id}", response_model=CourseSectionResponse, status_code=status.HTTP_200_OK)
-def update_course_section(section_id: int, updated_course_section_data: CourseSectionUpdate, db: Connection = Depends(get_db)):
+def update_course_section(
+    section_id: int, updated_course_section_data: CourseSectionUpdate, db: Connection = Depends(get_db)
+):
     current_course_section = get_course_section_by_id(section_id, db)
     if not current_course_section:
         raise CourseSectionNotFoundException(section_id)
-    if (updated_course_section_data.course_CRN and
-            updated_course_section_data.course_CRN != current_course_section['course_CRN']
-            and check_crn_exists(updated_course_section_data.course_CRN, db)):
+    if (
+        updated_course_section_data.course_CRN
+        and updated_course_section_data.course_CRN != current_course_section["course_CRN"]
+        and check_crn_exists(updated_course_section_data.course_CRN, db)
+    ):
         raise CourseSectionAlreadyExistsException(updated_course_section_data.course_CRN)
     return update_course_section_crud(section_id, updated_course_section_data, db)
 

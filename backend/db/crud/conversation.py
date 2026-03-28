@@ -22,7 +22,7 @@ def create_conversation(initiator_id: int, recipient_id: int, db: Connection) ->
         db.commit()
         cursor.close()
         logger.info(f"Created conversation between {initiator_id} and {recipient_id}")
-        return get_conversation_by_id(result['id'], db)
+        return get_conversation_by_id(result["id"], db)
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to create conversation: {str(e)}")
