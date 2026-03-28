@@ -2,9 +2,6 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
-// IMPORTANT: Replace with YOUR computer's IP address
-// Find it in your Expo terminal (where it says exp://YOUR_IP:8081)
-const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 export const WS_URL = process.env.EXPO_PUBLIC_WS_URL!;
 
 const getApiUrl = (): string => {
@@ -39,15 +36,15 @@ const getApiUrl = (): string => {
 export const API_BASE_URL = getApiUrl();
 
 export const API_ENDPOINTS = {
-  BASE: API_BASE_URL,
-  NOTES: `${API_BASE_URL}/api/notes`,
-  NOTE_BY_ID: (id: string) => `${API_BASE_URL}/api/notes/${id}`,
-  NOTES_BY_COURSE: (course: string) => `${API_BASE_URL}/api/notes/course/${course}`,
-  NOTES_COUNT: `${API_BASE_URL}/api/notes/count`,
-  NOTES_COURSE_SECTIONS: `${API_BASE_URL}/api/notes/course-sections`,
-  COURSE_SECTIONS: `${API_BASE_URL}/api/course-sections`,
-  COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/course-sections/${id}`,
-  HEALTH: `${API_BASE_URL}/health`,
+  BASE: API_BASE_URL,
+  NOTES: `${API_BASE_URL}/api/v1/notes`,
+  NOTE_BY_ID: (id: string) => `${API_BASE_URL}/api/v1/notes/${id}`,
+  NOTES_BY_COURSE: (course: string) => `${API_BASE_URL}/api/v1/notes/course/${course}`,
+  NOTES_COUNT: `${API_BASE_URL}/api/v1/notes/count`,
+  NOTES_COURSE_SECTIONS: `${API_BASE_URL}/api/v1/notes/course-sections`,
+  COURSE_SECTIONS: `${API_BASE_URL}/api/v1/course-sections`,
+  COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/course-sections/${id}`,
+  HEALTH: `${API_BASE_URL}/health`,
 };
 
 export const checkBackendConnection = async (): Promise<boolean> => {
@@ -61,23 +58,30 @@ export const checkBackendConnection = async (): Promise<boolean> => {
 
 console.log('API Base URL:', API_BASE_URL);
 
+export class AuthRequiredError extends Error {
+  constructor() {
+    super('No active session');
+    this.name = 'AuthRequiredError';
+  }
+}
+
 async function getAuthHeaders() {
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (session?.access_token) {
-    return {
-      'Authorization': `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    };
-  }
-  
-  throw new Error('No active session');
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (session?.access_token) {
+    return {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    };
+  }
+  
+  throw new AuthRequiredError();
 }
 
 export const api = {
 async getCurrentUser() {
   const headers = await getAuthHeaders();
-  const response = await fetch(`${API_URL}/api/v1/me`, { headers }); // remove /user
+  const response = await fetch(`${API_BASE_URL}/api/v1/me`, { headers }); // remove /user
   
   if (!response.ok) {
     const error = await response.text();
@@ -92,7 +96,7 @@ async getCurrentUser() {
   const headers = await getAuthHeaders();
 
   const response = await fetch(
-    `${API_URL}/api/v1/conversations/user/${userId}`,
+    `${API_BASE_URL}/api/v1/conversations/user/${userId}`,
     { headers }
   );
 
@@ -108,13 +112,13 @@ async getConversation(conversationId: number) {
   const headers = await getAuthHeaders();
 
   const response = await fetch(
-    `${API_URL}/api/v1/conversations/${conversationId}`,
-    { headers }
-  );
+`${API_BASE_URL}/api/v1/conversations/${conversationId}`,
+    { headers }
+  );
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to fetch conversation: ${error}`);
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to fetch conversation: ${error}`);
   }
 
   return response.json();
@@ -124,9 +128,9 @@ async updateConversation(conversationId: number, status: string) {
   const headers = await getAuthHeaders();
 
   const response = await fetch(
-    `${API_URL}/api/v1/conversations/${conversationId}`,
-    {
-      method: 'PATCH',
+`${API_BASE_URL}/api/v1/conversations/${conversationId}`,
+    {
+      method: 'PATCH',
       headers,
       body: JSON.stringify({ status }),
     }
@@ -142,7 +146,7 @@ async updateConversation(conversationId: number, status: string) {
 
 async sendMessage(conversationId: number, content: string) {
   const headers = await getAuthHeaders();
-  const response = await fetch(`${API_URL}/api/v1/messages`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/messages`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ conversation_id: conversationId, content }),
@@ -158,7 +162,7 @@ async getMessages(conversationId: number) {
   const headers = await getAuthHeaders();
 
   const response = await fetch(
-    `${API_URL}/api/v1/messages?conversation_id=${conversationId}`,
+    `${API_BASE_URL}/api/v1/messages?conversation_id=${conversationId}`,
     { headers }
   );
 
@@ -171,19 +175,32 @@ async getMessages(conversationId: number) {
 },
 
 async createConversation(initiatorId: number, recipientId: number) {
-  const headers = await getAuthHeaders();
-  const response = await fetch(
-    `${API_URL}/api/v1/conversations/${initiatorId}`,
-    {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ recipient_id: recipientId }),
-    }
-  );
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to create conversation: ${error}`);
-  }
-  return response.json();
+  const headers = await getAuthHeaders();
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/conversations/${initiatorId}`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ recipient_id: recipientId }),
+    }
+  );
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to create conversation: ${error}`);
+  }
+  return response.json();
+},
+
+async getUserCourseSections(userId: number) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/course-sections/user/${userId}`,
+    { headers }
+  );
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to fetch user course sections: ${error}`);
+  }
+  return response.json();
 },
 };

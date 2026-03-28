@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { NoteItem, CourseSection } from '@/app/services/notesService';
+import { NoteItem, CourseSection } from '@/services/notesService';
 import NoteEditModal from './NoteEditModal';
 
 interface NoteDetailModalProps {

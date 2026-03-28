@@ -194,7 +194,7 @@ useEffect(() => {
           </View>
         ) : conversation.blocked_by !== null ? (
           <View style={styles.blockedInputBar}>
-            <Text style={styles.blockedInputText}>You can't reply to this conversation</Text>
+            <Text style={styles.blockedInputText}>You can&apos;t reply to this conversation</Text>
           </View>
         ) : (
           <View style={styles.inputBar}>

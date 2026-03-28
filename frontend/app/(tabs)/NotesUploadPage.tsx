@@ -18,7 +18,7 @@ import { useCameraPermissions } from 'expo-camera';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { fetchCourseSections, uploadNote, CourseSection } from '@/app/services/notesService';
+import { fetchCourseSections, uploadNote, CourseSection } from '@/services/notesService';
 
 interface NotesUploadPageProps {
   onClose?: () => void;

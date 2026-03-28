@@ -6,7 +6,7 @@ from db.crud.professor import (
     get_professor_by_id,
     update_professor as update_professor_crud,
     delete_professor as delete_professor_crud,
-    check_professor_email_exists
+    check_professor_email_exists,
 )
 
 from api.schemas.professor import ProfessorCreate, ProfessorUpdate, ProfessorResponse, ProfessorDeleteResponse
@@ -15,10 +15,7 @@ from core.exceptions import ProfessorNotFoundException, ProfessorAlreadyExistsEx
 
 from db.connection import get_db
 
-router = APIRouter(
-    prefix="/professors",
-    tags=["professors"]
-)
+router = APIRouter(prefix="/professors", tags=["professors"])
 
 
 @router.post("", response_model=ProfessorResponse, status_code=status.HTTP_201_CREATED)
@@ -48,9 +45,11 @@ def update_professor(professor_id: int, updated_professor_data: ProfessorUpdate,
     if not current_professor:
         raise ProfessorNotFoundException(professor_id)
     else:
-        if (updated_professor_data.email
-            and current_professor['email'] != updated_professor_data.email
-            and check_professor_email_exists(updated_professor_data.email, db)):
+        if (
+            updated_professor_data.email
+            and current_professor["email"] != updated_professor_data.email
+            and check_professor_email_exists(updated_professor_data.email, db)
+        ):
             raise ProfessorAlreadyExistsException(updated_professor_data.email)
         else:
             updated_professor = update_professor_crud(professor_id, updated_professor_data, db)

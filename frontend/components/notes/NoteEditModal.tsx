@@ -21,7 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useCameraPermissions } from 'expo-camera';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { NoteItem, CourseSection, updateNote } from '@/app/services/notesService';
+import { NoteItem, CourseSection, updateNote } from '@/services/notesService';
 import CourseSectionPicker from './CourseSectionPicker';
 
 interface NoteEditModalProps {
