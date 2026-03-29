@@ -9,9 +9,12 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Image, 
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api, WS_URL} from '@/services/api';
+import { Ionicons } from '@expo/vector-icons';
+import GifPicker from '@/components/ui/GifPicker'; 
 
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams();
@@ -23,6 +26,10 @@ export default function ConversationScreen() {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null); 
   const wsRef = useRef<WebSocket | null>(null);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const isGif = (content: string) => content.startsWith('[GIF]:');
+  const getGifUrl = (content: string) => content.replace('[GIF]:', '');
+  
 useEffect(() => {
   setLoading(true);
   setConversation(null);
@@ -70,6 +77,14 @@ useEffect(() => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectGif = (gifUrl: string) => {
+    // gif prefix to render gif
+    setInputText(`[GIF]:${gifUrl}`);
+    setTimeout(() => {
+      handleSend();
+    }, 100);
   };
 
   const handleSend = async () => {
@@ -167,15 +182,29 @@ useEffect(() => {
         >
           {messages.map(message => {
             const isMyMessage = message.sender_id === currentUserId;
+            const messageIsGif = isGif(message.content);
+            
             return (
               <View
                 key={message.message_id}
                 style={[styles.messageRow, isMyMessage ? styles.myMessageRow : styles.theirMessageRow]}
               >
-                <View style={[styles.messageBubble, isMyMessage ? styles.myBubble : styles.theirBubble]}>
-                  <Text style={[styles.messageText, isMyMessage && { color: '#FFFFFF' }]}>
-                    {message.content}
-                  </Text>
+                <View style={[
+                  styles.messageBubble, 
+                  isMyMessage ? styles.myBubble : styles.theirBubble,
+                  messageIsGif && styles.gifBubble
+                ]}>
+                  {messageIsGif ? (
+                    <Image
+                      source={{ uri: getGifUrl(message.content) }}
+                      style={styles.gifImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={[styles.messageText, isMyMessage && { color: '#FFFFFF' }]}>
+                      {message.content}
+                    </Text>
+                  )}
                 </View>
               </View>
             );
@@ -194,22 +223,35 @@ useEffect(() => {
           </View>
         ) : conversation.blocked_by !== null ? (
           <View style={styles.blockedInputBar}>
-            <Text style={styles.blockedInputText}>You can&apos;t reply to this conversation</Text>
+            <Text style={styles.blockedInputText}>You can't reply to this conversation</Text>
           </View>
         ) : (
           <View style={styles.inputBar}>
+            <TouchableOpacity 
+              style={styles.gifButton} 
+              onPress={() => setShowGifPicker(true)}
+            >
+              <Ionicons name="happy-outline" size={24} color="#6B4CE6" />
+            </TouchableOpacity>
+            
             <TextInput
               value={inputText}
               onChangeText={setInputText}
               placeholder="Type a message..."
               style={styles.input}
             />
+            
             <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
               <Text style={styles.sendText}>Send</Text>
             </TouchableOpacity>
           </View>
         )}
       </KeyboardAvoidingView>
+      <GifPicker
+        visible={showGifPicker}
+        onClose={() => setShowGifPicker(false)}
+        onSelectGif={handleSelectGif}
+      />
     </SafeAreaView>
   );
 }
@@ -293,6 +335,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     borderBottomLeftRadius: 4,
   },
+  gifBubble: {
+    padding: 0,
+    overflow: 'hidden',
+  },
+  gifImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 18,
+  },
   messageText: {
     fontSize: 15,
     color: '#111827',
@@ -305,6 +356,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
+    gap: 8,
+  },
+  gifButton: {
+    padding: 8,
   },
   input: {
     flex: 1,
@@ -312,7 +367,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    marginRight: 8,
   },
   sendButton: {
     backgroundColor: '#6B4CE6',
