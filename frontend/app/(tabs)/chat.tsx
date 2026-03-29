@@ -103,12 +103,12 @@ export default function ChatScreen() {
     else if (route === 'profile') router.push('/(tabs)/profile');
   };
 
-  const openChat = (courseId: string, courseCode: string) => {
-    router.push({
-      pathname: '/(tabs)/chatbot',
-      params: { sectionId: courseId, courseName: courseCode },
-    });
-  };
+  // const openChat = (courseId: string, courseCode: string) => {
+  //   router.push({
+  //     pathname: '/(tabs)/chatbot',
+  //     params: { sectionId: courseId, courseName: courseCode },
+  //   });
+  // };
 
   if (initialLoad) {
     return (

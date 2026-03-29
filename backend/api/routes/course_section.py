@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status, APIRouter, Depends
-from typing import List, Optional
+from typing import List
 from psycopg2.extensions import connection as Connection
 from db.connection import get_db
 from db.crud.course_section import (
@@ -23,8 +23,7 @@ class CourseSectionDetailResponse(BaseModel):
     course_section_id: int
     course_id: int
     course_crn: int
-    professor_id: Optional[int] = None
-    professor_name: Optional[str] = None
+    professor_id: int | None
     course_code: str
     course_name: str
     subject: str | None
@@ -64,7 +63,7 @@ async def get_course_section_endpoint(course_section_id: int, conn=Depends(get_d
 
 
 # POST create a new course section
-@router.post("", response_model=CourseSectionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/course_sections", response_model=CourseSectionResponse, status_code=status.HTTP_201_CREATED)
 def create_course_section(course_section_data: CourseSectionCreate, db: Connection = Depends(get_db)):
     if check_crn_exists(course_section_data.course_CRN, db):
         raise CourseSectionAlreadyExistsException(course_section_data.course_CRN)
@@ -72,7 +71,7 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
 
 
 # GET course sections by subject
-@router.get("/subject/{subject}", response_model=List[CourseSectionResponse], status_code=status.HTTP_200_OK)
+@router.get("/subject/{subject}", response_model=list[CourseSectionResponse], status_code=status.HTTP_200_OK)
 def get_course_sections_by_subject(subject: str, db: Connection = Depends(get_db)):
     return get_course_sections_by_subject_crud(subject, db)
 
