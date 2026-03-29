@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   FlatList,
-  Alert,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
 import { fetchNotes, fetchCourseSections, NoteItem, CourseSection } from '@/services/notesService';
+import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
 import NotesFilterModal from '@/components/notes/NotesFilterModal';
@@ -31,6 +31,7 @@ export default function NotesListPage() {
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
 
   const [search, setSearch] = useState<string>('');
@@ -61,14 +62,19 @@ export default function NotesListPage() {
     try {
       const data = await fetchCourseSections();
       setCourseSections(data);
-    } catch (error) {
-      console.error('Failed to load course sections:', error);
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        router.replace('/(auth)/login');
+        return;
+      }
+      console.error('Failed to load course sections:', err);
     }
   };
 
   const loadNotes = async (isRefresh = false) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
+      setError(null);
       const data = await fetchNotes({
         search: debouncedSearch || undefined,
         courseSectionId: selectedCourseSection?.course_section_id,
@@ -76,9 +82,13 @@ export default function NotesListPage() {
         endDate: endDate ? formatDate(endDate) : undefined,
       });
       setNotes(data);
-    } catch (error) {
-      console.error('Failed to load notes:', error);
-      Alert.alert('Error', 'Failed to load notes. Please try again.');
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        router.replace('/(auth)/login');
+        return;
+      }
+      console.error('Failed to load notes:', err);
+      setError(getUserFriendlyMessage(err));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -171,6 +181,14 @@ export default function NotesListPage() {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#6B5BC7" />
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="cloud-offline-outline" size={48} color="#CC0000" />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => loadNotes()}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
           </View>
         ) : notes.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -316,6 +334,29 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  errorText: {
+    color: '#CC0000',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#6B5BC7',
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    marginTop: 8,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { api, AuthRequiredError } from '@/services/api';
+import { api } from '@/services/api';
+import { AuthRequiredError, NetworkError, getUserFriendlyMessage } from '@/services/errors';
 import { Ionicons } from '@expo/vector-icons';
 
 interface CourseSection {
@@ -79,35 +80,35 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        console.log('Fetching user...');
-        const user = await api.getCurrentUser();
-        console.log('Got user:', user);
-        setUserName(user.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : 'User');
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('Fetching user...');
+      const user = await api.getCurrentUser();
+      console.log('Got user:', user);
+      setUserName(user.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : 'User');
 
-        console.log('Fetching course sections...');
-        const sections = await api.getUserCourseSections(user.user_id);
-        console.log('Got sections:', sections);
-        setClasses(sections.map((s: CourseSection) => ({ ...s, bookmarked: false })));
-      } catch (err) {
-        if (err instanceof AuthRequiredError) {
-          router.replace('/(auth)/login');
-          return;
-        }
-        console.error('Fetch failed:', err);
-        const msg = err instanceof Error ? err.message : 'Something went wrong';
-        if (msg.includes('Not authenticated')) {
-          router.replace('/(auth)/login');
-          return;
-        }
-        setError(msg);
-      } finally {
-        setLoading(false);
+      console.log('Fetching course sections...');
+      const sections = await api.getUserCourseSections(user.user_id);
+      console.log('Got sections:', sections);
+      setClasses(sections.map((s: CourseSection) => ({ ...s, bookmarked: false })));
+    } catch (err) {
+      // Only redirect to login for actual auth errors
+      if (err instanceof AuthRequiredError) {
+        router.replace('/(auth)/login');
+        return;
       }
-    };
+
+      // Network errors and API errors get shown to the user with a retry button
+      console.error('Fetch failed:', err);
+      setError(getUserFriendlyMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -116,6 +117,10 @@ export default function HomeScreen() {
     else if (route === 'notes') router.push('/(tabs)/notes');
     else if (route === 'chat') router.push('/(tabs)/chat');
     else if (route === 'profile') router.push('/(tabs)/profile');
+    else {
+      console.warn(`Unhandled route: ${route}`);
+      Alert.alert('Coming Soon', `${route} is not available yet.`);
+    }
   };
 
   const handleViewNotes = (section: CourseSection) => {
@@ -153,7 +158,13 @@ export default function HomeScreen() {
           {loading ? (
             <ActivityIndicator size="large" color="#6B5BC7" style={{ marginTop: 40 }} />
           ) : error ? (
-            <Text style={styles.errorText}>{error}</Text>
+            <View style={styles.errorContainer}>
+              <Ionicons name="cloud-offline-outline" size={48} color="#CC0000" />
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <>
               <Text style={styles.welcome}>
@@ -193,6 +204,9 @@ const styles = StyleSheet.create({
   viewNotesButton: { backgroundColor: '#6B5BC7', borderRadius: 24, paddingVertical: 14, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
   aiButton: { backgroundColor: '#6B5BC7', borderRadius: 24, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   viewNotesText: { color: '#FFFFFF', fontSize: 16, fontWeight: '500', marginLeft: 8 },
-  errorText: { color: '#CC0000', fontSize: 16, textAlign: 'center', marginTop: 40 },
+  errorContainer: { alignItems: 'center', marginTop: 40, gap: 12 },
+  errorText: { color: '#CC0000', fontSize: 16, textAlign: 'center' },
+  retryButton: { backgroundColor: '#6B5BC7', borderRadius: 24, paddingVertical: 12, paddingHorizontal: 32, marginTop: 8 },
+  retryText: { color: '#FFFFFF', fontSize: 16, fontWeight: '500' },
   emptyText: { color: '#666666', fontSize: 16, textAlign: 'center', marginTop: 40 },
 });

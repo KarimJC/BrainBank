@@ -2,6 +2,7 @@ import { API_ENDPOINTS } from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '@/services/supabase';
+import { AuthRequiredError, apiFetch, TIMEOUTS } from './errors';
 
 export interface CourseSection {
   course_section_id: number;
@@ -74,7 +75,7 @@ const validateAttachment = (mimeType: string | undefined, size: number | undefin
 
 const getAuthToken = async (): Promise<string> => {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error('User is not authenticated.');
+  if (!session?.access_token) throw new AuthRequiredError();
   return session.access_token;
 };
 
@@ -106,29 +107,22 @@ export const fetchNotes = async (params: FetchNotesParams = {}): Promise<NoteIte
   const token = await getAuthToken();
   const url = `${API_ENDPOINTS.NOTES}${query.toString() ? `?${query.toString()}` : ''}`;
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to fetch notes: ${response.status} ${errorText}`);
-  }
+  }, TIMEOUTS.FAST);
 
   const data = await response.json();
   return data.map(mapNote);
 };
 
 export const fetchNoteCourseSections = async (): Promise<CourseSection[]> => {
-  const response = await fetch(API_ENDPOINTS.NOTES_COURSE_SECTIONS, { method: 'GET' });
-  if (!response.ok) throw new Error('Failed to fetch note course sections');
+  const response = await apiFetch(API_ENDPOINTS.NOTES_COURSE_SECTIONS, { method: 'GET' }, TIMEOUTS.FAST);
   return response.json();
 };
 
 export const fetchCourseSections = async (): Promise<CourseSection[]> => {
-  const response = await fetch(API_ENDPOINTS.COURSE_SECTIONS, { method: 'GET' });
-  if (!response.ok) throw new Error('Failed to fetch course sections');
+  const response = await apiFetch(API_ENDPOINTS.COURSE_SECTIONS, { method: 'GET' }, TIMEOUTS.FAST);
   return response.json();
 };
 
@@ -158,21 +152,11 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
     formData.append('file', { uri: params.file.uri, name: filename, type: mimeType } as any);
   }
 
-  const response = await fetch(API_ENDPOINTS.NOTES, {
+  await apiFetch(API_ENDPOINTS.NOTES, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorMessage = `Upload failed with status ${response.status}`;
-    try {
-      const errorData = JSON.parse(errorText);
-      errorMessage = errorData.detail || errorMessage;
-    } catch {}
-    throw new Error(errorMessage);
-  }
+  }, TIMEOUTS.SLOW);
 };
 
 export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> => {
@@ -199,21 +183,11 @@ export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> =>
     formData.append('file', { uri: params.file.uri, name: filename, type: mimeType } as any);
   }
 
-  const response = await fetch(`${API_ENDPOINTS.NOTE_BY_ID(String(params.noteId))}`, {
+  const response = await apiFetch(`${API_ENDPOINTS.NOTE_BY_ID(String(params.noteId))}`, {
     method: 'PUT',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorMessage = `Update failed with status ${response.status}`;
-    try {
-      const errorData = JSON.parse(errorText);
-      errorMessage = errorData.detail || errorMessage;
-    } catch {}
-    throw new Error(errorMessage);
-  }
+  }, TIMEOUTS.SLOW);
 
   return mapNote(await response.json());
 };

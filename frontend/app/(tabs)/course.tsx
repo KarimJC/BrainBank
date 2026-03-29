@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   FlatList,
-  Alert,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
 import { fetchNotes, NoteItem } from '@/services/notesService';
+import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
 
@@ -32,6 +32,7 @@ export default function CoursePage() {
 
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
 
@@ -53,14 +54,19 @@ export default function CoursePage() {
     if (!courseId) return;
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
+      setError(null);
       const data = await fetchNotes({
         search: debouncedSearch || undefined,
         courseSectionId: Number(courseId),
       });
       setNotes(data);
-    } catch (error) {
-      console.error('Failed to load course notes:', error);
-      Alert.alert('Error', 'Failed to load notes. Please try again.');
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        router.replace('/(auth)/login');
+        return;
+      }
+      console.error('Failed to load course notes:', err);
+      setError(getUserFriendlyMessage(err));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -145,6 +151,14 @@ export default function CoursePage() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#6B5BC7" />
           </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="cloud-offline-outline" size={48} color="#CC0000" />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => loadNotes()}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
         ) : filteredNotes.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-text-outline" size={64} color="#E8E5F5" />
@@ -200,7 +214,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // Course title
   courseCode: {
     fontSize: 28,
     fontWeight: '600',
@@ -216,7 +229,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // Search
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -237,7 +249,6 @@ const styles = StyleSheet.create({
     color: '#000',
   },
 
-  // Filters
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -271,7 +282,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // Grid
   gridRow: {
     justifyContent: 'space-between',
     marginBottom: 16,
@@ -280,11 +290,33 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
 
-  // States
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  errorText: {
+    color: '#CC0000',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#6B5BC7',
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    marginTop: 8,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
