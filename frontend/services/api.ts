@@ -45,7 +45,6 @@ export const API_ENDPOINTS = {
   COURSE_SECTIONS: `${API_BASE_URL}/api/v1/course-sections`,
   COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/course-sections/${id}`,
   PROFESSOR_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/professors/${id}`,
-  PROFESSORS: `${API_BASE_URL}/api/v1/professors`,
   HEALTH: `${API_BASE_URL}/health`,
 };
 
@@ -216,44 +215,4 @@ async getProfessor(professorId: number) {
   return response.json();
 },
 
-async createProfessor(name: string, email: string) {
-  const headers = await getAuthHeaders();
-  const response = await fetch(API_ENDPOINTS.PROFESSORS, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ name, email }),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to create professor: ${error}`);
-  }
-  return response.json();
-},
-
-async updateProfessor(professorId: number, data: { name?: string; email?: string }) {
-  const headers = await getAuthHeaders();
-  const response = await fetch(API_ENDPOINTS.PROFESSOR_BY_ID(professorId), {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to update professor: ${error}`);
-  }
-  return response.json();
-},
-
-async deleteProfessor(professorId: number) {
-  const headers = await getAuthHeaders();
-  const response = await fetch(API_ENDPOINTS.PROFESSOR_BY_ID(professorId), {
-    method: 'DELETE',
-    headers,
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to delete professor: ${error}`);
-  }
-  return response.json();
-},
 };
