@@ -25,7 +25,7 @@ def get_all_course_sections(db: Connection) -> List[dict]:
             FROM course_section cs
             JOIN course c ON cs.course_id = c.id
             LEFT JOIN professor p ON cs.professor_id = p.professor_id
-            ORDER BY c.course
+            ORDER BY c.course, c.title
         """
         cursor.execute(query)
         results = cursor.fetchall()
@@ -128,6 +128,10 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
             values.append(course_section_data.professor_id)
 
         values.append(section_id)
+
+        if  len(update_fields) ==0: #if we have not updated the fields, we want to close and return early 
+            cursor.close()
+            return get_course_section_by_id(section_id, db)
 
         query = f"""
             UPDATE public.course_section
