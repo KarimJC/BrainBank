@@ -14,10 +14,11 @@ interface UserProfile {
 }
 
 interface HeaderProps {
-  onProfilePress?: () => void;
+  onNavigate: (route: string) => void;
+  activeRoute?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ onProfilePress }) => {
+const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -25,24 +26,20 @@ const Header: React.FC<HeaderProps> = ({ onProfilePress }) => {
     const fetchUser = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
         if (sessionError || !session) {
           console.error('No active session:', sessionError?.message);
           return;
         }
-
         const response = await fetch(`${API_BASE_URL}/api/v1/me`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
           }
         });
-
         if (!response.ok) {
           console.error('Failed to fetch user, status:', response.status);
           return;
         }
-
         const data: UserProfile = await response.json();
         setUser(data);
       } catch (err) {
@@ -51,7 +48,6 @@ const Header: React.FC<HeaderProps> = ({ onProfilePress }) => {
         setLoading(false);
       }
     };
-
     fetchUser();
   }, []);
 
@@ -61,27 +57,36 @@ const Header: React.FC<HeaderProps> = ({ onProfilePress }) => {
 
   return (
     <View style={styles.header}>
-      <Text style={styles.logo}>
-        Brain<Text style={styles.logoAccent}>Bank</Text>
-      </Text>
+      <View style={styles.logoContainer}>
+        <Text style={styles.logo}>
+          Brain<Text style={styles.logoAccent}>Bank</Text>
+        </Text>
+        <Image
+          source={require('@/assets/images/piggybank.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+      </View>
 
-      <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
-        {loading ? (
-          <View style={styles.defaultProfile}>
-            <ActivityIndicator size="small" color="#6B5BC7" />
-          </View>
-        ) : user?.profile_picture ? (
-          <Image
-            source={{ uri: user.profile_picture }}
-            style={styles.profileImage}
-            onError={() => setUser((prev) => prev ? { ...prev, profile_picture: null } : null)}
-          />
-        ) : (
-          <View style={styles.defaultProfile}>
-            <Text style={styles.defaultProfileText}>{initials}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      {activeRoute !== 'profile' && (
+        <TouchableOpacity style={styles.profileButton} onPress={() => onNavigate('profile')}>
+          {loading ? (
+            <View style={styles.defaultProfile}>
+              <ActivityIndicator size="small" color="#6B5BC7" />
+            </View>
+          ) : user?.profile_picture ? (
+            <Image
+              source={{ uri: user.profile_picture }}
+              style={styles.profileImage}
+              onError={() => setUser((prev) => prev ? { ...prev, profile_picture: null } : null)}
+            />
+          ) : (
+            <View style={styles.defaultProfile}>
+              <Text style={styles.defaultProfileText}>{initials}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -91,15 +96,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 12,
     backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  logoImage: {
+    width: 55,
+    height: 55,
   },
   logo: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#000',
+    marginTop: 5,
   },
   logoAccent: {
     color: '#6B5BC7',
