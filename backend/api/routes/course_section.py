@@ -1,3 +1,4 @@
+from venv import logger
 from fastapi import HTTPException, status, APIRouter, Depends
 from typing import List
 from psycopg2.extensions import connection as Connection
@@ -15,6 +16,7 @@ from db.crud.course_section import (
 from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate, CourseSectionResponse, DeleteResponse
 from core.exceptions import CourseSectionNotFoundException, CourseSectionAlreadyExistsException
 from pydantic import BaseModel
+from psycopg2.extras import RealDictCursor
 
 router = APIRouter(prefix="/course-sections", tags=["course-sections"])
 
@@ -61,6 +63,30 @@ async def get_course_section_endpoint(course_section_id: int, conn=Depends(get_d
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# For course page gets all the students in a course
+@router.get("/{section_id}/students", response_model=List[dict], status_code=status.HTTP_200_OK)
+def get_students_in_section(section_id: int, db: Connection = Depends(get_db)):
+    """Get all students enrolled in a course section"""
+    try:
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+        query = """
+            SELECT 
+                u.user_id,
+                u.first_name,
+                u.last_name,
+                u.profile_picture
+            FROM user_course_sections ucs
+            JOIN public.user u ON ucs.user_id = u.user_id
+            WHERE ucs.course_section_id = %s
+            ORDER BY u.first_name, u.last_name
+        """
+        cursor.execute(query, (section_id,))
+        results = cursor.fetchall()
+        cursor.close()
+        return [dict(row) for row in results]
+    except Exception as e:
+        logger.error(f"Failed to get students for section {section_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # POST create a new course section
 @router.post("/course_sections", response_model=CourseSectionResponse, status_code=status.HTTP_201_CREATED)
