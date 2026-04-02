@@ -12,7 +12,6 @@ const getApiUrl = (): string => {
   }
 
   if (__DEV__) {
-
     const port = process.env.EXPO_PUBLIC_API_PORT || '8000';
 
     // Try to get IP from Expo's Metro bundler host
@@ -205,4 +204,29 @@ async getUserCourseSections(userId: number) {
   }
   return response.json();
 },
+
+// Gets students in a course section 
+getCourseSectionStudents: async (sectionId: number) => {
+  const response = await fetch(`${API_URL}/api/v1/course-sections/${sectionId}/students`, {
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) {
+    if (response.status === 401) throw new AuthRequiredError();
+    throw new Error(`Failed to fetch students: ${response.status}`);
+  }
+  return response.json();
+},
+
+// allows us to view other people's profiles
+getUserById: async (userId: number) => {
+  const response = await fetch(`${API_URL}/api/v1/user/${userId}`, {
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) {
+    if (response.status === 401) throw new AuthRequiredError();
+    throw new Error(`Failed to fetch user: ${response.status}`);
+  }
+  return response.json();
+},
+
 };

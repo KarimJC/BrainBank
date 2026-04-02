@@ -151,6 +151,9 @@ useEffect(() => {
     .join('')
     .toUpperCase();
 
+  const isPendingRequest = conversation.status === 'pending' && conversation.recipient_id === currentUserId;
+  const isBlocked = conversation.blocked_by !== null;
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -212,7 +215,8 @@ useEffect(() => {
         </ScrollView>
 
         {/* INPUT BAR */}
-        {conversation.status === 'pending' ? (
+        {isPendingRequest ? (
+          // Show Accept/decline if you're the recipient 
           <View style={styles.requestActionsBottom}>
             <TouchableOpacity style={styles.acceptButton} onPress={handleAccept}>
               <Text style={styles.acceptText}>Accept</Text>
@@ -221,11 +225,12 @@ useEffect(() => {
               <Text style={styles.declineText}>Decline</Text>
             </TouchableOpacity>
           </View>
-        ) : conversation.blocked_by !== null ? (
+        ) : isBlocked ? (
           <View style={styles.blockedInputBar}>
             <Text style={styles.blockedInputText}>You can't reply to this conversation</Text>
           </View>
         ) : (
+          // Show normal input bar for accepted conversations or if you're the initiator waiting for response
           <View style={styles.inputBar}>
             <TouchableOpacity 
               style={styles.gifButton} 
@@ -247,6 +252,7 @@ useEffect(() => {
           </View>
         )}
       </KeyboardAvoidingView>
+
       <GifPicker
         visible={showGifPicker}
         onClose={() => setShowGifPicker(false)}
