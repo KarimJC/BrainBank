@@ -165,8 +165,6 @@ export default function CoursePage() {
             renderItem={({ item }) => (
               <NoteCard note={item} onPress={setSelectedNote} />
             )}
-            numColumns={2}
-            columnWrapperStyle={styles.gridRow}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             onRefresh={() => loadNotes(true)}
@@ -275,11 +273,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // Grid
-  gridRow: {
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
   listContent: {
     paddingBottom: 30,
   },
