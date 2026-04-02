@@ -3,6 +3,7 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from enum import Enum
 
+
 class ConversationCreate(BaseModel):
     recipient_id: int
 
@@ -22,18 +23,12 @@ class ConversationStatus(Enum):
     declined = "declined"
     blocked = "blocked"
 
+
 class ConversationUpdate(BaseModel):
     status: ConversationStatus
-    
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "status": "accepted"
-                }
-            ]
-        }
-    )    
+
+    model_config = ConfigDict(json_schema_extra={"examples": [{"status": "accepted"}]})
+
 
 class ConversationResponse(BaseModel):
     conversation_id: int
