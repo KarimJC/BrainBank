@@ -227,7 +227,7 @@ useEffect(() => {
           </View>
         ) : isBlocked ? (
           <View style={styles.blockedInputBar}>
-            <Text style={styles.blockedInputText}>You can't reply to this conversation</Text>
+            <Text style={styles.blockedInputText}>You can&apos;t reply to this conversation</Text>
           </View>
         ) : (
           // Show normal input bar for accepted conversations or if you're the initiator waiting for response
