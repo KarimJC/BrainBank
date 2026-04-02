@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { api } from "@/services/api";
 
 interface CourseResult {
@@ -16,7 +16,6 @@ export default function AddClassModal({ onClose, onClassAdded }: { onClose?: () 
   const [enrolling, setEnrolling] = useState(false);
   const [result, setResult] = useState<CourseResult | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [alreadyEnrolled, setAlreadyEnrolled] = useState(false);
 
   const handleEnroll = async () => {
     if (!result) return;
@@ -28,7 +27,7 @@ export default function AddClassModal({ onClose, onClassAdded }: { onClose?: () 
       if (onClose) onClose();
     } catch (e: any) {
       if (e.message?.includes('Already enrolled')) {
-        setAlreadyEnrolled(true);
+        Alert.alert('Already Enrolled', 'You are already enrolled in this class.');
       } else {
         console.error('Enroll failed:', e);
       }
@@ -64,7 +63,7 @@ export default function AddClassModal({ onClose, onClassAdded }: { onClose?: () 
       <TextInput
         style={styles.input}
         value={crn}
-        onChangeText={(text) => { setCrn(text); setResult(null); setNotFound(false); setAlreadyEnrolled(false); }}
+        onChangeText={(text) => { setCrn(text); setResult(null); setNotFound(false); }}
         placeholder="Enter CRN"
         placeholderTextColor="#999"
         keyboardType="numeric"
@@ -90,9 +89,6 @@ export default function AddClassModal({ onClose, onClassAdded }: { onClose?: () 
           <TouchableOpacity style={styles.addButton} onPress={handleEnroll} disabled={enrolling}>
             <Text style={styles.buttonText}>{enrolling ? 'Adding...' : 'Add Class'}</Text>
           </TouchableOpacity>
-          {alreadyEnrolled && (
-            <Text style={styles.notFound}>You're already enrolled in this class.</Text>
-          )}
         </View>
       )}
 

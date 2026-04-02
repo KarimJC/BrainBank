@@ -226,20 +226,40 @@ def enroll_user_in_course_section(user_id: int, course_section_id: int, db: Conn
     """Enroll a user in a course section via user_course_sections table"""
     try:
         cursor = db.cursor()
-        query = """
-            INSERT INTO public.user_course_sections (user_id, course_section_id)
-            VALUES (%s, %s)
-            ON CONFLICT DO NOTHING
-        """
-        cursor.execute(query, (user_id, course_section_id))
+        cursor.execute(
+            "SELECT 1 FROM public.user_course_sections WHERE user_id = %s AND course_section_id = %s",
+            (user_id, course_section_id)
+        )
+        if cursor.fetchone():
+            cursor.close()
+            return False
+        cursor.execute(
+            "INSERT INTO public.user_course_sections (user_id, course_section_id) VALUES (%s, %s)",
+            (user_id, course_section_id)
+        )
         db.commit()
-        inserted = cursor.rowcount > 0
         cursor.close()
-        return inserted
+        return True
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to enroll user {user_id} in section {course_section_id}: {str(e)}")
         raise DatabaseException(f"Failed to enroll: {str(e)}")
+
+
+def unenroll_user_from_course_section(user_id: int, course_section_id: int, db: Connection) -> bool:
+    """Remove a user from a course section"""
+    try:
+        cursor = db.cursor()
+        query = "DELETE FROM public.user_course_sections WHERE user_id = %s AND course_section_id = %s"
+        cursor.execute(query, (user_id, course_section_id))
+        db.commit()
+        deleted = cursor.rowcount > 0
+        cursor.close()
+        return deleted
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to unenroll user {user_id} from section {course_section_id}: {str(e)}")
+        raise DatabaseException(f"Failed to unenroll: {str(e)}")
 
 
 def check_crn_exists(crn: int, db: Connection):

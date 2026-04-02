@@ -206,6 +206,19 @@ async getCourseSectionByCRN(crn: number) {
   return response.json();
 },
 
+async unenrollFromCourseSection(sectionId: number, userId: number) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
+    { method: 'DELETE', headers }
+  );
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to unenroll: ${error}`);
+  }
+  return response.json();
+},
+
 async enrollInCourseSection(sectionId: number, userId: number) {
   const headers = await getAuthHeaders();
   const response = await fetch(

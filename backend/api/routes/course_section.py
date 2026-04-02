@@ -13,6 +13,7 @@ from db.crud.course_section import (
     check_crn_exists,
     get_course_section_by_CRN,
     enroll_user_in_course_section,
+    unenroll_user_from_course_section,
 )
 from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate, CourseSectionResponse, DeleteResponse
 from core.exceptions import CourseSectionNotFoundException, CourseSectionAlreadyExistsException
@@ -70,6 +71,15 @@ async def enroll_user_endpoint(section_id: int, user_id: int, conn=Depends(get_d
     if not inserted:
         raise HTTPException(status_code=409, detail="Already enrolled in this course")
     return {"message": "Enrolled successfully"}
+
+
+# DELETE unenroll a user from a course section
+@router.delete("/{section_id}/enroll", status_code=status.HTTP_200_OK)
+async def unenroll_user_endpoint(section_id: int, user_id: int, conn=Depends(get_db)):
+    removed = unenroll_user_from_course_section(user_id, section_id, conn)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Enrollment not found")
+    return {"message": "Unenrolled successfully"}
 
 
 # GET a specific course section with joined details

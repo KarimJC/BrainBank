@@ -10,6 +10,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
@@ -67,6 +68,29 @@ export default function CoursePage() {
     }
   };
 
+  const handleLeaveClass = () => {
+    Alert.alert(
+      'Leave Class',
+      `Are you sure you want to leave ${courseCode}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const user = await api.getCurrentUser();
+              await api.unenrollFromCourseSection(Number(courseId), user.user_id);
+              router.back();
+            } catch (e) {
+              Alert.alert('Error', 'Failed to leave class. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleNavigate = (route: string) => {
     if (route === 'home') router.push('/(tabs)');
     else if (route === 'notes') router.push('/(tabs)/notes');
@@ -87,18 +111,23 @@ export default function CoursePage() {
     <AppLayout userName="User" onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
 
-        {/* ── Back + Bookmark ── */}
+        {/* ── Back + Bookmark + Leave ── */}
         <View style={styles.topRow}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={26} color="#1C1C1E" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setBookmarked(b => !b)}>
-            <Ionicons
-              name={bookmarked ? 'bookmark' : 'bookmark-outline'}
-              size={22}
-              color="#6750A4"
-            />
-          </TouchableOpacity>
+          <View style={styles.topRowRight}>
+            <TouchableOpacity onPress={() => setBookmarked(b => !b)}>
+              <Ionicons
+                name={bookmarked ? 'bookmark' : 'bookmark-outline'}
+                size={22}
+                color="#6750A4"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleLeaveClass} style={styles.leaveBtn}>
+              <Text style={styles.leaveBtnText}>Leave</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Course Title ── */}
@@ -198,6 +227,23 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     padding: 4,
+  },
+  topRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  leaveBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#CC0000',
+  },
+  leaveBtnText: {
+    color: '#CC0000',
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   // Course title
