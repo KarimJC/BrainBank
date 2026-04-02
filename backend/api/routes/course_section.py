@@ -11,6 +11,8 @@ from db.crud.course_section import (
     update_course_section as update_course_section_crud,
     delete_course_section as delete_course_section_crud,
     check_crn_exists,
+    get_course_section_by_CRN,
+    enroll_user_in_course_section,
 )
 from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate, CourseSectionResponse, DeleteResponse
 from core.exceptions import CourseSectionNotFoundException, CourseSectionAlreadyExistsException
@@ -47,6 +49,27 @@ async def get_course_sections_for_user_endpoint(user_id: int, conn=Depends(get_d
         return get_course_sections_for_user(user_id, conn)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# GET a course section by CRN
+@router.get("/crn/{crn}", response_model=CourseSectionDetailResponse)
+async def get_course_section_by_crn_endpoint(crn: int, conn=Depends(get_db)):
+    course_section = get_course_section_by_CRN(crn, conn)
+    if not course_section:
+        raise HTTPException(status_code=404, detail="Course section not found")
+    return course_section
+
+
+# POST enroll a user in a course section
+@router.post("/{section_id}/enroll", status_code=status.HTTP_200_OK)
+async def enroll_user_endpoint(section_id: int, user_id: int, conn=Depends(get_db)):
+    course_section = get_course_section_by_id(section_id, conn)
+    if not course_section:
+        raise HTTPException(status_code=404, detail="Course section not found")
+    inserted = enroll_user_in_course_section(user_id, section_id, conn)
+    if not inserted:
+        raise HTTPException(status_code=409, detail="Already enrolled in this course")
+    return {"message": "Enrolled successfully"}
 
 
 # GET a specific course section with joined details

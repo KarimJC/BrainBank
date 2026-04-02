@@ -4,6 +4,7 @@ import Header from '../ui/Header';
 import BottomNav from '../ui/BottomNav';
 import ActionMenu from '../ui/ActionMenu';
 import NotesUploadPage from '../../app/(tabs)/NotesUploadPage';
+import AddClassModal from '@/app/(tabs)/AddClassPage';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface AppLayoutProps {
   profileImage?: any;
   onNavigate?: (route: string) => void;
   activeRoute?: string;
+  onClassAdded?: () => void;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({
@@ -18,11 +20,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   userName = "User",
   profileImage,
   onNavigate,
-  activeRoute = 'home'
+  activeRoute = 'home',
+  onClassAdded,
 }) => {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showNotesUpload, setShowNotesUpload] = useState(false);
-
+  const [showAddClassPage, setshowAddClassPage] = useState(false);
+ 
   const handleAction = (action: string) => {
     setShowActionMenu(false);
     switch (action) {
@@ -30,7 +34,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         setShowNotesUpload(true);
         break;
       case 'add-class':
-        if (onNavigate) onNavigate('add-class');
+        //if (onNavigate) onNavigate('add-class');
+        setshowAddClassPage(true);
         break;
       case 'generate-document':
         if (onNavigate) onNavigate('generate-document');
@@ -48,12 +53,27 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     setShowNotesUpload(false);
   };
 
+  const handleCloseAddClassPage = () => {
+    setshowAddClassPage(false);
+  };
+
   return (
     <View style={styles.container}>
       <Header userName={userName} profileImage={profileImage} />
       <View style={styles.content}>
         {children}
       </View>
+      <Modal
+        visible={showAddClassPage}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCloseAddClassPage}
+      >
+        <View style={styles.modalContainer}>
+          <AddClassModal onClose={handleCloseAddClassPage} onClassAdded={onClassAdded} />
+        </View>
+      </Modal>
+
       <ActionMenu
         visible={showActionMenu}
         onClose={() => setShowActionMenu(false)}

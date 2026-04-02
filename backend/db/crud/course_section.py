@@ -64,6 +64,34 @@ def get_course_section_by_id(section_id: int, db: Connection) -> Optional[dict]:
         raise DatabaseException()
 
 
+def get_course_section_by_CRN(section_CRN: int, db: Connection) -> Optional[dict]:
+    """Get course section by ID with joined course and professor details"""
+    try:
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+        query = """
+            SELECT
+                cs.id as course_section_id,
+                cs.course_id,
+                cs."course_CRN" as course_crn,
+                cs.professor_id,
+                c.course as course_code,
+                c.title as course_name,
+                c.subject,
+                p.name as professor_name
+            FROM course_section cs
+            JOIN course c ON cs.course_id = c.id
+            LEFT JOIN professor p ON cs.professor_id = p.professor_id
+            WHERE cs."course_CRN" = %s
+        """
+        cursor.execute(query, (section_CRN,))
+        result = cursor.fetchone()
+        cursor.close()
+        return dict(result) if result else None
+    except Exception as e:
+        logger.error(f"Failed to find section_id {section_CRN}: {str(e)}")
+        raise DatabaseException()
+
+
 def create_course_section(course_section_data: CourseSectionCreate, db: Connection):
     """Create a new course section"""
     try:
@@ -192,6 +220,26 @@ def get_course_sections_for_user(user_id: int, db: Connection) -> List[dict]:
     except Exception as e:
         logger.error(f"Failed to get course sections for user {user_id}: {str(e)}")
         raise DatabaseException(f"Failed to get course sections for user {user_id}: {str(e)}")
+
+
+def enroll_user_in_course_section(user_id: int, course_section_id: int, db: Connection) -> bool:
+    """Enroll a user in a course section via user_course_sections table"""
+    try:
+        cursor = db.cursor()
+        query = """
+            INSERT INTO public.user_course_sections (user_id, course_section_id)
+            VALUES (%s, %s)
+            ON CONFLICT DO NOTHING
+        """
+        cursor.execute(query, (user_id, course_section_id))
+        db.commit()
+        inserted = cursor.rowcount > 0
+        cursor.close()
+        return inserted
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to enroll user {user_id} in section {course_section_id}: {str(e)}")
+        raise DatabaseException(f"Failed to enroll: {str(e)}")
 
 
 def check_crn_exists(crn: int, db: Connection):
