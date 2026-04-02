@@ -21,7 +21,7 @@ class DocumentResponse(BaseModel):
                     "doc_type": "study_guide",
                     "doc_content": "Study guide for algo",
                     "doc_date": "2026-02-23",
-                    "course_id": 5
+                    "course_id": 5,
                 }
             ]
         }
