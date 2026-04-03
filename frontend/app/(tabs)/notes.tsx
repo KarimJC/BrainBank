@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
-import { fetchNotes, fetchCourseSections, NoteItem, CourseSection } from '../services/notesService';
+import { fetchNotes, fetchCourseSections, NoteItem, CourseSection } from '@/services/notesService';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
 import NotesFilterModal from '@/components/notes/NotesFilterModal';

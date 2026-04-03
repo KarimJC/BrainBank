@@ -37,6 +37,7 @@ class AIChatMessageResponse(BaseModel):
 # Request/Response for the API endpoints
 class ChatRequest(BaseModel):
     """User sends a message to the AI"""
+
     user_id: int
     section_id: int
     message: str = Field(..., min_length=1, max_length=5000)
@@ -44,6 +45,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     """AI responds with a message"""
+
     session_id: int
     user_message: str
     ai_response: str
@@ -53,6 +55,7 @@ class ChatResponse(BaseModel):
 
 class ChatHistoryResponse(BaseModel):
     """Returns full chat history"""
+
     session_id: int
     section_id: int
     messages: List[AIChatMessageResponse]
