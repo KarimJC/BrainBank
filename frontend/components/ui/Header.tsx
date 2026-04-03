@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { supabase } from '@/services/supabase';
 
 const API_BASE_URL = `http://${process.env.EXPO_PUBLIC_LOCAL_IP}:8000`;
@@ -20,6 +20,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [initials, setInitials] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,6 +31,17 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => 
           console.error('No active session:', sessionError?.message);
           return;
         }
+
+        // Extract first name initial from NEU email format: lastname.firstname@...
+        const email = session.user.email ?? '';
+        const localPart = email.split('@')[0]; // e.g. "crowley.all"
+        const parts = localPart.split('.');
+        if (parts.length >= 2) {
+          setInitials(parts[1][0]?.toUpperCase() ?? '');
+        } else {
+          setInitials(parts[0][0]?.toUpperCase() ?? '');
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/v1/me`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -41,19 +53,17 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => 
           return;
         }
         const data: UserProfile = await response.json();
+
         setUser(data);
+        setInitials(data.first_name.charAt(0).toUpperCase());
       } catch (err) {
-        console.error('Header fetch error:', err);
+        console.error('Header fetch error:', (err as Error).message);
       } finally {
         setLoading(false);
       }
     };
     fetchUser();
   }, []);
-
-  const initials = user
-    ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
-    : '?';
 
   return (
     <View style={styles.header}>
@@ -67,14 +77,9 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => 
           resizeMode="contain"
         />
       </View>
-
       {activeRoute !== 'profile' && (
         <TouchableOpacity style={styles.profileButton} onPress={() => onNavigate('profile')}>
-          {loading ? (
-            <View style={styles.defaultProfile}>
-              <ActivityIndicator size="small" color="#6B5BC7" />
-            </View>
-          ) : user?.profile_picture ? (
+          {!loading && user?.profile_picture ? (
             <Image
               source={{ uri: user.profile_picture }}
               style={styles.profileImage}
@@ -82,7 +87,9 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => 
             />
           ) : (
             <View style={styles.defaultProfile}>
-              <Text style={styles.defaultProfileText}>{initials}</Text>
+              {initials ? (
+                <Text style={styles.defaultProfileText}>{initials}</Text>
+              ) : null}
             </View>
           )}
         </TouchableOpacity>
