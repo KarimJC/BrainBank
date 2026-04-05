@@ -21,6 +21,7 @@ TERM = "202630"  # Spring 2026 Semester
 SUBJECTS_FILTER = ["CS", "MATH", "EECE", "DS", "CY", "IS", "ENGW"]
 PAGE_SIZE = 500
 BASE = "https://nubanner.neu.edu/StudentRegistrationSsb/ssb"
+FACULTY_SLEEP = 0.5  # seconds between per-CRN faculty requests
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
 
@@ -63,9 +64,7 @@ def make_session() -> requests.Session:
 
 def select_term(session: requests.Session, subject: str):
     """Banner requires term + subject selection before each search."""
-    # Reset any previous search state
     session.post(f"{BASE}/classSearch/resetDataForm", timeout=15)
-    # Select term and subject
     session.post(
         f"{BASE}/term/search?mode=search",
         data={"term": TERM},
@@ -120,6 +119,30 @@ def fetch_sections(session: requests.Session, subject: str) -> list[dict]:
 
     return all_sections
 
+def get_section_faculty(session: requests.Session, crn: str) -> tuple[str, str]:
+    """
+    Fetch professor name + email for a single CRN via Banner's faculty endpoint.
+    Banner bulk results always return empty faculty arrays, so this per-CRN
+    call is required to get real professor names.
+    Returns ("Staff", "") as fallback if nothing is found.
+    """
+    try:
+        resp = session.get(
+            f"{BASE}/searchResults/getFacultyMeetingTimes",
+            params={"term": TERM, "courseReferenceNumber": crn},
+            timeout=10
+        )
+        data = resp.json()
+        fmt = data.get("fmt", [])
+        if fmt and fmt[0].get("faculty"):
+            faculty = fmt[0]["faculty"][0]
+            name = faculty.get("displayName", "Staff") or "Staff"
+            email = faculty.get("emailAddress", "") or ""
+            return name, email
+    except Exception:
+        pass
+    return "Staff", ""
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def seed():
@@ -141,22 +164,27 @@ def seed():
         print(f"  [{subject}] fetching sections...")
         sections = fetch_sections(session, subject)
         print(f"  [{subject}] total sections fetched: {len(sections)}")
+        print(f"  [{subject}] fetching faculty per CRN (this takes a while)...")
 
-        # Collect unique profs and courses first
-        profs = {}   # name -> email
-        courses = {} # course_code -> (subject, number, title)
+        profs = {}
+        courses = {}
         valid_sections = []
 
-        for sec in sections:
+        for i, sec in enumerate(sections):
             crn = sec.get("courseReferenceNumber")
             course_number = sec.get("courseNumber", "")
             course_title = sec.get("courseTitle", "Unknown")
             subject_code = sec.get("subject", subject)
             if not crn or not course_number:
                 continue
-            faculty = sec.get("faculty") or []
-            prof_name = faculty[0].get("displayName", "Staff") if faculty else "Staff"
-            prof_email = faculty[0].get("emailAddress", "") if faculty else ""
+
+            # Per-CRN faculty fetch — Banner bulk results have empty faculty arrays
+            prof_name, prof_email = get_section_faculty(session, crn)
+            time.sleep(FACULTY_SLEEP)
+
+            if (i + 1) % 50 == 0:
+                print(f"    ...processed {i + 1}/{len(sections)} sections")
+
             profs[prof_name] = prof_email
             course_code = f"{subject_code}{course_number}"
             courses[course_code] = (subject_code, course_number, course_title)
@@ -169,6 +197,7 @@ def seed():
                 list(profs.items())
             )
             conn.commit()
+            print(f"  [{subject}] upserted {len(profs)} professors")
 
         # Bulk upsert courses
         if courses:
