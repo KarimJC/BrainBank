@@ -1,39 +1,99 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { supabase } from '@/services/supabase';
 
-interface HeaderProps {
-  userName: string;
-  profileImage?: any;
-  onProfilePress?: () => void;
+const API_BASE_URL = `http://${process.env.EXPO_PUBLIC_LOCAL_IP}:8000`;
+
+interface UserProfile {
+  user_id: number;
+  auth_id: string;
+  neu_email: string;
+  first_name: string;
+  last_name: string;
+  profile_picture?: string | null;
 }
 
-const Header: React.FC<HeaderProps> = ({ 
-  userName, 
-  profileImage,
-  onProfilePress 
-}) => {
+interface HeaderProps {
+  onNavigate: (route: string) => void;
+  activeRoute?: string;
+}
+
+const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [initials, setInitials] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session) {
+          console.error('No active session:', sessionError?.message);
+          return;
+        }
+
+        // Extract first name initial from NEU email format: lastname.firstname@...
+        const email = session.user.email ?? '';
+        const localPart = email.split('@')[0]; // e.g. "crowley.all"
+        const parts = localPart.split('.');
+        if (parts.length >= 2) {
+          setInitials(parts[1][0]?.toUpperCase() ?? '');
+        } else {
+          setInitials(parts[0][0]?.toUpperCase() ?? '');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/v1/me`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          }
+        });
+        if (!response.ok) {
+          console.error('Failed to fetch user, status:', response.status);
+          return;
+        }
+        const data: UserProfile = await response.json();
+
+        setUser(data);
+        setInitials(data.first_name.charAt(0).toUpperCase());
+      } catch (err) {
+        console.error('Header fetch error:', (err as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, []);
+
   return (
     <View style={styles.header}>
-      <Text style={styles.logo}>
-        Brain<Text style={styles.logoAccent}>Bank</Text>
-      </Text>
-      <TouchableOpacity 
-        style={styles.profileButton}
-        onPress={onProfilePress}
-      >
-        {profileImage ? (
-          <Image
-            source={profileImage}
-            style={styles.profileImage}
-          />
-        ) : (
-          <View style={styles.defaultProfile}>
-            <Text style={styles.defaultProfileText}>
-              {userName.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      <View style={styles.logoContainer}>
+        <Text style={styles.logo}>
+          Brain<Text style={styles.logoAccent}>Bank</Text>
+        </Text>
+        <Image
+          source={require('@/assets/images/piggybank.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+      </View>
+      {activeRoute !== 'profile' && (
+        <TouchableOpacity style={styles.profileButton} onPress={() => onNavigate('profile')}>
+          {!loading && user?.profile_picture ? (
+            <Image
+              source={{ uri: user.profile_picture }}
+              style={styles.profileImage}
+              onError={() => setUser((prev) => prev ? { ...prev, profile_picture: null } : null)}
+            />
+          ) : (
+            <View style={styles.defaultProfile}>
+              {initials ? (
+                <Text style={styles.defaultProfileText}>{initials}</Text>
+              ) : null}
+            </View>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -43,23 +103,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 12,
     backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  logoImage: {
+    width: 55,
+    height: 55,
   },
   logo: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#000',
+    marginTop: 5,
   },
   logoAccent: {
     color: '#6B5BC7',
   },
   profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     overflow: 'hidden',
   },
   profileImage: {
@@ -74,7 +146,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   defaultProfileText: {
-    fontSize: 18,
+    fontSize: 32,
     fontWeight: '600',
     color: '#6B5BC7',
   },
