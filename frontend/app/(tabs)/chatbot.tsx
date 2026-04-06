@@ -163,6 +163,8 @@ export default function ChatbotScreen() {
 
   // On mount: load chat history
   useEffect(() => {
+    setMessages([WELCOME_MESSAGE]);
+    setUserIdError(false);
     (async () => {
       try {
         const history = await loadChatHistory(5, sectionId);
@@ -174,7 +176,7 @@ export default function ChatbotScreen() {
         setUserIdError(true);
       }
     })();
-  }, []);
+  }, [sectionId]);
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
