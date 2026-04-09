@@ -4,11 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-DOC_TYPE_TITLES = {
-    "study_guide": "Study Guide",
-    "practice_exam": "Practice Exam",
-    "summary": "Course Summary"
-}
+DOC_TYPE_TITLES = {"study_guide": "Study Guide", "practice_exam": "Practice Exam", "summary": "Course Summary"}
 
 
 class PDFService:
@@ -109,7 +105,7 @@ class PDFService:
                 pdf.set_font("Helvetica", style="B", size=10)
                 pdf.multi_cell(0, 6, text)
 
-            # Roman numeral section heading 
+            # Roman numeral section heading
             elif re.match(r"^[IVX]+\.\s", stripped):
                 text = self._clean_text(stripped)
                 pdf.set_font("Helvetica", style="B", size=14)
@@ -142,10 +138,10 @@ class PDFService:
         # Convert LaTeX math to readable text
         # Fractions:
         text = re.sub(r"\\frac\{(.+?)\}\{(.+?)\}", r"\1/\2", text)
-        # Subscripts: 
+        # Subscripts:
         text = re.sub(r"_\{(.+?)\}", r"(\1)", text)
         text = re.sub(r"_(\w)", r"\1", text)
-        # Superscripts: 
+        # Superscripts:
         text = re.sub(r"\^\{(.+?)\}", r"^\1", text)
         # Greek letters
         text = text.replace(r"\mu", "mu").replace(r"\sigma", "sigma")
@@ -157,7 +153,7 @@ class PDFService:
         text = text.replace(r"\sqrt", "sqrt").replace(r"\le", "<=").replace(r"\ge", ">=")
         # Remove any other weird LaTeX commands
         text = text.replace("$", "")
-        text = re.sub(r"\\[a-zA-Z]+", "", text)  
+        text = re.sub(r"\\[a-zA-Z]+", "", text)
         text = text.replace("\\", "")
 
         return text.strip()

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Modal, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { CourseSection } from '@/app/services/notesService';
+import { CourseSection } from '@/services/notesService';
 
 interface CourseSectionPickerProps {
   visible: boolean;

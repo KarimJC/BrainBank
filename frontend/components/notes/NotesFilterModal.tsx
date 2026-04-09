@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { CourseSection } from '@/app/services/notesService';
+import { CourseSection } from '@/services/notesService';
 
 interface NotesFilterModalProps {
   visible: boolean;

@@ -19,7 +19,7 @@ def get_all_course_sections(db: Connection) -> List[dict]:
                 cs."course_CRN" as course_crn,
                 cs.professor_id,
                 c.course as course_code,
-                c.title as course_name,
+                c.title as course_title,
                 c.subject,
                 p.name as professor_name
             FROM course_section cs
@@ -47,7 +47,7 @@ def get_course_section_by_id(section_id: int, db: Connection) -> Optional[dict]:
                 cs."course_CRN" as course_crn,
                 cs.professor_id,
                 c.course as course_code,
-                c.title as course_name,
+                c.title as course_title,
                 c.subject,
                 p.name as professor_name
             FROM course_section cs
@@ -71,13 +71,11 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
         query = """
         INSERT INTO public.course_section (course_id, "course_CRN", professor_id)
         VALUES (%s, %s, %s)
-        RETURNING course_id, id,"course_CRN", professor_id
+        RETURNING course_id, id, "course_CRN", professor_id
         """
-        cursor.execute(query, (
-            course_section_data.course_id,
-            course_section_data.course_CRN,
-            course_section_data.professor_id
-        ))
+        cursor.execute(
+            query, (course_section_data.course_id, course_section_data.course_CRN, course_section_data.professor_id)
+        )
         result = cursor.fetchone()
         db.commit()
         cursor.close()
@@ -85,7 +83,9 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
         return result
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to create section - Course ID: {course_section_data.course_id}, CRN: {course_section_data.course_CRN}: {str(e)}")
+        logger.error(
+            f"Failed to create section - Course ID: {course_section_data.course_id}, CRN: {course_section_data.course_CRN}: {str(e)}"
+        )
         raise DatabaseException()
 
 
@@ -133,12 +133,12 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
             cursor.close()
             return get_course_section_by_id(section_id, db)
 
-        query = f'''
+        query = f"""
             UPDATE public.course_section
-            SET {', '.join(update_fields)}
+            SET {", ".join(update_fields)}
             WHERE id = %s
             RETURNING course_id, id, "course_CRN", professor_id
-        '''
+        """
         cursor.execute(query, values)
         result = cursor.fetchone()
         db.commit()
@@ -155,7 +155,7 @@ def delete_course_section(section_id: int, db: Connection):
     """Delete a course section"""
     try:
         cursor = db.cursor()
-        query = 'DELETE FROM public.course_section WHERE id = %s'
+        query = "DELETE FROM public.course_section WHERE id = %s"
         cursor.execute(query, (section_id,))
         db.commit()
         deleted = cursor.rowcount > 0
@@ -166,6 +166,36 @@ def delete_course_section(section_id: int, db: Connection):
         db.rollback()
         logger.error(f"Failed to delete section_id {section_id}: {str(e)}")
         raise DatabaseException(f"Failed to delete section_id {section_id}: {str(e)}")
+
+
+def get_course_sections_for_user(user_id: int, db: Connection) -> List[dict]:
+    """Get course sections that a user is enrolled in via user_course_sections."""
+    try:
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+        query = """
+            SELECT
+                cs.id as course_section_id,
+                cs.course_id,
+                cs."course_CRN" as course_crn,
+                cs.professor_id,
+                c.course as course_code,
+                c.title as course_title,
+                c.subject,
+                p.name as professor_name
+            FROM user_course_sections ucs
+            JOIN course_section cs ON ucs.course_section_id = cs.id
+            JOIN course c ON cs.course_id = c.id
+            LEFT JOIN professor p ON cs.professor_id = p.professor_id
+            WHERE ucs.user_id = %s
+            ORDER BY c.course
+        """
+        cursor.execute(query, (user_id,))
+        results = cursor.fetchall()
+        cursor.close()
+        return [dict(row) for row in results]
+    except Exception as e:
+        logger.error(f"Failed to get course sections for user {user_id}: {str(e)}")
+        raise DatabaseException(f"Failed to get course sections for user {user_id}: {str(e)}")
 
 
 def check_crn_exists(crn: int, db: Connection):

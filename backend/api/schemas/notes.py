@@ -9,20 +9,20 @@ class NoteBase(BaseModel):
     date: str
     courseSectionId: int = Field(..., gt=0)
 
-    @validator('date')
+    @validator("date")
     def validate_date(cls, v):
         try:
-            parsed_date = datetime.strptime(v, '%Y-%m-%d').date()
+            parsed_date = datetime.strptime(v, "%Y-%m-%d").date()
             if parsed_date > date.today():
-                raise ValueError('Date cannot be in the future')
+                raise ValueError("Date cannot be in the future")
             return v
         except ValueError:
-            raise ValueError('Invalid date format. Use YYYY-MM-DD')
+            raise ValueError("Invalid date format. Use YYYY-MM-DD")
 
-    @validator('title')
+    @validator("title")
     def not_empty(cls, v):
         if not v or not v.strip():
-            raise ValueError('Field cannot be empty')
+            raise ValueError("Field cannot be empty")
         return v.strip()
 
 
@@ -36,17 +36,17 @@ class NoteUpdate(BaseModel):
     date: Optional[str] = None
     courseSectionId: Optional[int] = Field(None, gt=0)
 
-    @validator('date')
+    @validator("date")
     def validate_date(cls, v):
         if v is None:
             return v
         try:
-            parsed_date = datetime.strptime(v, '%Y-%m-%d').date()
+            parsed_date = datetime.strptime(v, "%Y-%m-%d").date()
             if parsed_date > date.today():
-                raise ValueError('Date cannot be in the future')
+                raise ValueError("Date cannot be in the future")
             return v
         except ValueError:
-            raise ValueError('Invalid date format. Use YYYY-MM-DD')
+            raise ValueError("Invalid date format. Use YYYY-MM-DD")
 
 
 class NoteResponse(BaseModel):
