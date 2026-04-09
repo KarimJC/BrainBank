@@ -59,7 +59,11 @@ NOTE_SELECT = """
         n.attachments,
         cs.id as course_section_id,
         c.course as course_code,
+<<<<<<< HEAD
         c.title as course_title,
+=======
+        c.title as course_name,
+>>>>>>> origin/main
         p.name as professor_name,
         CONCAT(u.first_name, ' ', u.last_name) as uploader_name
     FROM notes n

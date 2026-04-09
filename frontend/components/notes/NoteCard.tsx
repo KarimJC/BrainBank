@@ -31,7 +31,11 @@ export default function NoteCard({ note, onPress }: NoteCardProps) {
       <View style={styles.footer}>
         <View style={styles.footerLeft}>
           <Text style={styles.courseInfo} numberOfLines={1}>
+<<<<<<< HEAD
             {note.courseTitle}{note.professorName ? ` · Prof. ${note.professorName}` : ''}
+=======
+            {note.courseName}{note.professorName ? ` · Prof. ${note.professorName}` : ''}
+>>>>>>> origin/main
           </Text>
           {note.uploaderName ? (
             <Text style={styles.uploaderText} numberOfLines={1}>by {note.uploaderName}</Text>
