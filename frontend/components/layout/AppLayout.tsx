@@ -5,6 +5,7 @@ import BottomNav from '../ui/BottomNav';
 import ActionMenu from '../ui/ActionMenu';
 import NotesUploadPage from '../../app/(tabs)/NotesUploadPage';
 import AddClassModal from '@/app/(tabs)/AddClassPage';
+import SearchClassModal from '@/app/(tabs)/SearchClassModal';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -26,6 +27,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showNotesUpload, setShowNotesUpload] = useState(false);
   const [showAddClassPage, setshowAddClassPage] = useState(false);
+  const [showSearchClassModal, setShowSearchClassModal] = useState(false);
  
   const handleAction = (action: string) => {
     setShowActionMenu(false);
@@ -34,8 +36,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         setShowNotesUpload(true);
         break;
       case 'add-class':
-        //if (onNavigate) onNavigate('add-class');
-        setshowAddClassPage(true);
+        setShowSearchClassModal(true);
         break;
       case 'generate-document':
         if (onNavigate) onNavigate('generate-document');
@@ -73,6 +74,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({
           <AddClassModal onClose={handleCloseAddClassPage} onClassAdded={onClassAdded} />
         </View>
       </Modal>
+
+      <SearchClassModal
+        visible={showSearchClassModal}
+        onClose={() => setShowSearchClassModal(false)}
+        onClassAdded={onClassAdded}
+      />
 
       <ActionMenu
         visible={showActionMenu}
