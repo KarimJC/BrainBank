@@ -16,6 +16,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import * as ImagePicker from 'expo-image-picker';
+import { File as ExpoFile } from 'expo-file-system';
 import Svg, { Path } from 'react-native-svg';
 import { fetchUserProfile, updateUserName, updateProfilePicture } from '@/services/profileService';
 
@@ -131,8 +132,8 @@ interface User {
   user_id: number;
   auth_id: string;
   neu_email: string;
-  first_name: string;
-  last_name: string;
+  first_name: string | null;
+  last_name: string | null;
   profile_picture: string | null;
 }
 
@@ -260,18 +261,20 @@ export default function ProfileScreen() {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) throw new Error('Not authenticated');
 
-      const fileExt = uri.split('.').pop();
+      const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const mimeType = fileExt === 'jpg' ? 'image/jpeg' : `image/${fileExt}`;
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${authUser.id}/${fileName}`;
 
-      const response = await fetch(uri);
-      const arrayBuffer = await response.arrayBuffer();
+      // Read file using expo-file-system (reliable in React Native)
+      const file = new ExpoFile(uri);
+      const arrayBuffer = await file.arrayBuffer();
 
       const { error } = await supabase.storage
         .from('profile-pictures')
         .upload(filePath, arrayBuffer, {
-          contentType: `image/${fileExt}`,
-          upsert: false,
+          contentType: mimeType,
+          upsert: true,
         });
 
       if (error) throw error;
@@ -409,7 +412,7 @@ export default function ProfileScreen() {
   // ─── Loading ─────────────────────────────────────────────
   if (loading) {
     return (
-      <AppLayout userName="User" hideProfile onNavigate={handleNavigation} activeRoute="profile">
+      <AppLayout onNavigate={handleNavigation} activeRoute="profile">
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={COLORS.purple} />
           <Text style={styles.loadingText}>Loading profile...</Text>
@@ -424,7 +427,7 @@ export default function ProfileScreen() {
 
   // ─── Render ──────────────────────────────────────────────
   return (
-    <AppLayout userName={displayName} profileImage={user?.profile_picture} hideProfile onNavigate={handleNavigation} activeRoute="profile">
+    <AppLayout onNavigate={handleNavigation} activeRoute="profile">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

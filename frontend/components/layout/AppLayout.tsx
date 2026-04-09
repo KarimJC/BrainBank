@@ -7,8 +7,6 @@ import NotesUploadPage from '../../app/(tabs)/NotesUploadPage';
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  userName?: string;
-  profileImage?: string | null;
   onNavigate?: (route: string) => void;
   activeRoute?: string;
   hideProfile?: boolean;
@@ -16,8 +14,6 @@ interface AppLayoutProps {
 
 const AppLayout: React.FC<AppLayoutProps> = ({
   children,
-  userName = "User",
-  profileImage,
   onNavigate,
   activeRoute = 'home',
   hideProfile = false,
@@ -52,7 +48,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 
   return (
     <View style={styles.container}>
-      <Header userName={userName} profileImage={profileImage} hideProfile={hideProfile} />
+      <Header onNavigate={handleNavigation} activeRoute={activeRoute} />
       <View style={styles.content}>
         {children}
       </View>

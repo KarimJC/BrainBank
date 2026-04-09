@@ -9,6 +9,7 @@ load_dotenv()
 
 security = HTTPBearer()
 
+
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
 
@@ -21,17 +22,12 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             "ext": True,
             "kid": os.getenv("SUPABASE_JWT_KID"),
             "kty": "EC",
-            "key_ops": ["verify"]
+            "key_ops": ["verify"],
         }
 
         public_key = jwk.construct(jwk_data, algorithm="ES256")
 
-        payload = jwt.decode(
-            token,
-            public_key,
-            algorithms=["ES256"],
-            audience="authenticated"
-        )
+        payload = jwt.decode(token, public_key, algorithms=["ES256"], audience="authenticated")
 
         auth_id: str = payload.get("sub")
         email: str = payload.get("email")

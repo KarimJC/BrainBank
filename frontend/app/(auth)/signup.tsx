@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/services/supabase';
@@ -36,7 +37,6 @@ const SignUpScreen: React.FC = () => {
       return;
     }
 
-    // Check for @northeastern.edu email
     if (!email.toLowerCase().trim().endsWith('@northeastern.edu')) {
       Alert.alert(
         'Invalid Email', 
@@ -98,9 +98,14 @@ const SignUpScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <View style={styles.logoContainer}>
+            <Image
+              source={require('@/assets/images/piggybank.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={styles.title}>
-              <Text style={styles.titlePurple}>Brain</Text>
-              <Text style={styles.titleBlack}>Bank</Text>
+              <Text style={styles.titleBlack}>Brain</Text>
+              <Text style={styles.titlePurple}>Bank</Text>
             </Text>
             <Text style={styles.subtitle}>NEU Students Only</Text>
           </View>
@@ -194,6 +199,11 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     marginBottom: 48,
+  },
+  logoImage: {
+    width: 100,
+    height: 100,
+    marginBottom: 8,
   },
   title: {
     fontSize: 42,

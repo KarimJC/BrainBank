@@ -13,33 +13,37 @@ logger = logging.getLogger(__name__)
 def build_attachments(media_url, file_url, file_name, file_size) -> list:
     attachments = []
     if media_url:
-        attachments.append({
-            'id': media_url.split('/')[-1].split('.')[0],
-            'url': media_url,
-            'filename': media_url.split('/')[-1],
-            'type': 'image',
-            'uploadedAt': datetime.utcnow().isoformat()
-        })
+        attachments.append(
+            {
+                "id": media_url.split("/")[-1].split(".")[0],
+                "url": media_url,
+                "filename": media_url.split("/")[-1],
+                "type": "image",
+                "uploadedAt": datetime.utcnow().isoformat(),
+            }
+        )
     if file_url:
-        attachments.append({
-            'id': file_url.split('/')[-1].split('.')[0],
-            'url': file_url,
-            'filename': file_name,
-            'size': file_size,
-            'type': 'document',
-            'uploadedAt': datetime.utcnow().isoformat()
-        })
+        attachments.append(
+            {
+                "id": file_url.split("/")[-1].split(".")[0],
+                "url": file_url,
+                "filename": file_name,
+                "size": file_size,
+                "type": "document",
+                "uploadedAt": datetime.utcnow().isoformat(),
+            }
+        )
     return attachments
 
 
 def parse_attachments(row: dict) -> dict:
-    attachments = row.get('attachments') or []
-    media = next((a for a in attachments if a.get('type') == 'image'), None)
-    doc = next((a for a in attachments if a.get('type') == 'document'), None)
-    row['media_url'] = media['url'] if media else None
-    row['file_url'] = doc['url'] if doc else None
-    row['file_name'] = doc['filename'] if doc else None
-    row['file_size'] = doc.get('size') if doc else None
+    attachments = row.get("attachments") or []
+    media = next((a for a in attachments if a.get("type") == "image"), None)
+    doc = next((a for a in attachments if a.get("type") == "document"), None)
+    row["media_url"] = media["url"] if media else None
+    row["file_url"] = doc["url"] if doc else None
+    row["file_name"] = doc["filename"] if doc else None
+    row["file_size"] = doc.get("size") if doc else None
     return row
 
 
@@ -53,28 +57,37 @@ NOTE_SELECT = """
         n.date_uploaded,
         n.notes_content,
         n.attachments,
-        cs.course_title,
         cs.id as course_section_id,
         c.course as course_code,
         c.title as course_name,
-        p.name as professor_name
+        p.name as professor_name,
+        CONCAT(u.first_name, ' ', u.last_name) as uploader_name
     FROM notes n
     LEFT JOIN course_section cs ON n.course_id = cs.id
     LEFT JOIN course c ON cs.course_id = c.id
     LEFT JOIN professor p ON cs.professor_id = p.professor_id
+    LEFT JOIN public.user u ON n.user_id = u.user_id
 """
 
 
-def create_note(note_data: NoteCreate, media_url: Optional[str], file_name: Optional[str],
-                file_url: Optional[str], file_size: Optional[int], notes_content: str,
-                user_id: int, course_section_id: int, db: Connection) -> dict:
+def create_note(
+    note_data: NoteCreate,
+    media_url: Optional[str],
+    file_name: Optional[str],
+    file_url: Optional[str],
+    file_size: Optional[int],
+    notes_content: str,
+    user_id: int,
+    course_section_id: int,
+    db: Connection,
+) -> dict:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
 
         attachments = build_attachments(media_url, file_url, file_name, file_size)
 
         if attachments:
-            placeholders = ', '.join(['%s::jsonb'] * len(attachments))
+            placeholders = ", ".join(["%s::jsonb"] * len(attachments))
             attachments_sql = f"ARRAY[{placeholders}]::jsonb[]"
             attachments_params = [json.dumps(a) for a in attachments]
         else:
@@ -91,15 +104,18 @@ def create_note(note_data: NoteCreate, media_url: Optional[str], file_name: Opti
                       date_uploaded, notes_content, attachments
         """
 
-        cursor.execute(query, (
-            user_id,
-            course_section_id,
-            note_data.title,
-            note_data.description,
-            note_data.date,
-            notes_content,
-            *attachments_params,
-        ))
+        cursor.execute(
+            query,
+            (
+                user_id,
+                course_section_id,
+                note_data.title,
+                note_data.description,
+                note_data.date,
+                notes_content,
+                *attachments_params,
+            ),
+        )
 
         result = cursor.fetchone()
         db.commit()
@@ -109,10 +125,10 @@ def create_note(note_data: NoteCreate, media_url: Optional[str], file_name: Opti
 
         return {
             **dict(result),
-            'media_url': media_url,
-            'file_name': file_name,
-            'file_url': file_url,
-            'file_size': file_size,
+            "media_url": media_url,
+            "file_name": file_name,
+            "file_url": file_url,
+            "file_size": file_size,
         }
 
     except Exception as e:
@@ -146,7 +162,7 @@ def get_all_notes(
     limit: int = 50,
     skip: int = 0,
     user_id: Optional[int] = None,
-    db: Connection = None
+    db: Connection = None,
 ) -> List[dict]:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
@@ -177,11 +193,14 @@ def get_all_notes(
 
         where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
-        query = NOTE_SELECT + f"""
+        query = (
+            NOTE_SELECT
+            + f"""
             {where_clause}
             ORDER BY n.date_uploaded DESC
             LIMIT %s OFFSET %s
         """
+        )
 
         params.extend([limit, skip])
         cursor.execute(query, params)
@@ -204,13 +223,12 @@ def get_available_course_sections(db: Connection) -> List[dict]:
                 cs.id as course_section_id,
                 c.course as course_code,
                 c.title as course_name,
-                cs.course_title,
                 p.name as professor_name
             FROM notes n
             JOIN course_section cs ON n.course_id = cs.id
             JOIN course c ON cs.course_id = c.id
             LEFT JOIN professor p ON cs.professor_id = p.professor_id
-            ORDER BY c.course, cs.course_title
+            ORDER BY c.course, c.title
         """
 
         cursor.execute(query)
@@ -230,7 +248,7 @@ def count_notes(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     user_id: Optional[int] = None,
-    db: Connection = None
+    db: Connection = None,
 ) -> int:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
@@ -273,15 +291,14 @@ def count_notes(
         result = cursor.fetchone()
         cursor.close()
 
-        return result['count']
+        return result["count"]
 
     except Exception as e:
         logger.error(f"Failed to count notes: {str(e)}")
         raise DatabaseException(f"Failed to count notes: {str(e)}")
 
 
-def update_note(note_id: int, note_data: NoteUpdate, notes_content: Optional[str],
-                db: Connection) -> Optional[dict]:
+def update_note(note_id: int, note_data: NoteUpdate, notes_content: Optional[str], db: Connection) -> Optional[dict]:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
 
@@ -320,7 +337,7 @@ def update_note(note_id: int, note_data: NoteUpdate, notes_content: Optional[str
 
         query = f"""
             UPDATE notes
-            SET {', '.join(update_fields)}
+            SET {", ".join(update_fields)}
             WHERE note_id = %s
             RETURNING *
         """
@@ -360,7 +377,7 @@ def check_note_exists(note_id: int, db: Connection) -> bool:
         cursor.execute("SELECT EXISTS(SELECT 1 FROM notes WHERE note_id = %s)", (note_id,))
         result = cursor.fetchone()
         cursor.close()
-        return result['exists']
+        return result["exists"]
     except Exception as e:
         logger.error(f"Failed to check note {note_id}: {str(e)}")
         raise DatabaseException(f"Failed to check note: {str(e)}")

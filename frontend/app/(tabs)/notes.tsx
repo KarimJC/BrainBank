@@ -13,8 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
-import { fetchNotes, fetchCourseSections, NoteItem, CourseSection } from '../services/notesService';
-import { fetchUserProfile } from '@/services/profileService';
+import { fetchNotes, fetchCourseSections, NoteItem, CourseSection } from '@/services/notesService';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
 import NotesFilterModal from '@/components/notes/NotesFilterModal';
@@ -28,8 +27,6 @@ const formatDate = (d: Date): string => {
 
 export default function NotesListPage() {
   const router = useRouter();
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -47,7 +44,6 @@ export default function NotesListPage() {
   const [showFilters, setShowFilters] = useState<boolean>(false);
 
   useEffect(() => {
-    fetchUserProfile().then(u => setProfileImage(u.profile_picture ?? null)).catch(() => {});
     loadCourseSections();
   }, []);
 
@@ -104,7 +100,7 @@ export default function NotesListPage() {
   const activeFilterCount = [selectedCourseSection, startDate, endDate].filter(Boolean).length;
 
   return (
-    <AppLayout userName="User" profileImage={profileImage} onNavigate={handleNavigate} activeRoute="notes">
+    <AppLayout onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
         <Text style={styles.header}>My Notes</Text>
 
