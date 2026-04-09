@@ -94,21 +94,10 @@ export async function apiFetch(
 //Helper function for readable error messages for the user.
 
 
-// Returns a user-friendly message based on the error type. Will use this in catch blocks on screens to show clean messages.
+// Returns error message for display based on error type. For ApiError, it uses the message from the backend. 
+// For NetworkError and AuthRequiredError, it uses their default messages. For any other error, it returns a generic message.
 
 export function getUserFriendlyMessage(error: unknown): string {
-  if (error instanceof NetworkError) {
-    return error.message;
-  }
-  if (error instanceof AuthRequiredError) {
-    return 'Your session has expired. Please log in again.';
-  }
-  if (error instanceof ApiError) {
-    if (error.status === 404) return 'The requested item was not found.';
-    if (error.status === 403) return 'You don\'t have permission to do that.';
-    if (error.status >= 500) return 'Something went wrong on the server. Please try again later.';
-    return error.message;
-  }
   if (error instanceof Error) {
     return error.message;
   }
