@@ -23,6 +23,7 @@ export interface NoteItem {
   courseCode: string | null;
   courseTitle: string | null;
   professorName: string | null;
+  uploaderName: string | null;
   mediaUrl: string | null;
   fileName: string | null;
   fileUrl: string | null;
@@ -86,6 +87,7 @@ const mapNote = (n: any): NoteItem => ({
   courseCode: n.courseCode ?? n.course_code,
   courseTitle: n.courseTitle ?? n.course_title,
   professorName: n.professorName ?? n.professor_name,
+  uploaderName: n.uploaderName ?? n.uploader_name ?? null,
   mediaUrl: n.mediaUrl ?? n.media_url,
   fileName: n.fileName ?? n.file_name,
   fileUrl: n.fileUrl ?? n.file_url,

@@ -29,9 +29,14 @@ export default function NoteCard({ note, onPress }: NoteCardProps) {
         <Text style={styles.description} numberOfLines={2}>{note.description}</Text>
       ) : null}
       <View style={styles.footer}>
-        <Text style={styles.courseInfo} numberOfLines={1}>
-          {note.courseTitle}{note.professorName ? ` · Prof. ${note.professorName}` : ''}
-        </Text>
+        <View style={styles.footerLeft}>
+          <Text style={styles.courseInfo} numberOfLines={1}>
+            {note.courseTitle}{note.professorName ? ` · Prof. ${note.professorName}` : ''}
+          </Text>
+          {note.uploaderName ? (
+            <Text style={styles.uploaderText} numberOfLines={1}>by {note.uploaderName}</Text>
+          ) : null}
+        </View>
         <View style={styles.attachmentBadge}>
           <Ionicons
             name={note.mediaUrl ? 'image-outline' : 'document-outline'}
@@ -95,13 +100,21 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     marginTop: 2,
+  },
+  footerLeft: {
+    flex: 1,
+    marginRight: 8,
   },
   courseInfo: {
     fontSize: 11,
     color: '#999',
-    flex: 1,
+  },
+   uploaderText: {
+    fontSize: 11,
+    color: '#6B5BC7',
+    marginTop: 2,
   },
   attachmentBadge: {
     flexDirection: 'row',

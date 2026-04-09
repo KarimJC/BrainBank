@@ -57,15 +57,16 @@ NOTE_SELECT = """
         n.date_uploaded,
         n.notes_content,
         n.attachments,
-        c.title as course_title,
         cs.id as course_section_id,
         c.course as course_code,
         c.title as course_title,
-        p.name as professor_name
+        p.name as professor_name,
+        CONCAT(u.first_name, ' ', u.last_name) as uploader_name
     FROM notes n
     LEFT JOIN course_section cs ON n.course_id = cs.id
     LEFT JOIN course c ON cs.course_id = c.id
     LEFT JOIN professor p ON cs.professor_id = p.professor_id
+    LEFT JOIN public.user u ON n.user_id = u.user_id
 """
 
 
