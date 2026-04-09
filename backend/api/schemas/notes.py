@@ -56,7 +56,7 @@ class NoteResponse(BaseModel):
     dateUploaded: str
     courseSectionId: Optional[int]
     courseCode: Optional[str]
-    courseName: Optional[str]
+    courseTitle: Optional[str]
     professorName: Optional[str]
     notesContent: Optional[str] = None
     mediaUrl: Optional[str] = None

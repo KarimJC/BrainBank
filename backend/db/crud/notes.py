@@ -59,7 +59,7 @@ NOTE_SELECT = """
         n.attachments,
         cs.id as course_section_id,
         c.course as course_code,
-        c.title as course_name,
+        c.title as course_title,
         p.name as professor_name
     FROM notes n
     LEFT JOIN course_section cs ON n.course_id = cs.id
@@ -220,7 +220,7 @@ def get_available_course_sections(db: Connection) -> List[dict]:
             SELECT DISTINCT
                 cs.id as course_section_id,
                 c.course as course_code,
-                c.title as course_name,
+                 c.title as course_title,
                 p.name as professor_name
             FROM notes n
             JOIN course_section cs ON n.course_id = cs.id

@@ -129,7 +129,7 @@ export default function NoteDetailModal({ note, courseSections, onClose, onUpdat
             </View>
 
             <View style={styles.courseBadge}>
-              <Text style={styles.courseCode}>{note.courseName} · {note.courseCode}</Text>
+              <Text style={styles.courseCode}>{note.courseTitle} · {note.courseCode}</Text>
             </View>
 
             <Text style={styles.title}>{note.title}</Text>
@@ -141,7 +141,7 @@ export default function NoteDetailModal({ note, courseSections, onClose, onUpdat
 
             <View style={styles.metaRow}>
               <Ionicons name="book-outline" size={16} color="#999" />
-              <Text style={styles.metaText}>{note.courseName}</Text>
+              <Text style={styles.metaText}>{note.courseTitle}</Text>
             </View>
 
             {note.professorName && (

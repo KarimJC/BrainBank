@@ -14,7 +14,7 @@ interface CourseSection {
   professor_id?: number | null;
   professor_name?: string | null;
   course_code: string;
-  course_name: string;
+  course_title: string;
   subject?: string | null;
   bookmarked: boolean;
 }
@@ -55,7 +55,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPre
         onPress={() => onBookmarkPress(String(classData.course_section_id))}
       />
     </View>
-    <Text style={styles.classDescription}>{classData.course_name}</Text>
+    <Text style={styles.classDescription}>{classData.course_title}</Text>
     <View style={styles.buttonRow}>
       <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
         <IconSymbol 

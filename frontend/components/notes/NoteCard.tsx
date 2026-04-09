@@ -30,7 +30,7 @@ export default function NoteCard({ note, onPress }: NoteCardProps) {
       ) : null}
       <View style={styles.footer}>
         <Text style={styles.courseInfo} numberOfLines={1}>
-          {note.courseName}{note.professorName ? ` · Prof. ${note.professorName}` : ''}
+          {note.courseTitle}{note.professorName ? ` · Prof. ${note.professorName}` : ''}
         </Text>
         <View style={styles.attachmentBadge}>
           <Ionicons

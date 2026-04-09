@@ -26,7 +26,7 @@ class CourseSectionDetailResponse(BaseModel):
     professor_id: Optional[int] = None
     professor_name: Optional[str] = None
     course_code: str
-    course_name: str
+    course_title: str
     subject: str | None
     professor_name: str | None
 
@@ -87,7 +87,7 @@ def update_course_section(
         raise CourseSectionNotFoundException(section_id)
     if (
         updated_course_section_data.course_CRN
-        and updated_course_section_data.course_CRN != current_course_section["course_CRN"]
+        and updated_course_section_data.course_CRN != current_course_section["course_crn"]
         and check_crn_exists(updated_course_section_data.course_CRN, db)
     ):
         raise CourseSectionAlreadyExistsException(updated_course_section_data.course_CRN)

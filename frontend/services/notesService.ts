@@ -10,7 +10,6 @@ export interface CourseSection {
   course_crn: number;
   professor_id: number | null;
   course_code: string;
-  course_name: string;
   subject: string | null;
   professor_name: string | null;
 }
@@ -22,7 +21,7 @@ export interface NoteItem {
   dateUploaded: string;
   courseSectionId: number | null;
   courseCode: string | null;
-  courseName: string | null;
+  courseTitle: string | null;
   professorName: string | null;
   mediaUrl: string | null;
   fileName: string | null;
@@ -85,7 +84,7 @@ const mapNote = (n: any): NoteItem => ({
   dateUploaded: n.dateUploaded ?? n.date_uploaded,
   courseSectionId: n.courseSectionId ?? n.course_section_id,
   courseCode: n.courseCode ?? n.course_code,
-  courseName: n.courseName ?? n.course_name,
+  courseTitle: n.courseTitle ?? n.course_title,
   professorName: n.professorName ?? n.professor_name,
   mediaUrl: n.mediaUrl ?? n.media_url,
   fileName: n.fileName ?? n.file_name,
