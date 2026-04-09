@@ -32,6 +32,7 @@ class PDFService:
 
         for line in lines:
             stripped = line.strip()
+            pdf.set_x(pdf.l_margin)
 
             if not stripped:
                 pdf.ln(3)
@@ -155,6 +156,20 @@ class PDFService:
         text = text.replace("$", "")
         text = re.sub(r"\\[a-zA-Z]+", "", text)
         text = text.replace("\\", "")
+
+        # Replace Unicode characters unsupported by Helvetica
+        text = text.replace("\u2265", ">=").replace("\u2264", "<=")
+        text = text.replace("\u2260", "!=").replace("\u2248", "~=")
+        text = text.replace("\u221e", "inf").replace("\u03c0", "pi")
+        text = text.replace("\u2192", "->").replace("\u2190", "<-")
+        text = text.replace("\u2212", "-").replace("\u00d7", "x")
+        text = text.replace("\u00f7", "/").replace("\u00b1", "+/-")
+        text = text.replace("\u2019", "'").replace("\u2018", "'")
+        text = text.replace("\u201c", '"').replace("\u201d", '"')
+        text = text.replace("\u2014", "--").replace("\u2013", "-")
+        text = text.replace("\u2022", "-").replace("\u2026", "...")
+        # Strip any remaining non-latin-1 characters
+        text = text.encode("latin-1", errors="ignore").decode("latin-1")
 
         return text.strip()
 

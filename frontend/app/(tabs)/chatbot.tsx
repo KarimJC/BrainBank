@@ -223,10 +223,11 @@ export default function ChatbotScreen() {
   const handleGenerate = async (type: DocumentType) => {
     if (!userId || docGenerating) return;
 
+    const scopeLabel = useAllSections ? 'all sections of this course' : 'this section';
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: `Generate a ${DOC_LABEL[type]} for this course.`,
+      content: `Generate a ${DOC_LABEL[type]} for ${scopeLabel}.`,
     };
     setMessages((prev) => [...prev, userMsg]);
     setDocGenerating(type);
@@ -236,7 +237,7 @@ export default function ChatbotScreen() {
       const docMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Your ${DOC_LABEL[type]} is ready! Tap the button below to open and share the PDF.`,
+        content: `Your ${DOC_LABEL[type]} for ${scopeLabel} is ready! Tap the button below to open and share the PDF.`,
         isDocument: true,
         docType: type,
         docId: doc.docId,

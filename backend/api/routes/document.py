@@ -52,7 +52,8 @@ def download_document_pdf(doc_id: str, db: Connection = Depends(get_db)):
             headers={"Content-Disposition": f"inline; filename={filename}"},
         )
     except Exception as e:
-        logger.error(f"Failed to generate PDF for document {doc_id}: {str(e)}")
+        import traceback
+        logger.error(f"Failed to generate PDF for document {doc_id}: {str(e)}\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to generate PDF: {str(e)}"
         )

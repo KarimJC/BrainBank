@@ -9,7 +9,7 @@ import { Platform } from 'react-native';
 // terminal as  exp://YOUR_IP:8081 ).  The backend runs on port 8000.
 // Example: 'http://192.168.1.5:8000'
 // ───────────────────────────────────────────────────────────────────────────
-const LOCAL_IP = process.env.EXPO_PUBLIC_LOCAL_IP ?? '10.0.0.112';
+const LOCAL_IP = process.env.EXPO_PUBLIC_LOCAL_IP ?? '10.110.211.156';
 
 const getBaseUrl = () => {
   if (Platform.OS === 'android') {
