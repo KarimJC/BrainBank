@@ -128,10 +128,6 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
             values.append(course_section_data.professor_id)
 
         values.append(section_id)
-        
-        if  len(update_fields) ==0: #if we have not updated the fields, we want to close and return early 
-            cursor.close()
-            return get_course_section_by_id(section_id, db)
 
         query = f"""
             UPDATE public.course_section

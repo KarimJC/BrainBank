@@ -57,6 +57,7 @@ NOTE_SELECT = """
         n.date_uploaded,
         n.notes_content,
         n.attachments,
+        c.title as course_title,
         cs.id as course_section_id,
         c.course as course_code,
         c.title as course_title,

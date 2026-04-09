@@ -21,7 +21,9 @@ class CourseSectionUpdate(BaseModel):
     course_id: Optional[int] = None
     course_CRN: Optional[int] = None
     professor_id: Optional[int] = None
-    model_config = ConfigDict(json_schema_extra={"example": {"course_CRN": 30187}})
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"course_CRN": 30187}}
+    )
 
 
 class CourseSectionResponse(BaseModel):

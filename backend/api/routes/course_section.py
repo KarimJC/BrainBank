@@ -27,8 +27,7 @@ class CourseSectionDetailResponse(BaseModel):
     professor_name: Optional[str] = None
     course_code: str
     course_title: str
-    subject: str | None
-    professor_name: str | None
+    subject: Optional[str] = None
 
 
 # GET all course sections with joined course and professor details (used by frontend)

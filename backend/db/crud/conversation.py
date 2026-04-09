@@ -1,3 +1,4 @@
+from typing import Optional
 from psycopg2.extensions import connection as Connection
 from psycopg2.extras import RealDictCursor
 from api.schemas.conversation import ConversationCreate, ConversationUpdate
@@ -28,7 +29,7 @@ def create_conversation(initiator_id: int, recipient_id: int, db: Connection) ->
         raise DatabaseException(f"Failed to create conversation: {str(e)}")
 
 
-def get_conversation_by_id(conversation_id: int, db: Connection) -> dict | None:
+def get_conversation_by_id(conversation_id: int, db: Connection) -> Optional[dict]:
     """Get a single conversation by its ID with participant names"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
@@ -89,9 +90,7 @@ def get_user_conversations(user_id: int, db: Connection) -> list[dict]:
         raise DatabaseException(f"Failed to get conversations: {str(e)}")
 
 
-def update_conversation_status(
-    conversation_id: int, status: str, blocked_by: int | None, db: Connection
-) -> dict | None:
+def update_conversation_status(conversation_id: int, status: str, blocked_by: Optional[int], db: Connection) -> Optional[dict]:
     """Update conversation status - accept, decline or block"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
