@@ -80,12 +80,12 @@ def delete_document_route(doc_id: str, db: Connection = Depends(get_db)):
 
 
 @router.post("/documents/generate/study-guide", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
-def generate_study_guide(user_id: int, section_id: int, db: Connection = Depends(get_db)):
+def generate_study_guide(user_id: int, section_id: int, use_all_sections: bool = False, db: Connection = Depends(get_db)):
     """Generate a study guide from course materials and save it as a document"""
     try:
-        from db.crud.ai_chat import get_section_context
+        from db.crud.ai_chat import get_section_context, get_course_context
 
-        context = get_section_context(section_id, db)
+        context = get_course_context(section_id, db) if use_all_sections else get_section_context(section_id, db)
         content, _ = ai_service.generate_study_guide(context)
         document = create_document(user_id, section_id, "study_guide", content, db)
         return document
@@ -95,12 +95,12 @@ def generate_study_guide(user_id: int, section_id: int, db: Connection = Depends
 
 
 @router.post("/documents/generate/practice-exam", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
-def generate_practice_exam(user_id: int, section_id: int, num_questions: int = 10, db: Connection = Depends(get_db)):
+def generate_practice_exam(user_id: int, section_id: int, num_questions: int = 10, use_all_sections: bool = False, db: Connection = Depends(get_db)):
     """Generate a practice exam from course materials and save it as a document"""
     try:
-        from db.crud.ai_chat import get_section_context
+        from db.crud.ai_chat import get_section_context, get_course_context
 
-        context = get_section_context(section_id, db)
+        context = get_course_context(section_id, db) if use_all_sections else get_section_context(section_id, db)
         content, _ = ai_service.generate_practice_exam(context, num_questions)
         document = create_document(user_id, section_id, "practice_exam", content, db)
         return document
@@ -110,12 +110,12 @@ def generate_practice_exam(user_id: int, section_id: int, num_questions: int = 1
 
 
 @router.post("/documents/generate/summary", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
-def generate_summary(user_id: int, section_id: int, db: Connection = Depends(get_db)):
+def generate_summary(user_id: int, section_id: int, use_all_sections: bool = False, db: Connection = Depends(get_db)):
     """Generate a course summary from course materials and save it as a document"""
     try:
-        from db.crud.ai_chat import get_section_context
+        from db.crud.ai_chat import get_section_context, get_course_context
 
-        context = get_section_context(section_id, db)
+        context = get_course_context(section_id, db) if use_all_sections else get_section_context(section_id, db)
         content, _ = ai_service.summarize_course(context)
         document = create_document(user_id, section_id, "summary", content, db)
         return document

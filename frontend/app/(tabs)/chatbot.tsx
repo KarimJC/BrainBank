@@ -153,6 +153,7 @@ export default function ChatbotScreen() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
+  const [useAllSections, setUseAllSections] = useState(false);
   // TODO: replace with real user ID lookup once backend auth is set up
   const [userId, setUserId] = useState<number | null>(5);
   const [userIdError, setUserIdError] = useState(false);
@@ -198,7 +199,7 @@ export default function ChatbotScreen() {
     setIsLoading(true);
 
     try {
-      const aiText = await sendChatMessage(userId, sectionId, userMsg.content);
+      const aiText = await sendChatMessage(userId, sectionId, userMsg.content, useAllSections);
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -231,7 +232,7 @@ export default function ChatbotScreen() {
     setDocGenerating(type);
 
     try {
-      const doc: GeneratedDocument = await generateDocument(userId, sectionId, type);
+      const doc: GeneratedDocument = await generateDocument(userId, sectionId, type, useAllSections);
       const docMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -311,6 +312,26 @@ export default function ChatbotScreen() {
           </View>
         </View>
         <View style={{ width: 40 }} />
+      </View>
+
+      {/* Context toggle */}
+      <View style={styles.contextToggle}>
+        <TouchableOpacity
+          style={[styles.contextButton, !useAllSections && styles.contextButtonActive]}
+          onPress={() => setUseAllSections(false)}
+        >
+          <Text style={[styles.contextButtonText, !useAllSections && styles.contextButtonTextActive]}>
+            This Section
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.contextButton, useAllSections && styles.contextButtonActive]}
+          onPress={() => setUseAllSections(true)}
+        >
+          <Text style={[styles.contextButtonText, useAllSections && styles.contextButtonTextActive]}>
+            All Sections
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Quick-action document buttons */}
@@ -617,6 +638,35 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.4,
+  },
+  contextToggle: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGrey,
+    backgroundColor: COLORS.white,
+  },
+  contextButton: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.mediumGrey,
+    alignItems: 'center',
+  },
+  contextButtonActive: {
+    borderColor: COLORS.darkPurple,
+    backgroundColor: COLORS.lightPurple,
+  },
+  contextButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.mediumGrey,
+  },
+  contextButtonTextActive: {
+    color: COLORS.darkPurple,
   },
   typingDots: {
     flexDirection: 'row',

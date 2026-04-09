@@ -73,11 +73,12 @@ export async function sendChatMessage(
   userId: number,
   sectionId: number,
   message: string,
+  useAllSections: boolean = false,
 ): Promise<string> {
   const response = await fetch(`${BASE_URL}/api/v1/ai-chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, section_id: sectionId, message }),
+    body: JSON.stringify({ user_id: userId, section_id: sectionId, message, use_all_sections: useAllSections }),
   });
   if (!response.ok) {
     const text = await response.text();
@@ -140,12 +141,14 @@ export async function generateDocument(
   userId: number,
   sectionId: number,
   type: DocumentType,
+  useAllSections: boolean = false,
 ): Promise<GeneratedDocument> {
   const endpoint = DOC_ENDPOINT[type];
   const url =
     `${BASE_URL}/api/v1/documents/generate/${endpoint}` +
     `?user_id=${userId}&section_id=${sectionId}` +
-    (type === 'practice-exam' ? '&num_questions=10' : '');
+    (type === 'practice-exam' ? '&num_questions=10' : '') +
+    (useAllSections ? '&use_all_sections=true' : '');
 
   const response = await fetch(url, { method: 'POST' });
   if (!response.ok) {

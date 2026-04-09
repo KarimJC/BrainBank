@@ -147,6 +147,49 @@ def get_section_context(section_id: int, db: Connection) -> dict:
         raise DatabaseException(f"Failed to get section context: {str(e)}")
 
 
+def get_course_context(section_id: int, db: Connection) -> dict:
+    """Get all notes and documents across all sections of the same course taught by the same professor"""
+    try:
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+
+        # Get notes from all sections with the same course_id and professor_id as the given section
+        notes_query = """
+            SELECT n.title, n.description, n.notes_content, n.date_uploaded
+            FROM notes n
+            JOIN course_section cs ON n.course_id = cs.id
+            WHERE cs.course_id = (SELECT course_id FROM course_section WHERE id = %s)
+              AND cs.professor_id = (SELECT professor_id FROM course_section WHERE id = %s)
+            ORDER BY n.date_uploaded DESC
+        """
+        cursor.execute(notes_query, (section_id, section_id))
+        notes = cursor.fetchall()
+
+        # Get documents from all sections with the same course_id and professor_id
+        docs_query = """
+            SELECT d.doc_type, d.doc_content, d.doc_date
+            FROM document d
+            JOIN course_section cs ON d.course_id = cs.id
+            WHERE cs.course_id = (SELECT course_id FROM course_section WHERE id = %s)
+              AND cs.professor_id = (SELECT professor_id FROM course_section WHERE id = %s)
+            ORDER BY d.doc_date DESC
+        """
+        cursor.execute(docs_query, (section_id, section_id))
+        documents = cursor.fetchall()
+
+        cursor.close()
+
+        context = {"notes": [dict(row) for row in notes], "documents": [dict(row) for row in documents]}
+
+        logger.info(
+            f"Retrieved all-sections context for section {section_id}: {len(context['notes'])} notes, {len(context['documents'])} documents"
+        )
+        return context
+
+    except Exception as e:
+        logger.error(f"Failed to get course context: {str(e)}")
+        raise DatabaseException(f"Failed to get course context: {str(e)}")
+
+
 def delete_chat_session(session_id: int, db: Connection) -> bool:
     """Delete a chat session and all its messages (cascade)"""
     try:
