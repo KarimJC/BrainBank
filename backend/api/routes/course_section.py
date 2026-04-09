@@ -15,6 +15,8 @@ from db.crud.course_section import (
 from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate, CourseSectionResponse, DeleteResponse
 from core.exceptions import CourseSectionNotFoundException, CourseSectionAlreadyExistsException
 from pydantic import BaseModel
+from auth import get_current_user
+from db.crud.user import get_user_by_auth_id
 
 router = APIRouter(prefix="/course-sections", tags=["course-sections"])
 
@@ -31,7 +33,19 @@ class CourseSectionDetailResponse(BaseModel):
     professor_name: str | None
 
 
-# GET all course sections with joined course and professor details (used by frontend)
+# GET course sections for the currently authenticated user
+@router.get("/me", response_model=List[CourseSectionDetailResponse])
+async def get_my_course_sections(
+    current_user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    user = get_user_by_auth_id(current_user["auth_id"], conn)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return get_course_sections_for_user(user["user_id"], conn)
+
+
+# GET all course sections with joined course and professor details
 @router.get("", response_model=List[CourseSectionDetailResponse])
 async def get_course_sections_endpoint(conn=Depends(get_db)):
     try:
@@ -41,6 +55,7 @@ async def get_course_sections_endpoint(conn=Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# GET course sections for a specific user by user_id
 @router.get("/user/{user_id}", response_model=List[CourseSectionDetailResponse])
 async def get_course_sections_for_user_endpoint(user_id: int, conn=Depends(get_db)):
     try:
