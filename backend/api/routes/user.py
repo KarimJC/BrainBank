@@ -3,19 +3,19 @@ from psycopg2.extensions import connection as Connection
 
 
 from db.crud.user import (
-    # Remove: create_user as create_user_crud,
     get_user_by_id,
-    get_user_by_auth_id,  # Add this
+    get_user_by_auth_id,
     update_user as update_user_crud,
-    update_user_by_auth_id,  # Add this
+    update_user_by_auth_id,
     delete_user as delete_user_crud,
     check_email_exists,
 )
 
-from api.schemas.user import UserUpdate, UserResponse, DeleteResponse  # Remove UserCreate
+from api.schemas.user import UserUpdate, UserResponse, DeleteResponse
 from core.exceptions import UserNotFoundException, UserAlreadyExistsException
 from db.connection import get_db
 from auth import get_current_user
+from cache.redis_client import cache_get, cache_set, cache_delete
 
 router = APIRouter()
 
@@ -26,12 +26,17 @@ def get_current_user_profile(current_user: dict = Depends(get_current_user), db:
     Get current logged-in user's profile.
     Protected route - requires JWT token.
     """
-    # Use auth_id from JWT token instead of user_id
+    cache_key = f"user:{current_user['auth_id']}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
     user = get_user_by_auth_id(current_user["auth_id"], db)
-    if user:
-        return user
-    else:
+    if not user:
         raise UserNotFoundException(current_user["auth_id"])
+
+    cache_set(cache_key, user, ttl=300)
+    return user
 
 
 @router.patch("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)
@@ -46,7 +51,6 @@ def update_current_user_profile(
     if not current_user_data:
         raise UserNotFoundException(current_user["auth_id"])
 
-    # Check if email is being changed and if it already exists
     if (
         updated_user_data.neu_email
         and current_user_data["neu_email"] != updated_user_data.neu_email
@@ -54,16 +58,15 @@ def update_current_user_profile(
     ):
         raise UserAlreadyExistsException(updated_user_data.neu_email)
 
-    # Update using auth_id instead of user_id
     updated_user = update_user_by_auth_id(current_user["auth_id"], updated_user_data, db)
+    cache_delete(f"user:{current_user['auth_id']}")
     return updated_user
 
 
-# Keep these routes for admin purposes if needed, but protect them
 @router.get("/user/{user_id}", response_model=UserResponse, status_code=status.HTTP_200_OK)
 def get_user(
     user_id: int,
-    current_user: dict = Depends(get_current_user),  # Must be logged in
+    current_user: dict = Depends(get_current_user),
     db: Connection = Depends(get_db),
 ):
     """
@@ -72,9 +75,6 @@ def get_user(
     """
     user = get_user_by_id(user_id, db)
     if user:
-        # Optional: Check if user is requesting their own data
-        # if user['auth_id'] != current_user['auth_id']:
-        #     raise HTTPException(status_code=403, detail="Access forbidden")
         return user
     else:
         raise UserNotFoundException(user_id)
@@ -84,7 +84,7 @@ def get_user(
 def update_user(
     user_id: int,
     updated_user_data: UserUpdate,
-    current_user: dict = Depends(get_current_user),  # Must be logged in
+    current_user: dict = Depends(get_current_user),
     db: Connection = Depends(get_db),
 ):
     """
@@ -94,7 +94,6 @@ def update_user(
     if not current_user_db:
         raise UserNotFoundException(user_id)
 
-    # Check if user is updating their own data
     if current_user_db["auth_id"] != current_user["auth_id"]:
         raise HTTPException(status_code=403, detail="You can only update your own profile")
 
@@ -112,7 +111,7 @@ def update_user(
 @router.delete("/user/{user_id}", response_model=DeleteResponse, status_code=status.HTTP_200_OK)
 def delete_user_route(
     user_id: int,
-    current_user: dict = Depends(get_current_user),  # Must be logged in
+    current_user: dict = Depends(get_current_user),
     db: Connection = Depends(get_db),
 ) -> DeleteResponse:
     """
@@ -122,7 +121,6 @@ def delete_user_route(
     if not user:
         raise UserNotFoundException(user_id)
 
-    # Check if user is deleting their own account
     if user["auth_id"] != current_user["auth_id"]:
         raise HTTPException(status_code=403, detail="You can only delete your own account")
 

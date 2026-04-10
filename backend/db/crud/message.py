@@ -98,6 +98,62 @@ def get_messages_between_users(conversation_id: int, db: Connection) -> list[dic
         raise DatabaseException(f"Failed to get messages: {str(e)}")
 
 
+def get_messages_paginated(
+    conversation_id: int,
+    limit: int,
+    before: str | None,
+    db: Connection,
+) -> dict:
+    """
+    Get messages for a conversation, newest-first, optionally before a timestamp cursor.
+    Returns messages in ASC order (oldest first) suitable for chat display.
+    Fetches limit+1 rows to determine whether more pages exist.
+    """
+    try:
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+
+        if before:
+            query = """
+                SELECT message_id, sender_id, content, created_at, conversation_id
+                FROM message
+                WHERE conversation_id = %s AND created_at < %s
+                ORDER BY created_at DESC
+                LIMIT %s
+            """
+            cursor.execute(query, (conversation_id, before, limit + 1))
+        else:
+            query = """
+                SELECT message_id, sender_id, content, created_at, conversation_id
+                FROM message
+                WHERE conversation_id = %s
+                ORDER BY created_at DESC
+                LIMIT %s
+            """
+            cursor.execute(query, (conversation_id, limit + 1))
+
+        rows = cursor.fetchall()
+        cursor.close()
+
+        has_more = len(rows) > limit
+        rows = rows[:limit]
+
+        # Reverse DESC results to get ASC order for display
+        messages = [dict(row) for row in reversed(rows)]
+
+        # next_cursor is the oldest message's timestamp — used to load the page before it
+        next_cursor = messages[0]["created_at"].isoformat() if messages and has_more else None
+
+        logger.info(
+            f"Retrieved {len(messages)} messages in conversation {conversation_id} "
+            f"(has_more={has_more}, before={before})"
+        )
+        return {"messages": messages, "next_cursor": next_cursor, "has_more": has_more}
+
+    except Exception as e:
+        logger.error(f"Failed to get paginated messages in conversation {conversation_id}: {str(e)}")
+        raise DatabaseException(f"Failed to get messages: {str(e)}")
+
+
 def update_message(message_id: str, message_data: MessageUpdate, db: Connection) -> dict:
     """Update a message's content"""
     try:

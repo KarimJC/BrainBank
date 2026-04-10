@@ -4,13 +4,27 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes import api_router
-from telemetry import setup_telemetry 
+from telemetry import setup_telemetry
+from db.connection import init_pool, close_pool
+from cache.redis_client import init_redis, close_redis
 
 app = FastAPI(
     title="BrainBank API",
     description="Backend API for the BrainBank notes application",
     version="1.0.0",
 )
+
+
+@app.on_event("startup")
+async def startup():
+    init_pool()
+    init_redis()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    close_pool()
+    close_redis()
 
 # Sets up tracing before routes
 setup_telemetry(app)

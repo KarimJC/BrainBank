@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from uuid import UUID
@@ -44,3 +44,9 @@ class MessageResponse(BaseModel):
 class MessageDeleteResponse(BaseModel):
     message: str
     deleted_id: str
+
+
+class PaginatedMessagesResponse(BaseModel):
+    messages: List[MessageResponse]
+    next_cursor: Optional[str] = None
+    has_more: bool

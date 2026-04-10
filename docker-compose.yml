@@ -1,6 +1,13 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: brainbank-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: brainbank-jaeger

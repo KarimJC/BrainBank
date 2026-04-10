@@ -1,6 +1,6 @@
-from fastapi import HTTPException, status, APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import HTTPException, status, APIRouter, Depends, WebSocket, WebSocketDisconnect, Query
 from psycopg2.extensions import connection as Connection
-from typing import List
+from typing import List, Optional
 import json
 from auth import get_current_user
 from db.crud.user import get_user_by_auth_id
@@ -10,12 +10,12 @@ from db.crud.conversation import get_conversation_by_id
 from db.crud.message import (
     create_message as create_message_crud,
     get_message_by_id,
-    get_messages_between_users,
+    get_messages_paginated,
     update_message as update_message_crud,
     delete_message as delete_message_crud,
 )
 
-from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse
+from api.schemas.message import MessageCreate, MessageUpdate, MessageResponse, MessageDeleteResponse, PaginatedMessagesResponse
 from core.exceptions import DatabaseException, MessageNotFoundException
 from api.websocket_manager.connection_manager import ConnectionManager
 from db.connection import get_db
@@ -95,11 +95,15 @@ def get_message(message_id: str, db: Connection = Depends(get_db)):
         raise MessageNotFoundException(message_id)
 
 
-@router.get("/messages", response_model=List[MessageResponse], status_code=status.HTTP_200_OK)
-def get_messages(conversation_id: int, db: Connection = Depends(get_db)):
-    """Get all messages between two users"""
-    messages = get_messages_between_users(conversation_id, db)
-    return messages
+@router.get("/messages", response_model=PaginatedMessagesResponse, status_code=status.HTTP_200_OK)
+def get_messages(
+    conversation_id: int,
+    limit: int = Query(default=50, ge=1, le=200),
+    before: Optional[str] = Query(default=None, description="ISO timestamp — load messages older than this"),
+    db: Connection = Depends(get_db),
+):
+    """Get messages for a conversation, paginated. Newest page by default; pass before= for older pages."""
+    return get_messages_paginated(conversation_id, limit, before, db)
 
 
 @router.patch("/messages/{message_id}", response_model=MessageResponse, status_code=status.HTTP_200_OK)

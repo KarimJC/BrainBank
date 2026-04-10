@@ -9,6 +9,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api, WS_URL} from '@/services/api';
@@ -21,41 +22,44 @@ export default function ConversationScreen() {
   const [conversation, setConversation] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null); 
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
-useEffect(() => {
-  setLoading(true);
-  setConversation(null);
-  setMessages([]);
-  loadConversation();
-}, [id]);
-  
+
   useEffect(() => {
-  if (!currentUserId) return;
+    setLoading(true);
+    setConversation(null);
+    setMessages([]);
+    setNextCursor(null);
+    loadConversation();
+  }, [id]);
 
-  const ws = new WebSocket(`${WS_URL}/api/v1/ws/${currentUserId}`);
+  useEffect(() => {
+    if (!currentUserId) return;
 
-  ws.onopen = () => console.log('WebSocket connected');
+    const ws = new WebSocket(`${WS_URL}/api/v1/ws/${currentUserId}`);
 
-  ws.onmessage = (event) => {
-    try {
-      const incoming = JSON.parse(event.data);
-      // only add message if it belongs to current conversation
-      if (incoming.conversation_id === Number(id)) {
-        setMessages(prev => [...prev, incoming]);
+    ws.onopen = () => console.log('WebSocket connected');
+
+    ws.onmessage = (event) => {
+      try {
+        const incoming = JSON.parse(event.data);
+        if (incoming.conversation_id === Number(id)) {
+          setMessages(prev => [...prev, incoming]);
+        }
+      } catch (e) {
+        console.error('Failed to parse message:', e);
       }
-    } catch (e) {
-      console.error('Failed to parse message:', e);
-    }
-  };
+    };
 
-  ws.onerror = (error) => console.error('WebSocket error:', error);
-  ws.onclose = () => console.log('WebSocket disconnected');
+    ws.onerror = (error) => console.error('WebSocket error:', error);
+    ws.onclose = () => console.log('WebSocket disconnected');
 
-  wsRef.current = ws;
+    wsRef.current = ws;
 
-  return () => ws.close();
-}, [currentUserId]);
+    return () => ws.close();
+  }, [currentUserId]);
 
   const loadConversation = async () => {
     try {
@@ -63,12 +67,27 @@ useEffect(() => {
       setCurrentUserId(user.user_id);
       const conv = await api.getConversation(Number(id));
       setConversation(conv);
-      const msgs = await api.getMessages(Number(id));
-      setMessages(msgs);
+      const result = await api.getMessages(Number(id));
+      setMessages(result.messages);
+      setNextCursor(result.next_cursor);
     } catch (error) {
       console.error('Failed to load conversation:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadOlderMessages = async () => {
+    if (!nextCursor || loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const result = await api.getMessages(Number(id), { before: nextCursor });
+      setMessages(prev => [...result.messages, ...prev]);
+      setNextCursor(result.next_cursor);
+    } catch (error) {
+      console.error('Failed to load older messages:', error);
+    } finally {
+      setLoadingOlder(false);
     }
   };
 
@@ -79,21 +98,21 @@ useEffect(() => {
       return;
     }
     const messageData = {
-    conversation_id: Number(id),
-    content: inputText.trim(),
-  };
+      conversation_id: Number(id),
+      content: inputText.trim(),
+    };
 
-  wsRef.current.send(JSON.stringify(messageData));
+    wsRef.current.send(JSON.stringify(messageData));
 
-  setMessages(prev => [...prev, {
-    message_id: Date.now().toString(), 
-    sender_id: currentUserId, 
-    content: inputText.trim(), 
-    conversation_id: Number(id), 
-    created_at: new Date().toISOString(), 
-  }]);
+    setMessages(prev => [...prev, {
+      message_id: Date.now().toString(),
+      sender_id: currentUserId,
+      content: inputText.trim(),
+      conversation_id: Number(id),
+      created_at: new Date().toISOString(),
+    }]);
 
-  setInputText('');
+    setInputText('');
   };
 
   const handleAccept = async () => {
@@ -165,6 +184,16 @@ useEffect(() => {
           contentContainerStyle={{ paddingVertical: 16 }}
           onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
         >
+          {/* LOAD OLDER MESSAGES */}
+          {nextCursor && (
+            <TouchableOpacity style={styles.loadOlderButton} onPress={loadOlderMessages} disabled={loadingOlder}>
+              {loadingOlder
+                ? <ActivityIndicator size="small" color="#6B4CE6" />
+                : <Text style={styles.loadOlderText}>Load older messages</Text>
+              }
+            </TouchableOpacity>
+          )}
+
           {messages.map(message => {
             const isMyMessage = message.sender_id === currentUserId;
             return (
@@ -296,6 +325,16 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 15,
     color: '#111827',
+  },
+  loadOlderButton: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  loadOlderText: {
+    color: '#6B4CE6',
+    fontSize: 13,
+    fontWeight: '600',
   },
   inputBar: {
     flexDirection: 'row',
