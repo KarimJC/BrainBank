@@ -127,7 +127,7 @@ export default function ConversationScreen() {
   const handleDecline = async () => {
     try {
       await api.updateConversation(conversation.conversation_id, 'declined');
-      router.replace('/(tabs)/chat');
+      router.back();
     } catch (error) {
       console.error('Failed to decline:', error);
     }
@@ -164,7 +164,7 @@ export default function ConversationScreen() {
         {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => router.replace('/(tabs)/chat')}
+            onPress={() => router.back()}
             style={styles.backButton}
           >
             <Text style={styles.backIcon}>‹</Text>

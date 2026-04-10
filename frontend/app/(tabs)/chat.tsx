@@ -103,13 +103,6 @@ export default function ChatScreen() {
     else if (route === 'profile') router.push('/(tabs)/profile');
   };
 
-  const openChat = (courseId: string, courseCode: string) => {
-    router.push({
-      pathname: '/(tabs)/chatbot',
-      params: { sectionId: courseId, courseName: courseCode },
-    });
-  };
-
   if (initialLoad) {
     return (
       <AppLayout userName="User" onNavigate={handleNavigation} activeRoute="chat">
@@ -171,7 +164,7 @@ export default function ChatScreen() {
                       ? c.recipient_profile_picture
                       : c.initiator_profile_picture,
                   }}
-                  onPress={() => router.push(`/(tabs)/${c.conversation_id}` as any)}
+                  onPress={() => router.push(`/conversation/${c.conversation_id}` as any)}
                 />
               ))
           : conversations
@@ -188,7 +181,7 @@ export default function ChatScreen() {
                       ? c.recipient_profile_picture
                       : c.initiator_profile_picture,
                   }}
-                  onPress={() => router.push(`/(tabs)/${c.conversation_id}` as any)}
+                  onPress={() => router.push(`/conversation/${c.conversation_id}` as any)}
                 />
               ))
         }
