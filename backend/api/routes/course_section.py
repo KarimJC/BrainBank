@@ -89,7 +89,7 @@ def get_students_in_section(section_id: int, db: Connection = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 # POST create a new course section
-@router.post("/course_sections", response_model=CourseSectionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=CourseSectionResponse, status_code=status.HTTP_201_CREATED)
 def create_course_section(course_section_data: CourseSectionCreate, db: Connection = Depends(get_db)):
     if check_crn_exists(course_section_data.course_CRN, db):
         raise CourseSectionAlreadyExistsException(course_section_data.course_CRN)
