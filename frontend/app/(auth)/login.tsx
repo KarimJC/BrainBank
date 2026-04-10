@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/services/supabase';
-import { Alert ,
+import { Alert, Image,
   View,
   Text,
   StyleSheet,
@@ -58,9 +58,14 @@ const LoginScreen: React.FC = () => {
     >
       <View style={styles.content}>
         <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/images/piggybank.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>
-            <Text style={styles.titlePurple}>Brain</Text>
-            <Text style={styles.titleBlack}>Bank</Text>
+            <Text style={styles.titleBlack}>Brain</Text>
+            <Text style={styles.titlePurple}>Bank</Text>
           </Text>
           <Text style={styles.subtitle}>Deposit Notes, Withdraw A&apos;s</Text>
         </View>
@@ -126,6 +131,11 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     marginBottom: 48,
+  },
+  logoImage: {
+    width: 100,
+    height: 100,
+    marginBottom: 8,
   },
   title: {
     fontSize: 42,

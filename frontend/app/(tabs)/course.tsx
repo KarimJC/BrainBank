@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
-import { fetchNotes, NoteItem } from '@/services/notesService';
+import { fetchAllNotesByCourseSection, NoteItem } from '@/services/notesService';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
 import { api } from '@/services/api';
@@ -73,11 +73,14 @@ export default function CoursePage() {
     if (!courseId) return;
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
-      const data = await fetchNotes({
-        search: debouncedSearch || undefined,
-        courseSectionId: Number(courseId),
-      });
-      setNotes(data);
+      const data = await fetchAllNotesByCourseSection(Number(courseId));
+      const filtered = debouncedSearch
+        ? data.filter(n =>
+            n.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            (n.description ?? '').toLowerCase().includes(debouncedSearch.toLowerCase())
+          )
+        : data;
+      setNotes(filtered);
     } catch (error) {
       console.error('Failed to load course notes:', error);
       Alert.alert('Error', 'Failed to load notes. Please try again.');
@@ -119,7 +122,7 @@ export default function CoursePage() {
   });
   
   return (
-    <AppLayout userName="User" onNavigate={handleNavigate} activeRoute="notes">
+    <AppLayout onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
         {/* Back + Bookmark + classmates */}
       <View style={styles.topRow}>
@@ -202,8 +205,6 @@ export default function CoursePage() {
             renderItem={({ item }) => (
               <NoteCard note={item} onPress={setSelectedNote} />
             )}
-            numColumns={2}
-            columnWrapperStyle={styles.gridRow}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             onRefresh={() => loadNotes(true)}
@@ -221,6 +222,7 @@ export default function CoursePage() {
       <NoteDetailModal
         note={selectedNote}
         courseSections={[]}
+        editable={false}
         onClose={() => setSelectedNote(null)}
         onUpdated={updated => {
           setNotes(prev => prev.map(n => n.noteId === updated.noteId ? updated : n));
@@ -317,11 +319,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // Grid
-  gridRow: {
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
   listContent: {
     paddingBottom: 30,
   },

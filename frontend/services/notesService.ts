@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@/services/api';
+import { API_BASE_URL } from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '@/services/supabase';
@@ -6,11 +6,10 @@ import { supabase } from '@/services/supabase';
 export interface CourseSection {
   course_section_id: number;
   course_id: number;
-  course_title: string;
   course_crn: number;
   professor_id: number | null;
   course_code: string;
-  course_name: string;
+  course_name: string;  
   subject: string | null;
   professor_name: string | null;
 }
@@ -24,6 +23,7 @@ export interface NoteItem {
   courseCode: string | null;
   courseName: string | null;
   professorName: string | null;
+  uploaderName: string | null;
   mediaUrl: string | null;
   fileName: string | null;
   fileUrl: string | null;
@@ -87,6 +87,7 @@ const mapNote = (n: any): NoteItem => ({
   courseCode: n.courseCode ?? n.course_code,
   courseName: n.courseName ?? n.course_name,
   professorName: n.professorName ?? n.professor_name,
+  uploaderName: n.uploaderName ?? n.uploader_name ?? null,
   mediaUrl: n.mediaUrl ?? n.media_url,
   fileName: n.fileName ?? n.file_name,
   fileUrl: n.fileUrl ?? n.file_url,
@@ -104,7 +105,7 @@ export const fetchNotes = async (params: FetchNotesParams = {}): Promise<NoteIte
   if (params.skip) query.append('skip', params.skip.toString());
 
   const token = await getAuthToken();
-  const url = `${API_ENDPOINTS.NOTES}${query.toString() ? `?${query.toString()}` : ''}`;
+  const url = `${API_BASE_URL}/api/v1/notes${query.toString() ? `?${query.toString()}` : ''}`;
 
   const response = await fetch(url, {
     method: 'GET',
@@ -121,14 +122,37 @@ export const fetchNotes = async (params: FetchNotesParams = {}): Promise<NoteIte
 };
 
 export const fetchNoteCourseSections = async (): Promise<CourseSection[]> => {
-  const response = await fetch(API_ENDPOINTS.NOTES_COURSE_SECTIONS, { method: 'GET' });
+  const token = await getAuthToken();
+  const response = await fetch(`${API_BASE_URL}/api/v1/notes/course-sections`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (!response.ok) throw new Error('Failed to fetch note course sections');
   return response.json();
 };
 
+export const fetchAllNotesByCourseSection = async (courseId: number): Promise<NoteItem[]> => {
+  const url = `${API_BASE_URL}/api/v1/notes/course-section/${courseId}`;
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch course notes: ${response.status} ${errorText}`);
+  }
+  const data = await response.json();
+  return data.map(mapNote);
+};
+
+// Returns only course sections the logged-in user is enrolled in
 export const fetchCourseSections = async (): Promise<CourseSection[]> => {
-  const response = await fetch(API_ENDPOINTS.COURSE_SECTIONS, { method: 'GET' });
-  if (!response.ok) throw new Error('Failed to fetch course sections');
+  const token = await getAuthToken();
+  const response = await fetch(`${API_BASE_URL}/api/v1/course-sections/me`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch course sections: ${response.status} ${errorText}`);
+  }
   return response.json();
 };
 
@@ -137,7 +161,6 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
   if (params.file) validateAttachment(params.file.mimeType, params.file.size);
 
   const token = await getAuthToken();
-
   const formData = new FormData();
   formData.append('title', params.title);
   formData.append('date', params.date);
@@ -158,7 +181,7 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
     formData.append('file', { uri: params.file.uri, name: filename, type: mimeType } as any);
   }
 
-  const response = await fetch(API_ENDPOINTS.NOTES, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/notes`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
@@ -180,7 +203,6 @@ export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> =>
   if (params.file) validateAttachment(params.file.mimeType, params.file.size);
 
   const token = await getAuthToken();
-
   const formData = new FormData();
   if (params.title) formData.append('title', params.title);
   if (params.description !== undefined) formData.append('description', params.description);
@@ -199,7 +221,7 @@ export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> =>
     formData.append('file', { uri: params.file.uri, name: filename, type: mimeType } as any);
   }
 
-  const response = await fetch(`${API_ENDPOINTS.NOTE_BY_ID(String(params.noteId))}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/notes/${params.noteId}`, {
     method: 'PUT',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
