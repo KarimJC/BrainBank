@@ -62,7 +62,6 @@ export default function ProfileScreen() {
 
   return (
     <AppLayout 
-      userName="User" 
       onNavigate={handleNavigation}
       activeRoute="profile"
     >

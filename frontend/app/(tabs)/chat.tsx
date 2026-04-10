@@ -112,7 +112,7 @@ export default function ChatScreen() {
 
   if (initialLoad) {
     return (
-      <AppLayout userName="User" onNavigate={handleNavigation} activeRoute="chat">
+      <AppLayout onNavigate={handleNavigation} activeRoute="chat">
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#6B4CE6" />
         </View>
@@ -122,7 +122,6 @@ export default function ChatScreen() {
 
   return (
     <AppLayout
-      userName="User"
       onNavigate={handleNavigation}
       activeRoute="chat"
     >
