@@ -87,7 +87,7 @@ export default function CoursePage() {
   });
 
   return (
-    <AppLayout userName="User" onNavigate={handleNavigate} activeRoute="notes">
+    <AppLayout onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
 
         {/* ── Back + Bookmark ── */}

@@ -83,14 +83,10 @@ export default function HomeScreen() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log('Fetching user...');
         const user = await api.getCurrentUser();
-        console.log('Got user:', user);
         setUserName(user.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : 'User');
 
-        console.log('Fetching course sections...');
         const sections = await api.getUserCourseSections(user.user_id);
-        console.log('Got sections:', sections);
         setClasses(sections.map((s: CourseSection) => ({ ...s, bookmarked: false })));
       } catch (err) {
         if (err instanceof AuthRequiredError) {
@@ -147,7 +143,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <AppLayout userName={userName} onNavigate={handleNavigation} activeRoute="home">
+    <AppLayout onNavigate={handleNavigation} activeRoute="home">
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           {loading ? (
