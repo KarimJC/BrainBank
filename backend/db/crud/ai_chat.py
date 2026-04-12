@@ -152,26 +152,28 @@ def get_course_context(section_id: int, db: Connection) -> dict:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
 
-        # Get notes from all sections of the same course
+        # Get notes from all sections of the same course taught by the same professor
         notes_query = """
             SELECT n.title, n.description, n.notes_content, n.date_uploaded
             FROM notes n
             JOIN course_section cs ON n.course_id = cs.id
             WHERE cs.course_id = (SELECT course_id FROM course_section WHERE id = %s)
+              AND cs.professor_id IS NOT DISTINCT FROM (SELECT professor_id FROM course_section WHERE id = %s)
             ORDER BY n.date_uploaded DESC
         """
-        cursor.execute(notes_query, (section_id,))
+        cursor.execute(notes_query, (section_id, section_id))
         notes = cursor.fetchall()
 
-        # Get documents from all sections of the same course
+        # Get documents from all sections of the same course taught by the same professor
         docs_query = """
             SELECT d.doc_type, d.doc_content, d.doc_date
             FROM document d
             JOIN course_section cs ON d.course_id = cs.id
             WHERE cs.course_id = (SELECT course_id FROM course_section WHERE id = %s)
+              AND cs.professor_id IS NOT DISTINCT FROM (SELECT professor_id FROM course_section WHERE id = %s)
             ORDER BY d.doc_date DESC
         """
-        cursor.execute(docs_query, (section_id,))
+        cursor.execute(docs_query, (section_id, section_id))
         documents = cursor.fetchall()
 
         cursor.close()
