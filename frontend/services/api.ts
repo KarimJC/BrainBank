@@ -45,6 +45,7 @@ export const API_ENDPOINTS = {
   NOTES_COURSE_SECTIONS: `${API_BASE_URL}/api/v1/notes/course-sections`,
   COURSE_SECTIONS: `${API_BASE_URL}/api/v1/course-sections`,
   COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/course-sections/${id}`,
+  PROFESSOR_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/professors/${id}`,
   COURSE_SECTION_BY_CRN: (crn: number) => `${API_BASE_URL}/api/v1/course-sections/crn/${crn}`,
   HEALTH: `${API_BASE_URL}/health`,
 };
@@ -246,9 +247,19 @@ async getUserCourseSections(userId: number) {
   return response.json();
 },
 
-// Gets students in a course section 
+async getProfessor(professorId: number) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(API_ENDPOINTS.PROFESSOR_BY_ID(professorId), { headers });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to fetch professor: ${error}`);
+  }
+  return response.json();
+},
+
+// Gets students in a course section
 getCourseSectionStudents: async (sectionId: number) => {
-  const response = await fetch(`${API_URL}/api/v1/course-sections/${sectionId}/students`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/course-sections/${sectionId}/students`, {
     headers: await getAuthHeaders(),
   });
   if (!response.ok) {
@@ -260,7 +271,7 @@ getCourseSectionStudents: async (sectionId: number) => {
 
 // allows us to view other people's profiles
 getUserById: async (userId: number) => {
-  const response = await fetch(`${API_URL}/api/v1/user/${userId}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/user/${userId}`, {
     headers: await getAuthHeaders(),
   });
   if (!response.ok) {
