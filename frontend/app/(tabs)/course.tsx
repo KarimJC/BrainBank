@@ -8,6 +8,7 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
