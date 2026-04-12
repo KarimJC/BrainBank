@@ -10,13 +10,13 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
 import { fetchAllNotesByCourseSection, NoteItem } from '@/services/notesService';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
-import { api } from '@/services/api';
 import ClassmatesModal from '@/components/course/ClassmatesModal';
 
 type FilterOption = 'All' | 'Recent' | 'Saved';
@@ -41,6 +41,7 @@ export default function CoursePage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
   const [bookmarked, setBookmarked] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   // classmates 
   const [showClassmates, setShowClassmates] = useState(false);
@@ -246,6 +247,23 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     padding: 4,
+  },
+  topRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  leaveBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#CC0000',
+  },
+  leaveBtnText: {
+    color: '#CC0000',
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   // Course title

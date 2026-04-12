@@ -41,6 +41,7 @@ class ChatRequest(BaseModel):
     user_id: int
     section_id: int
     message: str = Field(..., min_length=1, max_length=5000)
+    use_all_sections: bool = False
 
 
 class ChatResponse(BaseModel):
