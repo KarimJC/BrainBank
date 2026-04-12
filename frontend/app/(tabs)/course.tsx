@@ -10,12 +10,14 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
 import { fetchAllNotesByCourseSection, NoteItem } from '@/services/notesService';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
+import ClassmatesModal from '@/components/course/ClassmatesModal';
 
 type FilterOption = 'All' | 'Recent' | 'Saved';
 
@@ -39,6 +41,25 @@ export default function CoursePage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
   const [bookmarked, setBookmarked] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  // classmates 
+  const [showClassmates, setShowClassmates] = useState(false);
+  const [classmates, setClassmates] = useState<any[]>([]);
+  const [loadingClassmates, setLoadingClassmates] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try{
+        const user = await api.getCurrentUser(); 
+        setCurrentUserId(user.user_id);
+      } catch (error) {
+        console.error('Failed to get current user: ', error); 
+      }
+    }; 
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 400);
@@ -70,6 +91,21 @@ export default function CoursePage() {
     }
   };
 
+  const loadClassmates = async () => {
+    if (!courseId) return;
+    setLoadingClassmates(true);
+    try {
+      const data = await api.getCourseSectionStudents(Number(courseId));
+      setClassmates(data);
+      setShowClassmates(true);
+    } catch (error) {
+      console.error('Failed to load classmates:', error);
+      Alert.alert('Error', 'Failed to load classmates');
+    } finally {
+      setLoadingClassmates(false);
+    }
+  };
+
   const handleNavigate = (route: string) => {
     if (route === 'home') router.push('/(tabs)');
     else if (route === 'notes') router.push('/(tabs)/notes');
@@ -85,24 +121,29 @@ export default function CoursePage() {
     }
     return true;
   });
-
+  
   return (
-    <AppLayout userName="User" onNavigate={handleNavigate} activeRoute="notes">
+    <AppLayout onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
-
-        {/* ── Back + Bookmark ── */}
-        <View style={styles.topRow}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={26} color="#1C1C1E" />
+        {/* Back + Bookmark + classmates */}
+      <View style={styles.topRow}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={26} color="#1C1C1E" />
+        </TouchableOpacity>
+        
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity onPress={loadClassmates} disabled={loadingClassmates}>
+            {loadingClassmates ? (
+              <ActivityIndicator size="small" color="#6750A4" />
+            ) : (
+              <Ionicons name="people-outline" size={22} color="#6750A4" />
+            )}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setBookmarked(b => !b)}>
-            <Ionicons
-              name={bookmarked ? 'bookmark' : 'bookmark-outline'}
-              size={22}
-              color="#6750A4"
-            />
+            <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={22} color="#6750A4" />
           </TouchableOpacity>
         </View>
+      </View>
 
         {/* ── Course Title ── */}
         <Text style={styles.courseCode}>{courseCode ?? 'Course'}</Text>
@@ -172,6 +213,12 @@ export default function CoursePage() {
           />
         )}
       </View>
+      <ClassmatesModal
+        visible={showClassmates}
+        classmates={classmates}
+        currentUserId={currentUserId}
+        onClose={() => setShowClassmates(false)}
+      />
 
       <NoteDetailModal
         note={selectedNote}
@@ -200,6 +247,23 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     padding: 4,
+  },
+  topRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  leaveBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#CC0000',
+  },
+  leaveBtnText: {
+    color: '#CC0000',
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   // Course title

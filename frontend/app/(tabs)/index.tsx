@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
@@ -79,37 +80,38 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        console.log('Fetching user...');
-        const user = await api.getCurrentUser();
-        console.log('Got user:', user);
-        setUserName(user.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : 'User');
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching user...');
+      const user = await api.getCurrentUser();
+      console.log('Got user:', user);
+      setUserName(user.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : 'User');
 
-        console.log('Fetching course sections...');
-        const sections = await api.getUserCourseSections(user.user_id);
-        console.log('Got sections:', sections);
-        setClasses(sections.map((s: CourseSection) => ({ ...s, bookmarked: false })));
-      } catch (err) {
-        if (err instanceof AuthRequiredError) {
-          router.replace('/(auth)/login');
-          return;
-        }
-        console.error('Fetch failed:', err);
-        const msg = err instanceof Error ? err.message : 'Something went wrong';
-        if (msg.includes('Not authenticated')) {
-          router.replace('/(auth)/login');
-          return;
-        }
-        setError(msg);
-      } finally {
-        setLoading(false);
+      console.log('Fetching course sections...');
+      const sections = await api.getUserCourseSections(user.user_id);
+      console.log('Got sections:', sections);
+      setClasses(sections.map((s: CourseSection) => ({ ...s, bookmarked: false })));
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        router.replace('/(auth)/login');
+        return;
       }
-    };
+      console.error('Fetch failed:', err);
+      const msg = err instanceof Error ? err.message : 'Something went wrong';
+      if (msg.includes('Not authenticated')) {
+        router.replace('/(auth)/login');
+        return;
+      }
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(useCallback(() => {
     fetchData();
-  }, []);
+  }, []));
 
   const handleNavigation = (route: string) => {
     if (route === 'home') router.push('/(tabs)');
@@ -147,7 +149,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <AppLayout userName={userName} onNavigate={handleNavigation} activeRoute="home">
+    <AppLayout onNavigate={handleNavigation} activeRoute="home" onClassAdded={fetchData}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           {loading ? (

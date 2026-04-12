@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { supabase } from '@/services/supabase';
-
-const API_BASE_URL = `http://${process.env.EXPO_PUBLIC_LOCAL_IP}:8000`;
+import { api } from '@/services/api';
 
 interface UserProfile {
   user_id: number;
@@ -42,17 +41,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => 
           setInitials(parts[0][0]?.toUpperCase() ?? '');
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/v1/me`, {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          }
-        });
-        if (!response.ok) {
-          console.error('Failed to fetch user, status:', response.status);
-          return;
-        }
-        const data: UserProfile = await response.json();
+        const data: UserProfile = await api.getCurrentUser();
 
         setUser(data);
         setInitials(data.first_name.charAt(0).toUpperCase());

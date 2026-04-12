@@ -101,7 +101,7 @@ export default function NotesListPage() {
   const activeFilterCount = [selectedCourseSection, startDate, endDate].filter(Boolean).length;
 
   return (
-    <AppLayout userName="User" onNavigate={handleNavigate} activeRoute="notes">
+    <AppLayout onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
         <Text style={styles.header}>My Notes</Text>
 
@@ -204,6 +204,10 @@ export default function NotesListPage() {
         onUpdated={(updated) => {
           setNotes(prev => prev.map(n => n.noteId === updated.noteId ? updated : n));
           setSelectedNote(updated);
+        }}
+        onDeleted={(noteId) => {
+          setNotes(prev => prev.filter(n => n.noteId !== noteId));
+          setSelectedNote(null);
         }}
       />
 

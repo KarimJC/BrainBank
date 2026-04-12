@@ -2,7 +2,8 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
-export const WS_URL = process.env.EXPO_PUBLIC_WS_URL!;
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
 const getApiUrl = (): string => {
   if (Constants.expoConfig?.extra?.apiUrl) {
@@ -10,7 +11,6 @@ const getApiUrl = (): string => {
   }
 
   if (__DEV__) {
-
     const port = process.env.EXPO_PUBLIC_API_PORT || '8000';
 
     // Try to get IP from Expo's Metro bundler host
@@ -34,6 +34,7 @@ const getApiUrl = (): string => {
 };
 
 export const API_BASE_URL = getApiUrl();
+export const WS_URL = process.env.EXPO_PUBLIC_WS_URL ?? API_BASE_URL.replace(/^http/, 'ws');
 
 export const API_ENDPOINTS = {
   BASE: API_BASE_URL,
@@ -45,6 +46,7 @@ export const API_ENDPOINTS = {
   COURSE_SECTIONS: `${API_BASE_URL}/api/v1/course-sections`,
   COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/course-sections/${id}`,
   PROFESSOR_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/professors/${id}`,
+  COURSE_SECTION_BY_CRN: (crn: number) => `${API_BASE_URL}/api/v1/course-sections/crn/${crn}`,
   HEALTH: `${API_BASE_URL}/health`,
 };
 
@@ -192,6 +194,46 @@ async createConversation(initiatorId: number, recipientId: number) {
   return response.json();
 },
 
+async getCourseSectionByCRN(crn: number) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/course-sections/crn/${crn}`,
+    { headers }
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to fetch course section: ${error}`);
+  }
+  return response.json();
+},
+
+async unenrollFromCourseSection(sectionId: number, userId: number) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
+    { method: 'DELETE', headers }
+  );
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to unenroll: ${error}`);
+  }
+  return response.json();
+},
+
+async enrollInCourseSection(sectionId: number, userId: number) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
+    { method: 'POST', headers }
+  );
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to enroll: ${error}`);
+  }
+  return response.json();
+},
+
 async getUserCourseSections(userId: number) {
   const headers = await getAuthHeaders();
   const response = await fetch(
@@ -211,6 +253,30 @@ async getProfessor(professorId: number) {
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`Failed to fetch professor: ${error}`);
+  }
+  return response.json();
+},
+
+// Gets students in a course section
+getCourseSectionStudents: async (sectionId: number) => {
+  const response = await fetch(`${API_BASE_URL}/api/v1/course-sections/${sectionId}/students`, {
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) {
+    if (response.status === 401) throw new AuthRequiredError();
+    throw new Error(`Failed to fetch students: ${response.status}`);
+  }
+  return response.json();
+},
+
+// allows us to view other people's profiles
+getUserById: async (userId: number) => {
+  const response = await fetch(`${API_BASE_URL}/api/v1/user/${userId}`, {
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) {
+    if (response.status === 401) throw new AuthRequiredError();
+    throw new Error(`Failed to fetch user: ${response.status}`);
   }
   return response.json();
 },

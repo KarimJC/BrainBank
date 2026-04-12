@@ -61,7 +61,7 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
 
   const formatCourseSection = (section: CourseSection): string => {
     const professorPart = section.professor_name ? ` - Prof. ${section.professor_name}` : '';
-    return `${section.course_code} ${section.course_title}${professorPart}`;
+    return `${section.course_code} ${section.course_name}${professorPart}`;
   };
 
   const formatDate = (d: Date): string => {
@@ -174,7 +174,6 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
         file: selectedFile,
       });
 
-      console.log('Note uploaded successfully!');
       Alert.alert('Success', 'Note uploaded successfully!', [
         {
           text: 'OK',
@@ -405,7 +404,7 @@ export default function NotesUploadPage({ onClose }: NotesUploadPageProps) {
                 >
                   <View style={styles.pickerOptionContent}>
                     <Text style={styles.courseCodeText}>{section.course_code}</Text>
-                    <Text style={styles.courseTitleText}>{section.course_title}</Text>
+                    <Text style={styles.courseTitleText}>{section.course_name}</Text>
                     {section.professor_name && (
                       <Text style={styles.professorText}>Prof. {section.professor_name}</Text>
                     )}

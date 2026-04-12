@@ -4,21 +4,27 @@ import Header from '../ui/Header';
 import BottomNav from '../ui/BottomNav';
 import ActionMenu from '../ui/ActionMenu';
 import NotesUploadPage from '../../app/(tabs)/NotesUploadPage';
+import AddClassModal from '@/app/(tabs)/AddClassPage';
+import SearchClassModal from '@/app/(tabs)/SearchClassModal';
 
 interface AppLayoutProps {
   children: React.ReactNode;
   onNavigate?: (route: string) => void;
   activeRoute?: string;
+  onClassAdded?: () => void;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({
   children,
   onNavigate,
-  activeRoute = 'home'
+  activeRoute = 'home',
+  onClassAdded,
 }) => {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showNotesUpload, setShowNotesUpload] = useState(false);
-
+  const [showAddClassPage, setshowAddClassPage] = useState(false);
+  const [showSearchClassModal, setShowSearchClassModal] = useState(false);
+ 
   const handleAction = (action: string) => {
     setShowActionMenu(false);
     switch (action) {
@@ -26,7 +32,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
         setShowNotesUpload(true);
         break;
       case 'add-class':
-        if (onNavigate) onNavigate('add-class');
+        setShowSearchClassModal(true);
         break;
       case 'generate-document':
         if (onNavigate) onNavigate('generate-document');
@@ -44,12 +50,33 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     setShowNotesUpload(false);
   };
 
+  const handleCloseAddClassPage = () => {
+    setshowAddClassPage(false);
+  };
+
   return (
     <View style={styles.container}>
       <Header onNavigate={handleNavigation} activeRoute={activeRoute} />
       <View style={styles.content}>
         {children}
       </View>
+      <Modal
+        visible={showAddClassPage}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCloseAddClassPage}
+      >
+        <View style={styles.modalContainer}>
+          <AddClassModal onClose={handleCloseAddClassPage} onClassAdded={onClassAdded} />
+        </View>
+      </Modal>
+
+      <SearchClassModal
+        visible={showSearchClassModal}
+        onClose={() => setShowSearchClassModal(false)}
+        onClassAdded={onClassAdded}
+      />
+
       <ActionMenu
         visible={showActionMenu}
         onClose={() => setShowActionMenu(false)}
