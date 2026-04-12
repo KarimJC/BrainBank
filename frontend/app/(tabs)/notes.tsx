@@ -219,6 +219,10 @@ export default function NotesListPage() {
           setNotes(prev => prev.map(n => n.noteId === updated.noteId ? updated : n));
           setSelectedNote(updated);
         }}
+        onDeleted={(noteId) => {
+          setNotes(prev => prev.filter(n => n.noteId !== noteId));
+          setSelectedNote(null);
+        }}
       />
 
       <NotesFilterModal
