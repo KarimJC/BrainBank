@@ -14,6 +14,7 @@ export default function GifPicker({ visible, onClose, onSelectGif }: GifPickerPr
   const [search, setSearch] = useState('');
   const [gifs, setGifs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
 
   // Load trending GIFs on mount
@@ -24,15 +25,24 @@ export default function GifPicker({ visible, onClose, onSelectGif }: GifPickerPr
   }, [visible]);
 
   const loadTrending = async () => {
+    if (!GIPHY_API_KEY) {
+      setError('EXPO_PUBLIC_GIPHY_API_KEY is not set.');
+      return;
+    }
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(
         `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=25&rating=g`
       );
       const data = await response.json();
+      if (!response.ok || data.meta?.status !== 200) {
+        setError(`Giphy error: ${data.meta?.msg ?? response.status}`);
+        return;
+      }
       setGifs(data.data || []);
-    } catch (error) {
-      console.error('Failed to load trending GIFs:', error);
+    } catch (e) {
+      setError('Could not reach Giphy. Check your connection.');
     } finally {
       setLoading(false);
     }
@@ -43,24 +53,32 @@ export default function GifPicker({ visible, onClose, onSelectGif }: GifPickerPr
       loadTrending();
       return;
     }
-    
+    if (!GIPHY_API_KEY) {
+      setError('EXPO_PUBLIC_GIPHY_API_KEY is not set.');
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     const currentOffset = loadMore ? offset : 0;
-    
+
     try {
       const response = await fetch(
         `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=25&offset=${currentOffset}&rating=g`
       );
       const data = await response.json();
-      
+      if (!response.ok || data.meta?.status !== 200) {
+        setError(`Giphy error: ${data.meta?.msg ?? response.status}`);
+        return;
+      }
       if (loadMore) {
         setGifs(prev => [...prev, ...(data.data || [])]);
       } else {
         setGifs(data.data || []);
       }
       setOffset(currentOffset + 25);
-    } catch (error) {
-      console.error('GIF search failed:', error);
+    } catch (e) {
+      setError('Could not reach Giphy. Check your connection.');
     } finally {
       setLoading(false);
     }
@@ -80,6 +98,7 @@ export default function GifPicker({ visible, onClose, onSelectGif }: GifPickerPr
     setSearch('');
     setGifs([]);
     setOffset(0);
+    setError(null);
   };
 
   return (
@@ -116,9 +135,14 @@ export default function GifPicker({ visible, onClose, onSelectGif }: GifPickerPr
 
         {loading && gifs.length === 0 ? (
           <ActivityIndicator size="large" color="#6B4CE6" style={{ marginTop: 40 }} />
+        ) : error ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>Could not load GIFs</Text>
+            <Text style={styles.emptySubtext}>{error}</Text>
+          </View>
         ) : (
           <>
-            {gifs.length === 0 && search.length > 0 && !loading && (
+            {gifs.length === 0 && !loading && (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyText}>No GIFs found</Text>
                 <Text style={styles.emptySubtext}>Try a different search term</Text>

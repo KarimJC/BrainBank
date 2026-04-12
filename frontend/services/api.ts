@@ -4,7 +4,6 @@ import { supabase } from './supabase';
 
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
-export const WS_URL = process.env.EXPO_PUBLIC_WS_URL!;
 
 const getApiUrl = (): string => {
   if (Constants.expoConfig?.extra?.apiUrl) {
@@ -35,6 +34,7 @@ const getApiUrl = (): string => {
 };
 
 export const API_BASE_URL = getApiUrl();
+export const WS_URL = process.env.EXPO_PUBLIC_WS_URL ?? API_BASE_URL.replace(/^http/, 'ws');
 
 export const API_ENDPOINTS = {
   BASE: API_BASE_URL,

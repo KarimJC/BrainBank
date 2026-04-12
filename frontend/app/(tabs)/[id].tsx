@@ -26,6 +26,10 @@ export default function ConversationScreen() {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null); 
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttempts = useRef(0);
+  const isMounted = useRef(true);
+  const [wsConnected, setWsConnected] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const isGif = (content: string) => content.startsWith('[GIF]:');
   const getGifUrl = (content: string) => content.replace('[GIF]:', '');
@@ -38,31 +42,60 @@ useEffect(() => {
 }, [id]);
   
   useEffect(() => {
-  if (!currentUserId) return;
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+    };
+  }, []);
 
-  const ws = new WebSocket(`${WS_URL}/api/v1/ws/${currentUserId}`);
+  useEffect(() => {
+    if (!currentUserId) return;
 
-  ws.onopen = () => console.log('WebSocket connected');
+    const connect = () => {
+      const ws = new WebSocket(`${WS_URL}/api/v1/ws/${currentUserId}`);
 
-  ws.onmessage = (event) => {
-    try {
-      const incoming = JSON.parse(event.data);
-      // only add message if it belongs to current conversation
-      if (incoming.conversation_id === Number(id)) {
-        setMessages(prev => [...prev, incoming]);
-      }
-    } catch (e) {
-      console.error('Failed to parse message:', e);
-    }
-  };
+      ws.onopen = () => {
+        reconnectAttempts.current = 0;
+        if (isMounted.current) setWsConnected(true);
+      };
 
-  ws.onerror = (error) => console.error('WebSocket error:', error);
-  ws.onclose = () => console.log('WebSocket disconnected');
+      ws.onmessage = (event) => {
+        try {
+          const incoming = JSON.parse(event.data);
+          if (incoming.conversation_id === Number(id)) {
+            setMessages(prev => [...prev, incoming]);
+          }
+        } catch (e) {
+          console.error('Failed to parse WS message:', e);
+        }
+      };
 
-  wsRef.current = ws;
+      ws.onerror = () => {
+        if (isMounted.current) setWsConnected(false);
+      };
 
-  return () => ws.close();
-}, [currentUserId]);
+      ws.onclose = () => {
+        if (!isMounted.current) return;
+        setWsConnected(false);
+        // Reconnect up to 5 times with exponential backoff (1s, 2s, 4s, 8s, 16s)
+        if (reconnectAttempts.current < 5) {
+          const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 16000);
+          reconnectAttempts.current += 1;
+          reconnectTimer.current = setTimeout(connect, delay);
+        }
+      };
+
+      wsRef.current = ws;
+    };
+
+    connect();
+
+    return () => {
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      wsRef.current?.close();
+    };
+  }, [currentUserId]);
 
   const loadConversation = async () => {
     try {
@@ -79,36 +112,41 @@ useEffect(() => {
     }
   };
 
+  const sendContent = async (text: string) => {
+    if (!text) return;
+
+    const optimistic = {
+      message_id: Date.now().toString(),
+      sender_id: currentUserId,
+      content: text,
+      conversation_id: Number(id),
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages(prev => [...prev, optimistic]);
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ conversation_id: Number(id), content: text }));
+    } else {
+      try {
+        await api.sendMessage(Number(id), text);
+      } catch (e) {
+        console.error('Failed to send via REST fallback:', e);
+        setMessages(prev => prev.filter(m => m.message_id !== optimistic.message_id));
+      }
+    }
+  };
+
   const handleSelectGif = (gifUrl: string) => {
-    // gif prefix to render gif
-    setInputText(`[GIF]:${gifUrl}`);
-    setTimeout(() => {
-      handleSend();
-    }, 100);
+    setShowGifPicker(false);
+    sendContent(`[GIF]:${gifUrl}`);
   };
 
   const handleSend = async () => {
-    if (!inputText.trim()) return;
-    if (!wsRef.current || wsRef.current.readyState != WebSocket.OPEN) {
-      console.error('Websocket is not ready')
-      return;
-    }
-    const messageData = {
-    conversation_id: Number(id),
-    content: inputText.trim(),
-  };
-
-  wsRef.current.send(JSON.stringify(messageData));
-
-  setMessages(prev => [...prev, {
-    message_id: Date.now().toString(), 
-    sender_id: currentUserId, 
-    content: inputText.trim(), 
-    conversation_id: Number(id), 
-    created_at: new Date().toISOString(), 
-  }]);
-
-  setInputText('');
+    const text = inputText.trim();
+    if (!text) return;
+    setInputText('');
+    await sendContent(text);
   };
 
   const handleAccept = async () => {
