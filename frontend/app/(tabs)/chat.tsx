@@ -74,7 +74,9 @@ export default function ChatScreen() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const pendingCount = conversations.filter(c => c.status === 'pending').length;
+    const pendingCount = conversations.filter(c => 
+    c.status === 'pending' && c.recipient_id === currentUserId
+  ).length;
 
   useFocusEffect(
     useCallback(() => {
@@ -107,12 +109,6 @@ export default function ChatScreen() {
     else if (route === 'profile') router.push('/(tabs)/profile');
   };
 
-  const openChat = (courseId: string, courseCode: string) => {
-    router.push({
-      pathname: '/(tabs)/chatbot',
-      params: { sectionId: courseId, courseName: courseCode },
-    });
-  };
 
   if (initialLoad) {
     return (
@@ -187,18 +183,14 @@ export default function ChatScreen() {
                 />
               ))
           : conversations
-              .filter(c => c.status === 'pending')
+              .filter(c => c.status === 'pending' && c.recipient_id === currentUserId)
               .map(c => (
                 <ConversationRow
                   key={c.conversation_id}
                   messageData={{
                     ...c,
-                    initiator_name: c.initiator_id === currentUserId
-                      ? c.recipient_name
-                      : c.initiator_name,
-                    profile_picture: c.initiator_id === currentUserId
-                      ? c.recipient_profile_picture
-                      : c.initiator_profile_picture,
+                    initiator_name: c.initiator_name,
+                    profile_picture: c.initiator_profile_picture,
                   }}
                   onPress={() => router.push(`/(tabs)/${c.conversation_id}` as any)}
                 />

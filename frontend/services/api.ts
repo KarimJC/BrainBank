@@ -3,7 +3,8 @@ import Constants from 'expo-constants';
 import { supabase } from './supabase';
 import { AuthRequiredError, apiFetch, TIMEOUTS } from './errors';
 
-export const WS_URL = process.env.EXPO_PUBLIC_WS_URL!;
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
 const getApiUrl = (): string => {
   if (Constants.expoConfig?.extra?.apiUrl) {
@@ -32,6 +33,7 @@ const getApiUrl = (): string => {
 };
 
 export const API_BASE_URL = getApiUrl();
+export const WS_URL = process.env.EXPO_PUBLIC_WS_URL ?? API_BASE_URL.replace(/^http/, 'ws');
 
 export const API_ENDPOINTS = {
   BASE: API_BASE_URL,
@@ -42,6 +44,7 @@ export const API_ENDPOINTS = {
   NOTES_COURSE_SECTIONS: `${API_BASE_URL}/api/v1/notes/course-sections`,
   COURSE_SECTIONS: `${API_BASE_URL}/api/v1/course-sections`,
   COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/course-sections/${id}`,
+  PROFESSOR_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/professors/${id}`,
   COURSE_SECTION_BY_CRN: (crn: number) => `${API_BASE_URL}/api/v1/course-sections/crn/${crn}`,
   HEALTH: `${API_BASE_URL}/health`,
 };
@@ -189,4 +192,35 @@ async getCourseSectionByCRN(crn: number) {
     );
     return response.json();
   },
+
+async getProfessor(professorId: number) {
+    const headers = await getAuthHeaders();
+    const response = await apiFetch(
+      API_ENDPOINTS.PROFESSOR_BY_ID(professorId),
+      { headers },
+      TIMEOUTS.FAST
+    );
+    return response.json();
+  },
+
+  async getCourseSectionStudents(sectionId: number) {
+    const headers = await getAuthHeaders();
+    const response = await apiFetch(
+      `${API_BASE_URL}/api/v1/course-sections/${sectionId}/students`,
+      { headers },
+      TIMEOUTS.FAST
+    );
+    return response.json();
+  },
+
+  async getUserById(userId: number) {
+    const headers = await getAuthHeaders();
+    const response = await apiFetch(
+      `${API_BASE_URL}/api/v1/user/${userId}`,
+      { headers },
+      TIMEOUTS.FAST
+    );
+    return response.json();
+  },
+
 };
