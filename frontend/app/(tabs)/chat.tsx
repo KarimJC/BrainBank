@@ -138,6 +138,7 @@ export default function ChatScreen() {
       activeRoute="chat"
     >
       <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={styles.pageHeader}>Messages</Text>
         <View style={styles.toggleContainer}>
           {/* Chats Tab */}
           <TouchableOpacity
@@ -209,13 +210,19 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
+  pageHeader: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#000',
+    marginTop: 16,
+    marginBottom: 8,
+  },
   toggleContainer: {
     flexDirection: 'row',
     backgroundColor: '#F2F2F7',
     borderRadius: 12,
     padding: 4,
     marginHorizontal: 16,
-    marginTop: 16,
   },
   toggleButton: {
     flex: 1,
