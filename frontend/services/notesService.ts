@@ -198,6 +198,18 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
   }
 };
 
+export const deleteNote = async (noteId: number): Promise<void> => {
+  const token = await getAuthToken();
+  const response = await fetch(API_ENDPOINTS.NOTE_BY_ID(String(noteId)), {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Delete failed: ${response.status} ${errorText}`);
+  }
+};
+
 export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> => {
   if (params.media) validateAttachment(params.media.mimeType, undefined);
   if (params.file) validateAttachment(params.file.mimeType, params.file.size);
