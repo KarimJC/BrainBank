@@ -109,9 +109,9 @@ export default function HomeScreen() {
     }
   };
 
-  useFocusEffect(useCallback(() => {
+  useEffect(() => {
     fetchData();
-  }, []));
+  }, []);
 
   const handleNavigation = (route: string) => {
     if (route === 'home') router.push('/(tabs)');
@@ -149,7 +149,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <AppLayout userName={userName} onNavigate={handleNavigation} activeRoute="home" onClassAdded={fetchData}>
+    <AppLayout onNavigate={handleNavigation} activeRoute="home" onClassAdded={fetchData}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           {loading ? (
