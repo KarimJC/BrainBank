@@ -17,6 +17,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { fetchAllNotesByCourseSection, NoteItem } from '@/services/notesService';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
+import ClassmatesModal from '@/components/course/ClassmatesModal';
 
 type FilterOption = 'All' | 'Recent' | 'Saved';
 
@@ -41,6 +42,24 @@ export default function CoursePage() {
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
   const [bookmarked, setBookmarked] = useState(false);
   const [leaving, setLeaving] = useState(false);
+
+  // classmates 
+  const [showClassmates, setShowClassmates] = useState(false);
+  const [classmates, setClassmates] = useState<any[]>([]);
+  const [loadingClassmates, setLoadingClassmates] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try{
+        const user = await api.getCurrentUser(); 
+        setCurrentUserId(user.user_id);
+      } catch (error) {
+        console.error('Failed to get current user: ', error); 
+      }
+    }; 
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 400);
@@ -72,29 +91,19 @@ export default function CoursePage() {
     }
   };
 
-  const handleLeaveClass = () => {
-    Alert.alert(
-      'Leave Class',
-      `Are you sure you want to leave ${courseCode}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Leave',
-          style: 'destructive',
-          onPress: async () => {
-            setLeaving(true);
-            try {
-              const user = await api.getCurrentUser();
-              await api.unenrollFromCourseSection(Number(courseId), user.user_id);
-              router.back();
-            } catch (e) {
-              Alert.alert('Error', 'Failed to leave class. Please try again.');
-              setLeaving(false);
-            }
-          },
-        },
-      ]
-    );
+  const loadClassmates = async () => {
+    if (!courseId) return;
+    setLoadingClassmates(true);
+    try {
+      const data = await api.getCourseSectionStudents(Number(courseId));
+      setClassmates(data);
+      setShowClassmates(true);
+    } catch (error) {
+      console.error('Failed to load classmates:', error);
+      Alert.alert('Error', 'Failed to load classmates');
+    } finally {
+      setLoadingClassmates(false);
+    }
   };
 
   const handleNavigate = (route: string) => {
@@ -112,29 +121,29 @@ export default function CoursePage() {
     }
     return true;
   });
-
+  
   return (
     <AppLayout onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
-
-        {/* ── Back + Bookmark + Leave ── */}
-        <View style={styles.topRow}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={26} color="#1C1C1E" />
+        {/* Back + Bookmark + classmates */}
+      <View style={styles.topRow}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={26} color="#1C1C1E" />
+        </TouchableOpacity>
+        
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity onPress={loadClassmates} disabled={loadingClassmates}>
+            {loadingClassmates ? (
+              <ActivityIndicator size="small" color="#6750A4" />
+            ) : (
+              <Ionicons name="people-outline" size={22} color="#6750A4" />
+            )}
           </TouchableOpacity>
-          <View style={styles.topRowRight}>
-            <TouchableOpacity onPress={() => setBookmarked(b => !b)}>
-              <Ionicons
-                name={bookmarked ? 'bookmark' : 'bookmark-outline'}
-                size={22}
-                color="#6750A4"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleLeaveClass} style={styles.leaveBtn} disabled={leaving}>
-              <Text style={styles.leaveBtnText}>{leaving ? 'Leaving…' : 'Leave'}</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={() => setBookmarked(b => !b)}>
+            <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={22} color="#6750A4" />
+          </TouchableOpacity>
         </View>
+      </View>
 
         {/* ── Course Title ── */}
         <Text style={styles.courseCode}>{courseCode ?? 'Course'}</Text>
@@ -204,6 +213,12 @@ export default function CoursePage() {
           />
         )}
       </View>
+      <ClassmatesModal
+        visible={showClassmates}
+        classmates={classmates}
+        currentUserId={currentUserId}
+        onClose={() => setShowClassmates(false)}
+      />
 
       <NoteDetailModal
         note={selectedNote}
