@@ -17,6 +17,8 @@ import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
 import NotesFilterModal from '@/components/notes/NotesFilterModal';
+import ErrorView from '@/components/ui/ErrorView';
+
 
 const formatDate = (d: Date): string => {
   const year = d.getFullYear();
@@ -183,13 +185,7 @@ export default function NotesListPage() {
             <ActivityIndicator size="large" color="#6B5BC7" />
           </View>
         ) : error ? (
-          <View style={styles.errorContainer}>
-            <Ionicons name="cloud-offline-outline" size={48} color="#CC0000" />
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => loadNotes()}>
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
+          <ErrorView message={error} onRetry={() => loadNotes()} />
         ) : notes.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-text-outline" size={64} color="#E8E5F5" />
@@ -334,29 +330,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  errorText: {
-    color: '#CC0000',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#6B5BC7',
-    borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    marginTop: 8,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
