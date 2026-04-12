@@ -2,23 +2,9 @@ import { supabase } from './supabase';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
-import { Platform } from 'react-native';
+import { API_BASE_URL } from './api';
 
-// ─── IMPORTANT ─────────────────────────────────────────────────────────────
-// Set this to your machine's local IP address (the same IP shown in the Expo
-// terminal as  exp://YOUR_IP:8081 ).  The backend runs on port 8000.
-// Example: 'http://192.168.1.5:8000'
-// ───────────────────────────────────────────────────────────────────────────
-const LOCAL_IP = process.env.EXPO_PUBLIC_LOCAL_IP ?? '10.110.211.156';
-
-const getBaseUrl = () => {
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8000';
-  }
-  return `http://${LOCAL_IP}:8000`;
-};
-
-const BASE_URL = getBaseUrl();
+const BASE_URL = API_BASE_URL;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
