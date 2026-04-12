@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   FlatList,
-  Alert,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
@@ -14,9 +13,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
 import { fetchNotes, fetchCourseSections, NoteItem, CourseSection } from '@/services/notesService';
+import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
 import NotesFilterModal from '@/components/notes/NotesFilterModal';
+import ErrorView from '@/components/ui/ErrorView';
+
 
 const formatDate = (d: Date): string => {
   const year = d.getFullYear();
@@ -31,6 +33,7 @@ export default function NotesListPage() {
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
 
   const [search, setSearch] = useState<string>('');
@@ -61,14 +64,19 @@ export default function NotesListPage() {
     try {
       const data = await fetchCourseSections();
       setCourseSections(data);
-    } catch (error) {
-      console.error('Failed to load course sections:', error);
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        router.replace('/(auth)/login');
+        return;
+      }
+      console.error('Failed to load course sections:', err);
     }
   };
 
   const loadNotes = async (isRefresh = false) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
+      setError(null);
       const data = await fetchNotes({
         search: debouncedSearch || undefined,
         courseSectionId: selectedCourseSection?.course_section_id,
@@ -76,9 +84,13 @@ export default function NotesListPage() {
         endDate: endDate ? formatDate(endDate) : undefined,
       });
       setNotes(data);
-    } catch (error) {
-      console.error('Failed to load notes:', error);
-      Alert.alert('Error', 'Failed to load notes. Please try again.');
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        router.replace('/(auth)/login');
+        return;
+      }
+      console.error('Failed to load notes:', err);
+      setError(getUserFriendlyMessage(err));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -172,6 +184,8 @@ export default function NotesListPage() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#6B5BC7" />
           </View>
+        ) : error ? (
+          <ErrorView message={error} onRetry={() => loadNotes()} />
         ) : notes.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-text-outline" size={64} color="#E8E5F5" />

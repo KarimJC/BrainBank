@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { api } from '@/services/api';
+import ErrorView from '@/components/ui/ErrorView';
 
 // Conversation Row Component
 interface ConversationRowProps {
@@ -71,6 +72,7 @@ export default function ChatScreen() {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
     const pendingCount = conversations.filter(c => 
     c.status === 'pending' && c.recipient_id === currentUserId
@@ -85,13 +87,15 @@ export default function ChatScreen() {
   const loadConversations = async () => {
     if (loading) return;
     setLoading(true);
+    setError(null);
     try {
       const user = await api.getCurrentUser();
       setCurrentUserId(user.user_id);
       const data = await api.getConversations(user.user_id);
       setConversations(data);
-    } catch (error) {
-      console.error('Failed to load conversations:', error);
+    } catch (err) {
+      console.error('Failed to load conversations:', err);
+      setError('Could not load messages. Check your connection and try again.');
     } finally {
       setLoading(false);
       setInitialLoad(false);
@@ -116,12 +120,21 @@ export default function ChatScreen() {
     );
   }
 
+  if (error) {
+    return (
+      <AppLayout onNavigate={handleNavigation} activeRoute="chat">
+        <ErrorView message={error} onRetry={loadConversations} />
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout
       onNavigate={handleNavigation}
       activeRoute="chat"
     >
       <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={styles.pageHeader}>Messages</Text>
         <View style={styles.toggleContainer}>
           {/* Chats Tab */}
           <TouchableOpacity
@@ -189,13 +202,19 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
+  pageHeader: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#000',
+    marginTop: 16,
+    marginBottom: 8,
+  },
   toggleContainer: {
     flexDirection: 'row',
     backgroundColor: '#F2F2F7',
     borderRadius: 12,
     padding: 4,
     marginHorizontal: 16,
-    marginTop: 16,
   },
   toggleButton: {
     flex: 1,
@@ -285,5 +304,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 40,
+  },
+  errorText: {
+    color: '#CC0000',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  retryButton: {
+    backgroundColor: '#6B4CE6',
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    marginTop: 8,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

@@ -6,17 +6,19 @@ import {
   TouchableOpacity,
   ScrollView,
   FlatList,
-  Alert,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
-import { fetchAllNotesByCourseSection, NoteItem } from '@/services/notesService';
+import { fetchNotes, NoteItem } from '@/services/notesService';
+import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
+import ErrorView from '@/components/ui/ErrorView';
 import ClassmatesModal from '@/components/course/ClassmatesModal';
 
 type FilterOption = 'All' | 'Recent' | 'Saved';
@@ -34,6 +36,7 @@ export default function CoursePage() {
 
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
 
@@ -74,17 +77,19 @@ export default function CoursePage() {
     if (!courseId) return;
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
-      const data = await fetchAllNotesByCourseSection(Number(courseId));
-      const filtered = debouncedSearch
-        ? data.filter(n =>
-            n.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-            (n.description ?? '').toLowerCase().includes(debouncedSearch.toLowerCase())
-          )
-        : data;
-      setNotes(filtered);
-    } catch (error) {
-      console.error('Failed to load course notes:', error);
-      Alert.alert('Error', 'Failed to load notes. Please try again.');
+      setError(null);
+      const data = await fetchNotes({
+        search: debouncedSearch || undefined,
+        courseSectionId: Number(courseId),
+      });
+      setNotes(data);
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        router.replace('/(auth)/login');
+        return;
+      }
+      console.error('Failed to load course notes:', err);
+      setError(getUserFriendlyMessage(err));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -189,7 +194,12 @@ export default function CoursePage() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#6B5BC7" />
           </View>
-        ) : filteredNotes.length === 0 ? (
+        ) 
+         : error ? (
+  <ErrorView message={error} onRetry={() => loadNotes()} />
+        )
+
+        : filteredNotes.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-text-outline" size={64} color="#E8E5F5" />
             <Text style={styles.emptyText}>No notes found</Text>
@@ -266,7 +276,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Course title
   courseCode: {
     fontSize: 28,
     fontWeight: '600',
@@ -282,7 +291,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // Search
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -303,7 +311,6 @@ const styles = StyleSheet.create({
     color: '#000',
   },
 
-  // Filters
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -337,11 +344,14 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
+  gridRow: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
   listContent: {
     paddingBottom: 30,
   },
 
-  // States
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
