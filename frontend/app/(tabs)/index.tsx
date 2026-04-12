@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { api } from '@/services/api';
-import { AuthRequiredError, NetworkError, getUserFriendlyMessage } from '@/services/errors';
+import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';
 import { Ionicons } from '@expo/vector-icons';
 
 interface CourseSection {
@@ -59,11 +60,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPre
     <Text style={styles.classDescription}>{classData.course_name}</Text>
     <View style={styles.buttonRow}>
       <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
-        <IconSymbol 
-          name="folder" 
-          size={20} 
-          color="#FFFFFF" 
-        />
+        <IconSymbol name="folder" size={20} color="#FFFFFF" />
         <Text style={styles.viewNotesText}>View All Notes</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.aiButton} onPress={onAiPress}>
@@ -94,13 +91,10 @@ export default function HomeScreen() {
       console.log('Got sections:', sections);
       setClasses(sections.map((s: CourseSection) => ({ ...s, bookmarked: false })));
     } catch (err) {
-      // Only redirect to login for actual auth errors
       if (err instanceof AuthRequiredError) {
         router.replace('/(auth)/login');
         return;
       }
-
-      // Network errors and API errors get shown to the user with a retry button
       console.error('Fetch failed:', err);
       setError(getUserFriendlyMessage(err));
     } finally {
@@ -108,9 +102,9 @@ export default function HomeScreen() {
     }
   };
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     fetchData();
-  }, []);
+  }, []));
 
   const handleNavigation = (route: string) => {
     if (route === 'home') router.push('/(tabs)');
@@ -142,9 +136,9 @@ export default function HomeScreen() {
   };
 
   const handleBookmarkToggle = (classId: string) => {
-    setClasses(prevClasses => 
-      prevClasses.map(cls => 
-        String(cls.course_section_id) === classId 
+    setClasses(prevClasses =>
+      prevClasses.map(cls =>
+        String(cls.course_section_id) === classId
           ? { ...cls, bookmarked: !cls.bookmarked }
           : cls
       )
@@ -152,7 +146,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <AppLayout userName={userName} onNavigate={handleNavigation} activeRoute="home">
+    <AppLayout onNavigate={handleNavigation} activeRoute="home" onClassAdded={fetchData}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           {loading ? (

@@ -42,6 +42,7 @@ export const API_ENDPOINTS = {
   NOTES_COURSE_SECTIONS: `${API_BASE_URL}/api/v1/notes/course-sections`,
   COURSE_SECTIONS: `${API_BASE_URL}/api/v1/course-sections`,
   COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/course-sections/${id}`,
+  COURSE_SECTION_BY_CRN: (crn: number) => `${API_BASE_URL}/api/v1/course-sections/crn/${crn}`,
   HEALTH: `${API_BASE_URL}/health`,
 };
 
@@ -143,6 +144,37 @@ export const api = {
         headers,
         body: JSON.stringify({ recipient_id: recipientId }),
       },
+      TIMEOUTS.DEFAULT
+    );
+    return response.json();
+  },
+
+async getCourseSectionByCRN(crn: number) {
+    const headers = await getAuthHeaders();
+    const response = await apiFetch(
+      `${API_BASE_URL}/api/v1/course-sections/crn/${crn}`,
+      { headers },
+      TIMEOUTS.FAST
+    );
+    if (response.status === 404) return null;
+    return response.json();
+  },
+
+  async unenrollFromCourseSection(sectionId: number, userId: number) {
+    const headers = await getAuthHeaders();
+    const response = await apiFetch(
+      `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
+      { method: 'DELETE', headers },
+      TIMEOUTS.DEFAULT
+    );
+    return response.json();
+  },
+
+  async enrollInCourseSection(sectionId: number, userId: number) {
+    const headers = await getAuthHeaders();
+    const response = await apiFetch(
+      `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
+      { method: 'POST', headers },
       TIMEOUTS.DEFAULT
     );
     return response.json();

@@ -111,7 +111,7 @@ export default function NotesListPage() {
   const activeFilterCount = [selectedCourseSection, startDate, endDate].filter(Boolean).length;
 
   return (
-    <AppLayout userName="User" onNavigate={handleNavigate} activeRoute="notes">
+    <AppLayout onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
         <Text style={styles.header}>My Notes</Text>
 
