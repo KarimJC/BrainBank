@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@/services/api';
+import { API_ENDPOINTS, API_BASE_URL} from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '@/services/supabase';
@@ -24,6 +24,7 @@ export interface NoteItem {
   courseCode: string | null;
   courseName: string | null;
   professorName: string | null;
+  uploaderName: string | null;
   mediaUrl: string | null;
   fileName: string | null;
   fileUrl: string | null;
@@ -87,6 +88,7 @@ const mapNote = (n: any): NoteItem => ({
   courseCode: n.courseCode ?? n.course_code,
   courseName: n.courseName ?? n.course_name,
   professorName: n.professorName ?? n.professor_name,
+  uploaderName: n.uploaderName ?? n.uploader_name ?? null,
   mediaUrl: n.mediaUrl ?? n.media_url,
   fileName: n.fileName ?? n.file_name,
   fileUrl: n.fileUrl ?? n.file_url,
@@ -124,6 +126,17 @@ export const fetchNoteCourseSections = async (): Promise<CourseSection[]> => {
   const response = await fetch(API_ENDPOINTS.NOTES_COURSE_SECTIONS, { method: 'GET' });
   if (!response.ok) throw new Error('Failed to fetch note course sections');
   return response.json();
+};
+
+export const fetchAllNotesByCourseSection = async (courseId: number): Promise<NoteItem[]> => {
+  const url = `${API_BASE_URL}/api/v1/notes/course-section/${courseId}`;
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch course notes: ${response.status} ${errorText}`);
+  }
+  const data = await response.json();
+  return data.map(mapNote);
 };
 
 export const fetchCourseSections = async (): Promise<CourseSection[]> => {

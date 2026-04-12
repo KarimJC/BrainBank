@@ -9,8 +9,6 @@ import SearchClassModal from '@/app/(tabs)/SearchClassModal';
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  userName?: string;
-  profileImage?: any;
   onNavigate?: (route: string) => void;
   activeRoute?: string;
   onClassAdded?: () => void;
@@ -18,8 +16,6 @@ interface AppLayoutProps {
 
 const AppLayout: React.FC<AppLayoutProps> = ({
   children,
-  userName = "User",
-  profileImage,
   onNavigate,
   activeRoute = 'home',
   onClassAdded,
@@ -60,7 +56,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 
   return (
     <View style={styles.container}>
-      <Header userName={userName} profileImage={profileImage} />
+      <Header onNavigate={handleNavigation} activeRoute={activeRoute} />
       <View style={styles.content}>
         {children}
       </View>
