@@ -6,13 +6,13 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
   StyleSheet,
   SafeAreaView,
   ScrollView,
   Alert,
 } from 'react-native';
 import { API_BASE_URL, api } from '@/services/api';
+import { SkeletonList } from '@/components/ui/SkeletonRow';
 
 export interface CourseSection {
   course_section_id: number;
@@ -44,6 +44,7 @@ const COLORS = {
 const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) => {
   const [sections, setSections] = useState<CourseSection[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<Set<number>>(new Set());
+  const [enrolledCodes, setEnrolledCodes] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,9 +70,11 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
 
         const userSections = await api.getUserCourseSections(user.user_id);
         const ids = new Set<number>(userSections.map((s: CourseSection) => s.course_section_id));
+        const codes = new Set<string>(userSections.map((s: CourseSection) => s.course_code));
 
         setSections(allSections);
         setEnrolledIds(ids);
+        setEnrolledCodes(codes);
         setUserId(user.user_id);
       } catch (e) {
         setError('Could not load courses. Make sure the backend is running.');
@@ -108,14 +111,20 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
 
   const handleAdd = async (item: CourseSection) => {
     if (!userId) return;
+    if (enrolledCodes.has(item.course_code)) {
+      Alert.alert('Already Enrolled', `You're already enrolled in ${item.course_code}.`);
+      return;
+    }
     try {
       await api.enrollInCourseSection(item.course_section_id, userId);
       setEnrolledIds((prev) => new Set(prev).add(item.course_section_id));
+      setEnrolledCodes((prev) => new Set(prev).add(item.course_code));
       if (onClassAdded) onClassAdded();
     } catch (e: any) {
       if (e.message?.includes('Already enrolled')) {
-        Alert.alert('Already Enrolled', 'You are already enrolled in this class.');
+        Alert.alert('Already Enrolled', `You're already enrolled in ${item.course_code}.`);
         setEnrolledIds((prev) => new Set(prev).add(item.course_section_id));
+        setEnrolledCodes((prev) => new Set(prev).add(item.course_code));
       } else {
         Alert.alert('Error', 'Could not enroll. Please try again.');
       }
@@ -123,7 +132,7 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
   };
 
   const renderItem = ({ item }: { item: CourseSection }) => {
-    const added = enrolledIds.has(item.course_section_id);
+    const added = enrolledIds.has(item.course_section_id) || enrolledCodes.has(item.course_code);
     return (
       <View style={styles.row}>
         <View style={styles.rowInfo}>
@@ -197,10 +206,7 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
         )}
 
         {loading ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={COLORS.purple} />
-            <Text style={styles.loadingText}>Loading courses…</Text>
-          </View>
+          <SkeletonList />
         ) : error ? (
           <View style={styles.centered}>
             <Text style={styles.errorText}>{error}</Text>
