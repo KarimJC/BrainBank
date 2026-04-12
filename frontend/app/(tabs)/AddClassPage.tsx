@@ -69,7 +69,7 @@ export default function AddClassModal({ onClose, onClassAdded }: { onClose?: () 
         keyboardType="numeric"
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleSearch}>
+      <TouchableOpacity style={styles.button} onPress={handleSearch} disabled={loading}>
         <Text style={styles.buttonText}>Search</Text>
       </TouchableOpacity>
 

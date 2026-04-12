@@ -45,8 +45,10 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
   const [sections, setSections] = useState<CourseSection[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<Set<number>>(new Set());
   const [enrolledCodes, setEnrolledCodes] = useState<Set<string>>(new Set());
+  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [activeSubject, setActiveSubject] = useState<string>('ALL');
@@ -56,6 +58,7 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
     setQuery('');
     setActiveSubject('ALL');
     setError(null);
+    setPendingIds(new Set());
     setLoading(true);
 
     const loadData = async () => {
@@ -97,6 +100,7 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
     return sections.filter((s) => {
+      if (enrolledIds.has(s.course_section_id) || enrolledCodes.has(s.course_code)) return false;
       const matchesSubject = activeSubject === 'ALL' || s.subject === activeSubject;
       if (!matchesSubject) return false;
       if (!q) return true;
@@ -107,32 +111,42 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
         String(s.course_crn).includes(q)
       );
     });
-  }, [sections, query, activeSubject]);
+  }, [sections, query, activeSubject, enrolledIds, enrolledCodes]);
 
-  const handleAdd = async (item: CourseSection) => {
-    if (!userId) return;
-    if (enrolledCodes.has(item.course_code)) {
-      Alert.alert('Already Enrolled', `You're already enrolled in ${item.course_code}.`);
+  const handleToggle = (item: CourseSection) => {
+    setPendingIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.course_section_id)) {
+        next.delete(item.course_section_id);
+      } else {
+        next.add(item.course_section_id);
+      }
+      return next;
+    });
+  };
+
+  const handleDone = async () => {
+    if (pendingIds.size === 0) {
+      onClose();
       return;
     }
+    if (!userId) return;
+    setConfirming(true);
     try {
-      await api.enrollInCourseSection(item.course_section_id, userId);
-      setEnrolledIds((prev) => new Set(prev).add(item.course_section_id));
-      setEnrolledCodes((prev) => new Set(prev).add(item.course_code));
+      await Promise.all(
+        Array.from(pendingIds).map((id) => api.enrollInCourseSection(id, userId))
+      );
       if (onClassAdded) onClassAdded();
-    } catch (e: any) {
-      if (e.message?.includes('Already enrolled')) {
-        Alert.alert('Already Enrolled', `You're already enrolled in ${item.course_code}.`);
-        setEnrolledIds((prev) => new Set(prev).add(item.course_section_id));
-        setEnrolledCodes((prev) => new Set(prev).add(item.course_code));
-      } else {
-        Alert.alert('Error', 'Could not enroll. Please try again.');
-      }
+    } catch (e) {
+      Alert.alert('Error', 'Could not enroll in one or more classes. Please try again.');
+    } finally {
+      setConfirming(false);
+      onClose();
     }
   };
 
   const renderItem = ({ item }: { item: CourseSection }) => {
-    const added = enrolledIds.has(item.course_section_id) || enrolledCodes.has(item.course_code);
+    const pending = pendingIds.has(item.course_section_id);
     return (
       <View style={styles.row}>
         <View style={styles.rowInfo}>
@@ -144,12 +158,12 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
           ) : null}
         </View>
         <TouchableOpacity
-          style={[styles.addButton, added && styles.addButtonDone]}
-          onPress={() => !added && handleAdd(item)}
-          disabled={added}
+          style={[styles.addButton, pending && styles.addButtonDone]}
+          onPress={() => handleToggle(item)}
+          disabled={confirming}
         >
-          <Text style={[styles.addButtonText, added && styles.addButtonTextDone]}>
-            {added ? '✓' : '+'}
+          <Text style={[styles.addButtonText, pending && styles.addButtonTextDone]}>
+            {pending ? '✓' : '+'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -166,8 +180,8 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Add a Class</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeText}>Done</Text>
+          <TouchableOpacity onPress={handleDone} style={styles.closeButton} disabled={confirming}>
+            <Text style={styles.closeText}>{confirming ? 'Saving…' : 'Done'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -184,26 +198,24 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
           />
         </View>
 
-        {subjects.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.chipsScroll}
-            contentContainerStyle={styles.chipsContent}
-          >
-            {subjects.map((subj) => (
-              <TouchableOpacity
-                key={subj}
-                style={[styles.chip, activeSubject === subj && styles.chipActive]}
-                onPress={() => setActiveSubject(subj)}
-              >
-                <Text style={[styles.chipText, activeSubject === subj && styles.chipTextActive]}>
-                  {subj}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipsScroll}
+          contentContainerStyle={styles.chipsContent}
+        >
+          {subjects.length > 1 && subjects.map((subj) => (
+            <TouchableOpacity
+              key={subj}
+              style={[styles.chip, activeSubject === subj && styles.chipActive]}
+              onPress={() => setActiveSubject(subj)}
+            >
+              <Text style={[styles.chipText, activeSubject === subj && styles.chipTextActive]}>
+                {subj}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         {loading ? (
           <SkeletonList />
@@ -219,7 +231,7 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
             contentContainerStyle={styles.listContent}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             ListEmptyComponent={
-              <View style={styles.centered}>
+              <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>No classes match your search.</Text>
               </View>
             }
@@ -370,6 +382,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 60,
+    paddingHorizontal: 32,
+  },
+  emptyContainer: {
+    flex: 0,
+    alignItems: 'center',
+    paddingTop: 40,
     paddingHorizontal: 32,
   },
   loadingText: {

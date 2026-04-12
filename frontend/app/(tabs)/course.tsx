@@ -40,6 +40,7 @@ export default function CoursePage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
   const [bookmarked, setBookmarked] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 400);
@@ -81,12 +82,14 @@ export default function CoursePage() {
           text: 'Leave',
           style: 'destructive',
           onPress: async () => {
+            setLeaving(true);
             try {
               const user = await api.getCurrentUser();
               await api.unenrollFromCourseSection(Number(courseId), user.user_id);
               router.back();
             } catch (e) {
               Alert.alert('Error', 'Failed to leave class. Please try again.');
+              setLeaving(false);
             }
           },
         },
@@ -127,8 +130,8 @@ export default function CoursePage() {
                 color="#6750A4"
               />
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleLeaveClass} style={styles.leaveBtn}>
-              <Text style={styles.leaveBtnText}>Leave</Text>
+            <TouchableOpacity onPress={handleLeaveClass} style={styles.leaveBtn} disabled={leaving}>
+              <Text style={styles.leaveBtnText}>{leaving ? 'Leaving…' : 'Leave'}</Text>
             </TouchableOpacity>
           </View>
         </View>
