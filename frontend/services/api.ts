@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
   NOTES_COURSE_SECTIONS: `${API_BASE_URL}/api/v1/notes/course-sections`,
   COURSE_SECTIONS: `${API_BASE_URL}/api/v1/course-sections`,
   COURSE_SECTION_BY_ID: (id: number) => `${API_BASE_URL}/api/v1/course-sections/${id}`,
+  COURSE_SECTION_BY_CRN: (crn: number) => `${API_BASE_URL}/api/v1/course-sections/crn/${crn}`,
   HEALTH: `${API_BASE_URL}/health`,
 };
 
@@ -187,6 +188,46 @@ async createConversation(initiatorId: number, recipientId: number) {
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`Failed to create conversation: ${error}`);
+  }
+  return response.json();
+},
+
+async getCourseSectionByCRN(crn: number) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/course-sections/crn/${crn}`,
+    { headers }
+  );
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to fetch course section: ${error}`);
+  }
+  return response.json();
+},
+
+async unenrollFromCourseSection(sectionId: number, userId: number) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
+    { method: 'DELETE', headers }
+  );
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to unenroll: ${error}`);
+  }
+  return response.json();
+},
+
+async enrollInCourseSection(sectionId: number, userId: number) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
+    { method: 'POST', headers }
+  );
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to enroll: ${error}`);
   }
   return response.json();
 },
