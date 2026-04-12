@@ -8,6 +8,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { api } from '@/services/api';
 import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';
 import { Ionicons } from '@expo/vector-icons';
+import ErrorView from '@/components/ui/ErrorView';
 
 interface CourseSection {
   course_section_id: number;
@@ -152,14 +153,9 @@ export default function HomeScreen() {
           {loading ? (
             <ActivityIndicator size="large" color="#6B5BC7" style={{ marginTop: 40 }} />
           ) : error ? (
-            <View style={styles.errorContainer}>
-              <Ionicons name="cloud-offline-outline" size={48} color="#CC0000" />
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
-                <Text style={styles.retryText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
+            <ErrorView message={error} onRetry={fetchData} />
+            )
+           : (
             <>
               <Text style={styles.welcome}>
                 Welcome, <Text style={styles.userName}>{userName}!</Text>
@@ -198,9 +194,4 @@ const styles = StyleSheet.create({
   viewNotesButton: { backgroundColor: '#6B5BC7', borderRadius: 24, paddingVertical: 14, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
   aiButton: { backgroundColor: '#6B5BC7', borderRadius: 24, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   viewNotesText: { color: '#FFFFFF', fontSize: 16, fontWeight: '500', marginLeft: 8 },
-  errorContainer: { alignItems: 'center', marginTop: 40, gap: 12 },
-  errorText: { color: '#CC0000', fontSize: 16, textAlign: 'center' },
-  retryButton: { backgroundColor: '#6B5BC7', borderRadius: 24, paddingVertical: 12, paddingHorizontal: 32, marginTop: 8 },
-  retryText: { color: '#FFFFFF', fontSize: 16, fontWeight: '500' },
-  emptyText: { color: '#666666', fontSize: 16, textAlign: 'center', marginTop: 40 },
 });
