@@ -18,6 +18,7 @@ export default function TabLayout() {
       <Tabs.Screen name="profile" />
       <Tabs.Screen name="chatbot" options={{ headerShown: false }} />
       <Tabs.Screen name="course" options={{ headerShown: false }} />
+      <Tabs.Screen name="user/[userId]" options={{ headerShown: false, href: null }} />
     </Tabs>
     </UserProvider>
   );

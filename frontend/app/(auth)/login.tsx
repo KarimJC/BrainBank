@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '@/services/supabase';
-import { Alert, Image,
+import {
+  Image,
   View,
   Text,
   StyleSheet,
@@ -21,28 +22,30 @@ const COLORS = {
 
 const LoginScreen: React.FC = () => {
   const router = useRouter();
-  const [email, setEmail] = useState(''); 
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
+      setAuthError('Please enter both email and password');
       return;
     }
 
     setLoading(true);
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password: password,
     });
 
-    setLoading(false); 
-  
+    setLoading(false);
+
     if (error) {
-      Alert.alert('Login Failed', error.message);
+      setAuthError(error.message);
     } else {
+      setAuthError(null);
       router.replace('/(tabs)');
     }
   };
@@ -78,7 +81,7 @@ const LoginScreen: React.FC = () => {
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(t) => { setEmail(t); setAuthError(null); }}
             editable={!loading}
           />
           <TextInput
@@ -87,12 +90,14 @@ const LoginScreen: React.FC = () => {
             placeholderTextColor={COLORS.mediumGrey}
             secureTextEntry
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(t) => { setPassword(t); setAuthError(null); }}
             editable={!loading}
           />
 
-          <TouchableOpacity 
-            style={[styles.primaryButton, loading && styles.buttonDisabled]} 
+          {authError && <Text style={styles.authError}>{authError}</Text>}
+
+          <TouchableOpacity
+            style={[styles.primaryButton, loading && styles.buttonDisabled]}
             onPress={handleLogin}
             disabled={loading}
           >
@@ -118,93 +123,25 @@ const LoginScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  logoImage: {
-    width: 100,
-    height: 100,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 42,
-    fontWeight: '800',
-    marginBottom: 12,
-    letterSpacing: -1,
-  },
-  titlePurple: {
-    color: COLORS.darkPurple,
-  },
-  titleBlack: {
-    color: COLORS.black,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: COLORS.mediumGrey,
-    fontStyle: 'italic',
-    letterSpacing: 0.5,
-  },
-  formContainer: {
-    width: '100%',
-    maxWidth: 340,
-  },
-  input: {
-    backgroundColor: COLORS.lightGrey,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 16,
-    color: COLORS.black,
-    marginBottom: 16,
-  },
-  primaryButton: {
-    backgroundColor: COLORS.darkPurple,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  primaryButtonText: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  forgotPassword: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    color: COLORS.darkPurple,
-    fontSize: 14,
-  },
-  signupPrompt: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  signupPromptText: {
-    fontSize: 14,
-    color: COLORS.mediumGrey,
-  },
-  signupLink: {
-    fontSize: 14,
-    color: COLORS.darkPurple,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: COLORS.white },
+  content: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
+  logoContainer: { alignItems: 'center', marginBottom: 48 },
+  logoImage: { width: 100, height: 100, marginBottom: 8 },
+  title: { fontSize: 42, fontWeight: '800', marginBottom: 12, letterSpacing: -1 },
+  titlePurple: { color: COLORS.darkPurple },
+  titleBlack: { color: COLORS.black },
+  subtitle: { fontSize: 15, color: COLORS.mediumGrey, fontStyle: 'italic', letterSpacing: 0.5 },
+  formContainer: { width: '100%', maxWidth: 340 },
+  input: { backgroundColor: COLORS.lightGrey, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16, fontSize: 16, color: COLORS.black, marginBottom: 16 },
+  authError: { color: '#CC0000', fontSize: 14, textAlign: 'center', marginBottom: 12 },
+  primaryButton: { backgroundColor: COLORS.darkPurple, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 16 },
+  buttonDisabled: { opacity: 0.6 },
+  primaryButtonText: { color: COLORS.white, fontSize: 18, fontWeight: '600' },
+  forgotPassword: { alignItems: 'center', marginBottom: 24 },
+  forgotPasswordText: { color: COLORS.darkPurple, fontSize: 14 },
+  signupPrompt: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  signupPromptText: { fontSize: 14, color: COLORS.mediumGrey },
+  signupLink: { fontSize: 14, color: COLORS.darkPurple, fontWeight: '600' },
 });
 
 export default LoginScreen;

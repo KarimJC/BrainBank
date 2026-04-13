@@ -18,7 +18,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { NoteItem, CourseSection } from '@/services/notesService';
+import { NoteItem, CourseSection, deleteNote } from '@/services/notesService';
 import NoteEditModal from './NoteEditModal';
 
 interface NoteDetailModalProps {
@@ -26,6 +26,7 @@ interface NoteDetailModalProps {
   courseSections: CourseSection[];
   onClose: () => void;
   onUpdated: (updated: NoteItem) => void;
+  onDeleted?: (noteId: number) => void;
   editable?: boolean;
 }
 
@@ -45,9 +46,32 @@ const formatDisplayDate = (dateStr?: string | null): string => {
   }
 };
 
-export default function NoteDetailModal({ note, courseSections, onClose, onUpdated, editable = true }: NoteDetailModalProps) {  const insets = useSafeAreaInsets();
+export default function NoteDetailModal({ note, courseSections, onClose, onUpdated, onDeleted, editable = true }: NoteDetailModalProps) {
+  const insets = useSafeAreaInsets();
   const [showEdit, setShowEdit] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!note) return;
+    Alert.alert('Delete Note', 'Are you sure you want to delete this note?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          try {
+            setDeleting(true);
+            await deleteNote(note.noteId);
+            onDeleted?.(note.noteId);
+            handleDismiss();
+          } catch {
+            Alert.alert('Error', 'Failed to delete note.');
+          } finally {
+            setDeleting(false);
+          }
+        }
+      }
+    ]);
+  };
 
   const handleDownload = async () => {
     if (!note) return;
@@ -164,10 +188,19 @@ export default function NoteDetailModal({ note, courseSections, onClose, onUpdat
                   </TouchableOpacity>
                 )}
                 {editable && (
-                  <TouchableOpacity style={styles.editButton} onPress={() => setShowEdit(true)}>
-                    <Ionicons name="pencil-outline" size={18} color="#6B5BC7" />
-                    <Text style={styles.editButtonText}>Edit</Text>
-                  </TouchableOpacity>
+                  <>
+                    <TouchableOpacity style={styles.editButton} onPress={() => setShowEdit(true)}>
+                      <Ionicons name="pencil-outline" size={18} color="#6B5BC7" />
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} disabled={deleting}>
+                      {deleting ? (
+                        <ActivityIndicator size="small" color="#E53935" />
+                      ) : (
+                        <Ionicons name="trash-outline" size={20} color="#E53935" />
+                      )}
+                    </TouchableOpacity>
+                  </>
                 )}
               </View>
             </View>
@@ -401,5 +434,13 @@ const styles = StyleSheet.create({
   fileSizeText: {
     fontSize: 13,
     color: '#999',
+  },
+  deleteButton: {
+    backgroundColor: '#FDECEA',
+    borderRadius: 20,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 36,
   },
 });
