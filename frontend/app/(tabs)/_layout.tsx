@@ -1,7 +1,9 @@
 import { Tabs } from 'expo-router';
+import { UserProvider } from '@/contexts/UserContext';
 
 export default function TabLayout() {
   return (
+    <UserProvider>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -16,6 +18,8 @@ export default function TabLayout() {
       <Tabs.Screen name="profile" />
       <Tabs.Screen name="chatbot" options={{ headerShown: false }} />
       <Tabs.Screen name="course" options={{ headerShown: false }} />
+      <Tabs.Screen name="user/[userId]" options={{ headerShown: false, href: null }} />
     </Tabs>
+    </UserProvider>
   );
 }

@@ -7,6 +7,7 @@ from db.crud.ai_chat import (
     create_chat_message,
     get_chat_history,
     get_section_context,
+    get_course_context,
     delete_chat_session,
 )
 
@@ -51,7 +52,10 @@ def send_message_to_ai(chat_request: ChatRequest, db: Connection = Depends(get_d
         history = get_chat_history(session_id, db)
 
         # Get course materials for context
-        context = get_section_context(chat_request.section_id, db)
+        if chat_request.use_all_sections:
+            context = get_course_context(chat_request.section_id, db)
+        else:
+            context = get_section_context(chat_request.section_id, db)
 
         # Store user's message
         user_message = AIChatMessageCreate(

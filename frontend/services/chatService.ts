@@ -2,23 +2,9 @@ import { supabase } from './supabase';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
-import { Platform } from 'react-native';
+import { API_BASE_URL } from './api';
 
-// ─── IMPORTANT ─────────────────────────────────────────────────────────────
-// Set this to your machine's local IP address (the same IP shown in the Expo
-// terminal as  exp://YOUR_IP:8081 ).  The backend runs on port 8000.
-// Example: 'http://192.168.1.5:8000'
-// ───────────────────────────────────────────────────────────────────────────
-const LOCAL_IP = process.env.EXPO_PUBLIC_LOCAL_IP ?? '10.0.0.112';
-
-const getBaseUrl = () => {
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8000';
-  }
-  return `http://${LOCAL_IP}:8000`;
-};
-
-const BASE_URL = getBaseUrl();
+const BASE_URL = API_BASE_URL;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -73,11 +59,12 @@ export async function sendChatMessage(
   userId: number,
   sectionId: number,
   message: string,
+  useAllSections: boolean = false,
 ): Promise<string> {
   const response = await fetch(`${BASE_URL}/api/v1/ai-chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, section_id: sectionId, message }),
+    body: JSON.stringify({ user_id: userId, section_id: sectionId, message, use_all_sections: useAllSections }),
   });
   if (!response.ok) {
     const text = await response.text();
@@ -140,12 +127,14 @@ export async function generateDocument(
   userId: number,
   sectionId: number,
   type: DocumentType,
+  useAllSections: boolean = false,
 ): Promise<GeneratedDocument> {
   const endpoint = DOC_ENDPOINT[type];
   const url =
     `${BASE_URL}/api/v1/documents/generate/${endpoint}` +
     `?user_id=${userId}&section_id=${sectionId}` +
-    (type === 'practice-exam' ? '&num_questions=10' : '');
+    (type === 'practice-exam' ? '&num_questions=10' : '') +
+    (useAllSections ? '&use_all_sections=true' : '');
 
   const response = await fetch(url, { method: 'POST' });
   if (!response.ok) {
