@@ -16,9 +16,9 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import * as ImagePicker from 'expo-image-picker';
-import { File as ExpoFile } from 'expo-file-system';
 import Svg, { Path } from 'react-native-svg';
 import { fetchUserProfile, updateUserName, updateProfilePicture } from '@/services/profileService';
+import { useUser } from '@/contexts/UserContext';
 
 // ─── Colors ──────────────────────────────────────────────────
 const COLORS = {
@@ -168,6 +168,7 @@ function getDisplayName(firstName: string, lastName: string, email: string): str
 // ─── Main Component ──────────────────────────────────────────
 export default function ProfileScreen() {
   const router = useRouter();
+  const { refresh: refreshHeader } = useUser();
 
   // User state (from backend API)
   const [user, setUser] = useState<User | null>(null);
@@ -266,9 +267,8 @@ export default function ProfileScreen() {
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${authUser.id}/${fileName}`;
 
-      // Read file using expo-file-system (reliable in React Native)
-      const file = new ExpoFile(uri);
-      const arrayBuffer = await file.arrayBuffer();
+      const response = await fetch(uri);
+      const arrayBuffer = await response.arrayBuffer();
 
       const { error } = await supabase.storage
         .from('profile-pictures')
@@ -284,6 +284,7 @@ export default function ProfileScreen() {
         .getPublicUrl(filePath);
 
       await updateProfilePictureUrl(publicUrl);
+      await refreshHeader();
 
       Alert.alert('Success', 'Profile picture updated!');
     } catch (error) {
@@ -331,6 +332,7 @@ export default function ProfileScreen() {
       setSaving(true);
       await updateUserName(trimFirst, trimLast);
       await fetchUser();
+      await refreshHeader();
       setIsEditing(false);
     } catch (err: any) {
       console.error('Failed to save name:', err);
