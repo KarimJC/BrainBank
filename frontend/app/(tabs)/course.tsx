@@ -18,24 +18,30 @@ import {
   fetchAllNotesByCourseSection,
   fetchNotesByCourse,
   NoteItem,
+  CourseSection,
 } from '@/services/notesService';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
 import ErrorView from '@/components/ui/ErrorView';
 import ClassmatesModal from '@/components/course/ClassmatesModal';
+import NotesFilterModal from '@/components/notes/NotesFilterModal';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type FilterOption = 'All' | 'Recent' | 'Saved';
 type ViewMode = 'mine' | 'myProfessor' | 'allProfessors';
 
 const FILTERS: FilterOption[] = ['All', 'Recent', 'Saved'];
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
 export default function CoursePage() {
   const router = useRouter();
 
   const { courseId, courseSectionId, courseCode, professorName, professorId } =
     useLocalSearchParams<{
-      courseId: string;        // parent course id  → "all sections" fetch
-      courseSectionId: string; // user's section id → "my section" fetch
+      courseId: string;
+      courseSectionId: string;
       courseCode: string;
       professorName: string;
       professorId: string;
@@ -46,14 +52,19 @@ export default function CoursePage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('mine');
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
-  const [bookmarked, setBookmarked] = useState(false);
-  const [leaving, setLeaving] = useState(false);
 
-  // classmates 
+  // Filter modal
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filterCourseSection, setFilterCourseSection] = useState<CourseSection | null>(null);
+  const [filterStartDate, setFilterStartDate] = useState<Date | null>(null);
+  const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
+
+  // Classmates
   const [showClassmates, setShowClassmates] = useState(false);
   const [classmates, setClassmates] = useState<any[]>([]);
   const [loadingClassmates, setLoadingClassmates] = useState(false);
@@ -61,62 +72,51 @@ export default function CoursePage() {
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
-      try{
-        const user = await api.getCurrentUser(); 
+      try {
+        const user = await api.getCurrentUser();
         setCurrentUserId(user.user_id);
-      } catch (error) {
-        console.error('Failed to get current user: ', error); 
+      } catch (err) {
+        console.error('Failed to get current user:', err);
       }
-    }; 
+    };
     fetchCurrentUser();
   }, []);
-
-  // Default to showing all sections of the course for this professor
-  const [viewMode, setViewMode] = useState<ViewMode>('mine');
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(t);
   }, [search]);
 
-  // Reload whenever the view mode or search changes
   useEffect(() => {
     loadNotes();
   }, [debouncedSearch, viewMode]);
 
+  // ─── Data Loading ───────────────────────────────────────────────────────────
+
   const loadNotes = async (isRefresh = false) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
+      setError(null);
 
       let data: NoteItem[];
 
       if (viewMode === 'mine') {
-        // User's own section only
         if (!courseSectionId) return;
         data = await fetchAllNotesByCourseSection(Number(courseSectionId));
       } else if (viewMode === 'myProfessor') {
-        // All sections of this course taught by the same professor
         if (!courseId) return;
         const profId = professorId ? Number(professorId) : undefined;
         data = await fetchNotesByCourse(Number(courseId), profId);
       } else {
-        // All sections of this course across all professors
         if (!courseId) return;
         data = await fetchNotesByCourse(Number(courseId));
       }
 
-      // Client-side search filter
-      const filtered = debouncedSearch
-        ? data.filter(n =>
-            n.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-            (n.description ?? '').toLowerCase().includes(debouncedSearch.toLowerCase()),
-          )
-        : data;
-
-      setNotes(filtered);
-    } catch (error) {
-      console.error('Failed to load course notes:', error);
-      Alert.alert('Error', 'Failed to load notes. Please try again.');
+      setNotes(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load notes. Please try again.';
+      console.error('Failed to load course notes:', err);
+      setError(message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -130,86 +130,156 @@ export default function CoursePage() {
       const data = await api.getCourseSectionStudents(Number(courseId));
       setClassmates(data);
       setShowClassmates(true);
-    } catch (error) {
-      console.error('Failed to load classmates:', error);
+    } catch (err) {
+      console.error('Failed to load classmates:', err);
       Alert.alert('Error', 'Failed to load classmates');
     } finally {
       setLoadingClassmates(false);
     }
   };
 
+  const handleUnenroll = () => {
+    Alert.alert(
+      'Unenroll from Course',
+      `Are you sure you want to unenroll from ${courseCode ?? 'this course'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unenroll',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (!currentUserId) throw new Error('User not found');
+              await api.unenrollFromCourseSection(Number(courseSectionId), currentUserId);
+              router.back();
+            } catch (err) {
+              console.error('Failed to unenroll:', err);
+              Alert.alert('Error', 'Failed to unenroll. Please try again.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // ─── Navigation ─────────────────────────────────────────────────────────────
+
   const handleNavigate = (route: string) => {
-    if (route === 'home')   router.push('/(tabs)');
+    if (route === 'home')         router.push('/(tabs)');
     else if (route === 'notes')   router.push('/(tabs)/notes');
     else if (route === 'chat')    router.push('/(tabs)/chat');
     else if (route === 'profile') router.push('/(tabs)/profile');
   };
 
+  // ─── Filtering ──────────────────────────────────────────────────────────────
+
+  const activeFilterCount = [filterCourseSection, filterStartDate, filterEndDate].filter(Boolean).length;
+
   const filteredNotes = notes.filter(n => {
+    // Search
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      const matchesSearch =
+        n.title.toLowerCase().includes(q) ||
+        (n.description ?? '').toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+    }
+
+    // Chip filter
     if (activeFilter === 'Recent') {
       const week = new Date();
       week.setDate(week.getDate() - 7);
-      return new Date(n.dateUploaded) >= week;
+      if (new Date(n.dateUploaded) < week) return false;
     }
+
+    // Modal filter: course section
+    if (filterCourseSection && n.courseSectionId !== filterCourseSection.course_section_id) {
+      return false;
+    }
+
+    // Modal filter: date range
+    if (filterStartDate && new Date(n.dateUploaded) < filterStartDate) return false;
+    if (filterEndDate) {
+      const end = new Date(filterEndDate);
+      end.setHours(23, 59, 59, 999);
+      if (new Date(n.dateUploaded) > end) return false;
+    }
+
     return true;
   });
-  
+
+  // Build course section list for the filter modal from loaded notes
+  const availableCourseSections: CourseSection[] = Array.from(
+    new Map(
+      notes
+        .filter(n => n.courseSectionId != null)
+        .map(n => [
+          n.courseSectionId,
+          {
+            course_section_id: n.courseSectionId!,
+            course_id: Number(courseId),
+            course_crn: 0,
+            professor_id: null,
+            course_code: n.courseCode ?? '',
+            course_name: n.courseName ?? '',
+            subject: null,
+            professor_name: n.professorName ?? null,
+          } as CourseSection,
+        ]),
+    ).values(),
+  );
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <AppLayout onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
-        {/* Back + Bookmark + classmates */}
-      <View style={styles.topRow}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={26} color="#1C1C1E" />
-        </TouchableOpacity>
-        
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <TouchableOpacity onPress={loadClassmates} disabled={loadingClassmates}>
-            {loadingClassmates ? (
-              <ActivityIndicator size="small" color="#6750A4" />
-            ) : (
-              <Ionicons name="people-outline" size={22} color="#6750A4" />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setBookmarked(b => !b)}>
-            <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={22} color="#6750A4" />
-          </TouchableOpacity>
-        </View>
-      </View>
 
-        {/* ── Course Title ── */}
+        {/* Top Row */}
+        <View style={styles.topRow}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+            <Ionicons name="chevron-back" size={26} color="#1C1C1E" />
+          </TouchableOpacity>
+
+          <View style={styles.topRowRight}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={loadClassmates}
+              disabled={loadingClassmates}
+            >
+              {loadingClassmates ? (
+                <ActivityIndicator size="small" color={PURPLE} />
+              ) : (
+                <Ionicons name="people-outline" size={22} color={PURPLE} />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.iconBtn} onPress={handleUnenroll}>
+              <Ionicons name="trash-outline" size={22} color="#E53935" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Course Header */}
         <Text style={styles.courseCode}>{courseCode ?? 'Course'}</Text>
         <Text style={styles.professorText}>with {professorName ?? 'Professor'}</Text>
 
-        {/* ── View Mode Toggle ── */}
+        {/* View Mode Toggle */}
         <View style={styles.toggleRow}>
-          <TouchableOpacity
-            style={[styles.toggleBtn, viewMode === 'mine' && styles.toggleBtnActive]}
-            onPress={() => setViewMode('mine')}
-          >
-            <Text style={[styles.toggleText, viewMode === 'mine' && styles.toggleTextActive]}>
-              My Section
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleBtn, viewMode === 'myProfessor' && styles.toggleBtnActive]}
-            onPress={() => setViewMode('myProfessor')}
-          >
-            <Text style={[styles.toggleText, viewMode === 'myProfessor' && styles.toggleTextActive]}>
-              My Professor
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleBtn, viewMode === 'allProfessors' && styles.toggleBtnActive]}
-            onPress={() => setViewMode('allProfessors')}
-          >
-            <Text style={[styles.toggleText, viewMode === 'allProfessors' && styles.toggleTextActive]}>
-              All Professors
-            </Text>
-          </TouchableOpacity>
+          {(['mine', 'myProfessor', 'allProfessors'] as ViewMode[]).map(mode => (
+            <TouchableOpacity
+              key={mode}
+              style={[styles.toggleBtn, viewMode === mode && styles.toggleBtnActive]}
+              onPress={() => setViewMode(mode)}
+            >
+              <Text style={[styles.toggleText, viewMode === mode && styles.toggleTextActive]}>
+                {mode === 'mine' ? 'My Section' : mode === 'myProfessor' ? 'My Professor' : 'All Professors'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* ── Search ── */}
+        {/* Search */}
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />
           <TextInput
@@ -222,7 +292,7 @@ export default function CoursePage() {
           />
         </View>
 
-        {/* ── Filter Chips ── */}
+        {/* Filter Chips */}
         <View style={styles.filterRow}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
             {FILTERS.map(f => (
@@ -237,32 +307,41 @@ export default function CoursePage() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <TouchableOpacity style={styles.filterIconBtn}>
-            <Ionicons name="options-outline" size={22} color="#1E1E1E" />
+          <TouchableOpacity
+            style={[styles.iconBtn, activeFilterCount > 0 && styles.filterIconActive]}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Ionicons
+              name="options-outline"
+              size={22}
+              color={activeFilterCount > 0 ? '#FFF' : '#1C1C1E'}
+            />
+            {activeFilterCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
-        {/* ── Notes List ── */}
+        {/* Notes List */}
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6B5BC7" />
+          <View style={styles.centeredContainer}>
+            <ActivityIndicator size="large" color={PURPLE} />
           </View>
-        ) 
-         : error ? (
-  <ErrorView message={error} onRetry={() => loadNotes()} />
-        )
-
-        : filteredNotes.length === 0 ? (
-          <View style={styles.emptyContainer}>
+        ) : error ? (
+          <ErrorView message={error} onRetry={() => loadNotes()} />
+        ) : filteredNotes.length === 0 ? (
+          <View style={styles.centeredContainer}>
             <Ionicons name="document-text-outline" size={64} color="#E8E5F5" />
             <Text style={styles.emptyText}>No notes found</Text>
             <Text style={styles.emptySubtext}>
-              {search
-                ? 'Try adjusting your search'
+              {debouncedSearch || activeFilterCount > 0
+                ? 'Try adjusting your search or filters'
                 : viewMode === 'mine'
                   ? 'Upload the first note for your section'
                   : viewMode === 'myProfessor'
-                    ? 'No notes uploaded in your professor\'s sections yet'
+                    ? "No notes uploaded in your professor's sections yet"
                     : 'No notes have been uploaded for this course yet'}
             </Text>
           </View>
@@ -278,6 +357,21 @@ export default function CoursePage() {
           />
         )}
       </View>
+
+      {/* Filter Modal */}
+      <NotesFilterModal
+        visible={showFilterModal}
+        startDate={filterStartDate}
+        endDate={filterEndDate}
+        onSelectStartDate={setFilterStartDate}
+        onSelectEndDate={setFilterEndDate}
+        onReset={() => {
+          setFilterStartDate(null);
+          setFilterEndDate(null);
+        }}
+        onClose={() => setShowFilterModal(false)}
+      />
+
       <ClassmatesModal
         visible={showClassmates}
         classmates={classmates}
@@ -291,7 +385,7 @@ export default function CoursePage() {
         editable={false}
         onClose={() => setSelectedNote(null)}
         onUpdated={updated => {
-          setNotes(prev => prev.map(n => n.noteId === updated.noteId ? updated : n));
+          setNotes(prev => prev.map(n => (n.noteId === updated.noteId ? updated : n)));
           setSelectedNote(updated);
         }}
       />
@@ -299,43 +393,76 @@ export default function CoursePage() {
   );
 }
 
-const styles = StyleSheet.create({
-  inner: { flex: 1 },
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
-  topRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 8,
+const PURPLE = '#6B5BC7';
+
+const styles = StyleSheet.create({
+  // Layout
+  inner: {
+    flex: 1,
   },
-  backBtn: {
-    padding: 4,
+
+  // Top Row
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   topRowRight: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
+    gap: 12,
   },
-  leaveBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#CC0000',
-  },
-  leaveBtnText: {
-    color: '#CC0000',
-    fontSize: 14,
-    fontWeight: '600',
+  iconBtn: {
+    padding: 4,
   },
 
+  // Course Header
   courseCode: {
-    fontSize: 28, fontWeight: '600', color: '#6750A4',
-    textAlign: 'center', marginBottom: 4,
+    fontSize: 28,
+    fontWeight: '600',
+    color: PURPLE,
+    textAlign: 'center',
+    marginBottom: 4,
   },
   professorText: {
-    fontSize: 16, fontWeight: '500', color: '#7E7E7E',
-    textAlign: 'center', marginBottom: 16,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#7E7E7E',
+    textAlign: 'center',
+    marginBottom: 16,
   },
 
+  // Toggle
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: '#F5F3FA',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleBtnActive: {
+    backgroundColor: PURPLE,
+  },
+  toggleText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: PURPLE,
+  },
+  toggleTextActive: {
+    color: '#FFF',
+  },
+
+  // Search
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -356,55 +483,65 @@ const styles = StyleSheet.create({
     color: '#000',
   },
 
+  // Filter Chips
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 16,
   },
-  toggleBtn: {
-    flex: 1, paddingVertical: 8, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center',
+  chipsScroll: {
+    flex: 1,
   },
-  toggleBtnActive: { backgroundColor: '#6750A4' },
-  toggleText: { fontSize: 14, fontWeight: '500', color: '#6750A4' },
-  toggleTextActive: { color: '#FFFFFF' },
-
-  // ── Search ──
-  searchContainer: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F5F3FA', borderRadius: 16,
-    borderWidth: 1, borderColor: '#E8E5F5',
-    paddingHorizontal: 12, marginBottom: 12,
-  },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, paddingVertical: 14, fontSize: 16, color: '#000' },
-
-  // ── Filters ──
-  filterRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 },
-  chipsScroll: { flex: 1 },
   chip: {
-    borderWidth: 1, borderColor: '#CAC4D0', borderRadius: 8,
-    paddingHorizontal: 16, paddingVertical: 6, marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#CAC4D0',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginRight: 8,
   },
-  chipActive: { backgroundColor: '#6750A4', borderColor: '#6750A4' },
-  chipText: { fontSize: 14, fontWeight: '500', color: '#49454F' },
-  chipTextActive: { color: '#FFFFFF' },
-  filterIconBtn: { padding: 4 },
+  chipActive: {
+    backgroundColor: PURPLE,
+    borderColor: PURPLE,
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#49454F',
+  },
+  chipTextActive: {
+    color: '#FFF',
+  },
+  filterIconActive: {
+    backgroundColor: PURPLE,
+    borderRadius: 8,
+    padding: 6,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#E53935',
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBadgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
 
-  gridRow: {
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
+  // Notes List
   listContent: {
     paddingBottom: 30,
   },
 
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
+  // Empty / Loading
+  centeredContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -419,5 +556,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
+    paddingHorizontal: 32,
   },
 });

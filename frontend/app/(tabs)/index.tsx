@@ -1,15 +1,23 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
-import { fetchUserProfile } from '@/services/profileService';
-import Svg, { Path } from 'react-native-svg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { api } from '@/services/api';
 import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';
 import { Ionicons } from '@expo/vector-icons';
 import ErrorView from '@/components/ui/ErrorView';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CourseSection {
   course_section_id: number;
@@ -20,62 +28,45 @@ interface CourseSection {
   course_code: string;
   course_name: string;
   subject?: string | null;
-  bookmarked: boolean;
 }
 
-interface BookmarkIconProps {
-  filled: boolean;
-  onPress: () => void;
-}
-
-const BookmarkIcon: React.FC<BookmarkIconProps> = ({ filled, onPress }) => (
-  <TouchableOpacity onPress={onPress} style={styles.bookmarkTouchable}>
-    <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M5 5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V21L12 17.5L5 21V5Z"
-        fill={filled ? '#000' : 'none'}
-        stroke="#000"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  </TouchableOpacity>
-);
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 interface ClassCardProps {
   classData: CourseSection;
   onPress: () => void;
-  onBookmarkPress: (id: string) => void;
   onAiPress: () => void;
 }
 
-const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onBookmarkPress, onAiPress }) => (
+const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onAiPress }) => (
   <View style={styles.card}>
-    <View style={styles.cardHeader}>
-      <Text style={styles.classCode}>{classData.course_code}</Text>
-      <BookmarkIcon
-        filled={classData.bookmarked}
-        onPress={() => onBookmarkPress(String(classData.course_section_id))}
-      />
+    <View style={styles.cardTop}>
+      <View style={styles.cardInfo}>
+        <Text style={styles.classCode}>{classData.course_code}</Text>
+        <Text style={styles.classDescription}>{classData.course_name}</Text>
+        {classData.professor_name ? (
+          <Text style={styles.professorName}>with {classData.professor_name}</Text>
+        ) : null}
+      </View>
+      <View style={styles.cardActions}>
+        <TouchableOpacity style={styles.aiButton} onPress={onAiPress}>
+          <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
     </View>
-    <Text style={styles.classDescription}>{classData.course_name}</Text>
-    <View style={styles.buttonRow}>
-      <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
-        <IconSymbol name="folder" size={20} color="#FFFFFF" />
-        <Text style={styles.viewNotesText}>View All Notes</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.aiButton} onPress={onAiPress}>
-        <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
+      <IconSymbol name="folder" size={16} color="#FFFFFF" />
+      <Text style={styles.viewNotesText}>View Notes</Text>
+    </TouchableOpacity>
   </View>
 );
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const router = useRouter();
   const [classes, setClasses] = useState<CourseSection[]>([]);
-  const [userName, setUserName] = useState('User');
+  const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,15 +74,10 @@ export default function HomeScreen() {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching user...');
       const user = await api.getCurrentUser();
-      console.log('Got user:', user);
-      setUserName(user.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : 'User');
-
-      console.log('Fetching course sections...');
+      setUserName(user.first_name ?? user.neu_email ?? 'there');
       const sections = await api.getUserCourseSections(user.user_id);
-      console.log('Got sections:', sections);
-      setClasses(sections.map((s: CourseSection) => ({ ...s, bookmarked: false })));
+      setClasses(sections);
     } catch (err) {
       if (err instanceof AuthRequiredError) {
         router.replace('/(auth)/login');
@@ -109,9 +95,9 @@ export default function HomeScreen() {
   }, []));
 
   const handleNavigation = (route: string) => {
-    if (route === 'home') router.push('/(tabs)');
-    else if (route === 'notes') router.push('/(tabs)/notes');
-    else if (route === 'chat') router.push('/(tabs)/chat');
+    if (route === 'home')         router.push('/(tabs)');
+    else if (route === 'notes')   router.push('/(tabs)/notes');
+    else if (route === 'chat')    router.push('/(tabs)/chat');
     else if (route === 'profile') router.push('/(tabs)/profile');
     else {
       console.warn(`Unhandled route: ${route}`);
@@ -123,9 +109,11 @@ export default function HomeScreen() {
     router.push({
       pathname: '/(tabs)/course',
       params: {
-        courseId: String(section.course_section_id),
-        courseCode: section.course_code,
-        professorName: section.professor_name ?? '',
+        courseId:        String(section.course_id),
+        courseSectionId: String(section.course_section_id),
+        courseCode:      section.course_code,
+        professorName:   section.professor_name ?? '',
+        professorId:     String(section.professor_id ?? ''),
       },
     });
   };
@@ -137,40 +125,30 @@ export default function HomeScreen() {
     });
   };
 
-  const handleBookmarkToggle = (classId: string) => {
-    setClasses(prevClasses =>
-      prevClasses.map(cls =>
-        String(cls.course_section_id) === classId
-          ? { ...cls, bookmarked: !cls.bookmarked }
-          : cls
-      )
-    );
-  };
-
   return (
     <AppLayout onNavigate={handleNavigation} activeRoute="home" onClassAdded={fetchData}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           {loading ? (
-            <ActivityIndicator size="large" color="#6B5BC7" style={{ marginTop: 40 }} />
+            <ActivityIndicator size="large" color={PURPLE} style={styles.loader} />
           ) : error ? (
             <ErrorView message={error} onRetry={fetchData} />
-            )
-           : (
+          ) : (
             <>
               <Text style={styles.welcome}>
                 Welcome, <Text style={styles.userName}>{userName}!</Text>
               </Text>
               {classes.length === 0 ? (
-                <Text>No classes yet. Add one to get started!</Text>
+                <Text style={styles.emptyText}>No classes yet. Add one to get started!</Text>
               ) : (
                 classes.map(classData => (
                   <ClassCard
                     key={classData.course_section_id}
                     classData={classData}
                     onPress={() => handleViewNotes(classData)}
-                    onBookmarkPress={handleBookmarkToggle}
-                    onAiPress={() => handleOpenAiChat(String(classData.course_section_id), classData.course_code)}
+                    onAiPress={() =>
+                      handleOpenAiChat(String(classData.course_section_id), classData.course_code)
+                    }
                   />
                 ))
               )}
@@ -182,17 +160,98 @@ export default function HomeScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const PURPLE = '#6B5BC7';
+
 const styles = StyleSheet.create({
-  container: { paddingVertical: 20 },
-  welcome: { fontSize: 32, fontWeight: '600', color: '#000', marginBottom: 24 },
-  userName: { color: '#6B5BC7' },
-  card: { backgroundColor: '#E8E5F5', borderRadius: 24, padding: 24, marginBottom: 16 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  classCode: { fontSize: 24, fontWeight: '600', color: '#000' },
-  bookmarkTouchable: { padding: 4 },
-  classDescription: { fontSize: 15, color: '#666666', marginBottom: 20, lineHeight: 20 },
-  buttonRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  viewNotesButton: { backgroundColor: '#6B5BC7', borderRadius: 24, paddingVertical: 14, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
-  aiButton: { backgroundColor: '#6B5BC7', borderRadius: 24, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  viewNotesText: { color: '#FFFFFF', fontSize: 16, fontWeight: '500', marginLeft: 8 },
+  // Layout
+  container: {
+    paddingVertical: 20,
+  },
+  loader: {
+    marginTop: 40,
+  },
+
+  // Typography
+  welcome: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 24,
+  },
+  userName: {
+    color: PURPLE,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 40,
+  },
+
+  // Card
+  card: {
+    backgroundColor: '#E8E5F5',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+  },
+  cardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  cardInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  classCode: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+  classDescription: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  professorName: {
+    fontSize: 12,
+    color: PURPLE,
+    fontWeight: '500',
+  },
+
+  // Buttons
+  viewNotesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: PURPLE,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  viewNotesText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  aiButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: PURPLE,
+    borderRadius: 20,
+    width: 34,
+    height: 34,
+  },
 });

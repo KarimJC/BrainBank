@@ -10,7 +10,7 @@ export interface CourseSection {
   course_crn: number;
   professor_id: number | null;
   course_code: string;
-  course_name: string;  
+  course_name: string;
   subject: string | null;
   professor_name: string | null;
 }
@@ -121,7 +121,6 @@ export const fetchAllNotesByCourseSection = async (courseSectionId: number): Pro
 };
 
 // ── Fetch notes for ALL sections of a course, filtered by professor ─────────────
-// Default view on the course page. Uses the NOTES_BY_COURSE endpoint from api.ts.
 export const fetchNotesByCourse = async (
   courseId: number,
   professorId?: number,
@@ -133,16 +132,8 @@ export const fetchNotesByCourse = async (
   const url = query.toString() ? `${base}?${query.toString()}` : base;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch course notes: ${res.status} ${await res.text()}`);
+  // FIX: removed dead code (second apiFetch-based implementation) that appeared after this return
   return (await res.json()).map(mapNote);
-  const url = `${API_BASE_URL}/api/v1/notes${query.toString() ? `?${query.toString()}` : ''}`;
-
-  const response = await apiFetch(url, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
-  }, TIMEOUTS.FAST);
-
-  const data = await response.json();
-  return data.map(mapNote);
 };
 
 // ── Fetch available course sections ────────────────────────────────────────────
@@ -152,26 +143,11 @@ export const fetchNoteCourseSections = async (): Promise<CourseSection[]> => {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error('Failed to fetch note course sections');
+  // FIX: removed dead code (second apiFetch-based implementation) that appeared after this return
   return res.json();
-  const token = await getAuthToken();
-  const response = await apiFetch(`${API_BASE_URL}/api/v1/notes/course-sections`, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
-  }, TIMEOUTS.FAST);
-  return response.json();
 };
 
-export const fetchAllNotesByCourseSection = async (courseId: number): Promise<NoteItem[]> => {
-  const token = await getAuthToken();
-  const response = await apiFetch(`${API_BASE_URL}/api/v1/notes/course-section/${courseId}`, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
-  }, TIMEOUTS.FAST);
-  const data = await response.json();
-  return data.map(mapNote);
-};
-
-// Returns only course sections the logged-in user is enrolled in
+// ── Returns only course sections the logged-in user is enrolled in ──────────────
 export const fetchCourseSections = async (): Promise<CourseSection[]> => {
   const token = await getAuthToken();
   const response = await apiFetch(`${API_BASE_URL}/api/v1/course-sections/me`, {
@@ -202,11 +178,22 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
     formData.append('file', { uri: params.file.uri, name: filename, type: params.file.mimeType || 'application/octet-stream' } as any);
   }
 
-  await apiFetch(`${API_BASE_URL}/api/v1/notes`, {
+  // FIX: fetch() only accepts 2 arguments — removed the invalid third argument TIMEOUTS.SLOW
+  const response = await fetch(API_ENDPOINTS.NOTES, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
-  }, TIMEOUTS.SLOW);
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMessage = `Upload failed with status ${response.status}`;
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMessage = errorData.detail || errorMessage;
+    } catch {}
+    throw new Error(errorMessage);
+  }
 };
 
 export const deleteNote = async (noteId: number): Promise<void> => {
@@ -215,9 +202,15 @@ export const deleteNote = async (noteId: number): Promise<void> => {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
+
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Delete failed: ${response.status} ${errorText}`);
+    let errorMessage = `Delete failed with status ${response.status}`;
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMessage = errorData.detail || errorMessage;
+    } catch {}
+    throw new Error(errorMessage);
   }
 };
 
@@ -249,5 +242,6 @@ export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> =>
     body: formData,
   }, TIMEOUTS.SLOW);
 
-  return mapNote(await res.json());
+  // FIX: was `res.json()` but the variable is named `response`
+  return mapNote(await response.json());
 };
