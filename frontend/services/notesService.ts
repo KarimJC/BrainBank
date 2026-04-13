@@ -2,6 +2,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '@/services/supabase';
+import { AuthRequiredError, apiFetch, TIMEOUTS } from './errors';
 
 export interface CourseSection {
   course_section_id: number;
@@ -9,7 +10,7 @@ export interface CourseSection {
   course_crn: number;
   professor_id: number | null;
   course_code: string;
-  course_name: string;
+  course_name: string;  
   subject: string | null;
   professor_name: string | null;
 }
@@ -72,7 +73,7 @@ const validateAttachment = (mimeType: string | undefined, size: number | undefin
 
 const getAuthToken = async (): Promise<string> => {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error('User is not authenticated.');
+  if (!session?.access_token) throw new AuthRequiredError();
   return session.access_token;
 };
 
@@ -133,6 +134,15 @@ export const fetchNotesByCourse = async (
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch course notes: ${res.status} ${await res.text()}`);
   return (await res.json()).map(mapNote);
+  const url = `${API_BASE_URL}/api/v1/notes${query.toString() ? `?${query.toString()}` : ''}`;
+
+  const response = await apiFetch(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  }, TIMEOUTS.FAST);
+
+  const data = await response.json();
+  return data.map(mapNote);
 };
 
 // ── Fetch available course sections ────────────────────────────────────────────
@@ -143,16 +153,32 @@ export const fetchNoteCourseSections = async (): Promise<CourseSection[]> => {
   });
   if (!res.ok) throw new Error('Failed to fetch note course sections');
   return res.json();
+  const token = await getAuthToken();
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/notes/course-sections`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  }, TIMEOUTS.FAST);
+  return response.json();
+};
+
+export const fetchAllNotesByCourseSection = async (courseId: number): Promise<NoteItem[]> => {
+  const token = await getAuthToken();
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/notes/course-section/${courseId}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  }, TIMEOUTS.FAST);
+  const data = await response.json();
+  return data.map(mapNote);
 };
 
 // Returns only course sections the logged-in user is enrolled in
 export const fetchCourseSections = async (): Promise<CourseSection[]> => {
   const token = await getAuthToken();
-  const res = await fetch(`${API_BASE_URL}/api/v1/course-sections/me`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/course-sections/me`, {
+    method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`Failed to fetch course sections: ${res.status} ${await res.text()}`);
-  return res.json();
+  }, TIMEOUTS.FAST);
+  return response.json();
 };
 
 // ── Upload a new note ───────────────────────────────────────────────────────────
@@ -176,17 +202,22 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
     formData.append('file', { uri: params.file.uri, name: filename, type: params.file.mimeType || 'application/octet-stream' } as any);
   }
 
-  const res = await fetch(API_ENDPOINTS.NOTES, {
+  await apiFetch(`${API_BASE_URL}/api/v1/notes`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
-  });
+  }, TIMEOUTS.SLOW);
+};
 
-  if (!res.ok) {
-    const text = await res.text();
-    let msg = `Upload failed with status ${res.status}`;
-    try { msg = JSON.parse(text).detail || msg; } catch {}
-    throw new Error(msg);
+export const deleteNote = async (noteId: number): Promise<void> => {
+  const token = await getAuthToken();
+  const response = await fetch(API_ENDPOINTS.NOTE_BY_ID(String(noteId)), {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Delete failed: ${response.status} ${errorText}`);
   }
 };
 
@@ -212,18 +243,11 @@ export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> =>
     formData.append('file', { uri: params.file.uri, name: filename, type: params.file.mimeType || 'application/octet-stream' } as any);
   }
 
-  const res = await fetch(API_ENDPOINTS.NOTE_BY_ID(String(params.noteId)), {
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/notes/${params.noteId}`, {
     method: 'PUT',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    let msg = `Update failed with status ${res.status}`;
-    try { msg = JSON.parse(text).detail || msg; } catch {}
-    throw new Error(msg);
-  }
+  }, TIMEOUTS.SLOW);
 
   return mapNote(await res.json());
 };

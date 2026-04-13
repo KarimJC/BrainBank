@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  FlatList, Alert, StyleSheet, ActivityIndicator,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
@@ -13,6 +21,8 @@ import {
 } from '@/services/notesService';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
+import ErrorView from '@/components/ui/ErrorView';
+import ClassmatesModal from '@/components/course/ClassmatesModal';
 
 type FilterOption = 'All' | 'Recent' | 'Saved';
 type ViewMode = 'mine' | 'myProfessor' | 'allProfessors';
@@ -33,6 +43,7 @@ export default function CoursePage() {
 
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
 
@@ -40,6 +51,25 @@ export default function CoursePage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
   const [bookmarked, setBookmarked] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  // classmates 
+  const [showClassmates, setShowClassmates] = useState(false);
+  const [classmates, setClassmates] = useState<any[]>([]);
+  const [loadingClassmates, setLoadingClassmates] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try{
+        const user = await api.getCurrentUser(); 
+        setCurrentUserId(user.user_id);
+      } catch (error) {
+        console.error('Failed to get current user: ', error); 
+      }
+    }; 
+    fetchCurrentUser();
+  }, []);
 
   // Default to showing all sections of the course for this professor
   const [viewMode, setViewMode] = useState<ViewMode>('mine');
@@ -93,6 +123,21 @@ export default function CoursePage() {
     }
   };
 
+  const loadClassmates = async () => {
+    if (!courseId) return;
+    setLoadingClassmates(true);
+    try {
+      const data = await api.getCourseSectionStudents(Number(courseId));
+      setClassmates(data);
+      setShowClassmates(true);
+    } catch (error) {
+      console.error('Failed to load classmates:', error);
+      Alert.alert('Error', 'Failed to load classmates');
+    } finally {
+      setLoadingClassmates(false);
+    }
+  };
+
   const handleNavigate = (route: string) => {
     if (route === 'home')   router.push('/(tabs)');
     else if (route === 'notes')   router.push('/(tabs)/notes');
@@ -108,24 +153,29 @@ export default function CoursePage() {
     }
     return true;
   });
-
+  
   return (
     <AppLayout onNavigate={handleNavigate} activeRoute="notes">
       <View style={styles.inner}>
-
-        {/* ── Back + Bookmark ── */}
-        <View style={styles.topRow}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={26} color="#1C1C1E" />
+        {/* Back + Bookmark + classmates */}
+      <View style={styles.topRow}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={26} color="#1C1C1E" />
+        </TouchableOpacity>
+        
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <TouchableOpacity onPress={loadClassmates} disabled={loadingClassmates}>
+            {loadingClassmates ? (
+              <ActivityIndicator size="small" color="#6750A4" />
+            ) : (
+              <Ionicons name="people-outline" size={22} color="#6750A4" />
+            )}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setBookmarked(b => !b)}>
-            <Ionicons
-              name={bookmarked ? 'bookmark' : 'bookmark-outline'}
-              size={22}
-              color="#6750A4"
-            />
+            <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={22} color="#6750A4" />
           </TouchableOpacity>
         </View>
+      </View>
 
         {/* ── Course Title ── */}
         <Text style={styles.courseCode}>{courseCode ?? 'Course'}</Text>
@@ -197,7 +247,12 @@ export default function CoursePage() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#6B5BC7" />
           </View>
-        ) : filteredNotes.length === 0 ? (
+        ) 
+         : error ? (
+  <ErrorView message={error} onRetry={() => loadNotes()} />
+        )
+
+        : filteredNotes.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-text-outline" size={64} color="#E8E5F5" />
             <Text style={styles.emptyText}>No notes found</Text>
@@ -223,6 +278,12 @@ export default function CoursePage() {
           />
         )}
       </View>
+      <ClassmatesModal
+        visible={showClassmates}
+        classmates={classmates}
+        currentUserId={currentUserId}
+        onClose={() => setShowClassmates(false)}
+      />
 
       <NoteDetailModal
         note={selectedNote}
@@ -245,7 +306,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: 8,
   },
-  backBtn: { padding: 4 },
+  backBtn: {
+    padding: 4,
+  },
+  topRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  leaveBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#CC0000',
+  },
+  leaveBtnText: {
+    color: '#CC0000',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 
   courseCode: {
     fontSize: 28, fontWeight: '600', color: '#6750A4',
@@ -256,12 +336,29 @@ const styles = StyleSheet.create({
     textAlign: 'center', marginBottom: 16,
   },
 
-  // ── Toggle ──
-  toggleRow: {
+  searchContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F0EDF8',
-    borderRadius: 12,
-    padding: 4,
+    alignItems: 'center',
+    backgroundColor: '#F5F3FA',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E8E5F5',
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#000',
+  },
+
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
   },
   toggleBtn: {
@@ -294,10 +391,33 @@ const styles = StyleSheet.create({
   chipTextActive: { color: '#FFFFFF' },
   filterIconBtn: { padding: 4 },
 
-  listContent: { paddingBottom: 30 },
+  gridRow: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  listContent: {
+    paddingBottom: 30,
+  },
 
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  emptyText: { fontSize: 18, fontWeight: '600', color: '#000' },
-  emptySubtext: { fontSize: 14, color: '#999', textAlign: 'center' },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
 });
