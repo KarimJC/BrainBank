@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import AppLayout from '@/components/layout/AppLayout';
 import { useRouter } from 'expo-router';
+import { fetchUserProfile } from '@/services/profileService';
 import Svg, { Path } from 'react-native-svg';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { api } from '@/services/api';
@@ -161,7 +162,7 @@ export default function HomeScreen() {
                 Welcome, <Text style={styles.userName}>{userName}!</Text>
               </Text>
               {classes.length === 0 ? (
-                <Text style={styles.emptyText}>No classes yet. Add one to get started!</Text>
+                <Text>No classes yet. Add one to get started!</Text>
               ) : (
                 classes.map(classData => (
                   <ClassCard

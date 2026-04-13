@@ -1,10 +1,6 @@
-import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
 import { AuthRequiredError, apiFetch, TIMEOUTS } from './errors';
-
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
 const getApiUrl = (): string => {
   if (Constants.expoConfig?.extra?.apiUrl) {
@@ -15,7 +11,6 @@ const getApiUrl = (): string => {
     const port = process.env.EXPO_PUBLIC_API_PORT || '8000';
 
     const hostUri = Constants.expoConfig?.hostUri;
-    console.log('hostUri:', hostUri);
     if (hostUri) {
       const host = hostUri.split(':')[0];
       return `http://${host}:${port}`;
@@ -49,27 +44,25 @@ export const API_ENDPOINTS = {
   HEALTH: `${API_BASE_URL}/health`,
 };
 
+console.log('API Base URL:', API_BASE_URL);
+
 export const checkBackendConnection = async (): Promise<boolean> => {
   try {
     const response = await apiFetch(API_ENDPOINTS.HEALTH, { method: 'GET' }, TIMEOUTS.FAST);
     return response.ok;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
 
-console.log('API Base URL:', API_BASE_URL);
-
 async function getAuthHeaders() {
   const { data: { session } } = await supabase.auth.getSession();
-
   if (session?.access_token) {
     return {
       'Authorization': `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
     };
   }
-
   throw new AuthRequiredError();
 }
 
@@ -104,11 +97,7 @@ export const api = {
     const headers = await getAuthHeaders();
     const response = await apiFetch(
       `${API_BASE_URL}/api/v1/conversations/${conversationId}`,
-      {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ status }),
-      },
+      { method: 'PATCH', headers, body: JSON.stringify({ status }) },
       TIMEOUTS.DEFAULT
     );
     return response.json();
@@ -118,11 +107,7 @@ export const api = {
     const headers = await getAuthHeaders();
     const response = await apiFetch(
       `${API_BASE_URL}/api/v1/messages`,
-      {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ conversation_id: conversationId, content }),
-      },
+      { method: 'POST', headers, body: JSON.stringify({ conversation_id: conversationId, content }) },
       TIMEOUTS.DEFAULT
     );
     return response.json();
@@ -142,17 +127,13 @@ export const api = {
     const headers = await getAuthHeaders();
     const response = await apiFetch(
       `${API_BASE_URL}/api/v1/conversations/${initiatorId}`,
-      {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ recipient_id: recipientId }),
-      },
+      { method: 'POST', headers, body: JSON.stringify({ recipient_id: recipientId }) },
       TIMEOUTS.DEFAULT
     );
     return response.json();
   },
 
-async getCourseSectionByCRN(crn: number) {
+  async getCourseSectionByCRN(crn: number) {
     const headers = await getAuthHeaders();
     const response = await apiFetch(
       `${API_BASE_URL}/api/v1/course-sections/crn/${crn}`,
@@ -163,21 +144,21 @@ async getCourseSectionByCRN(crn: number) {
     return response.json();
   },
 
-  async unenrollFromCourseSection(sectionId: number, userId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
-      { method: 'DELETE', headers },
-      TIMEOUTS.DEFAULT
-    );
-    return response.json();
-  },
-
   async enrollInCourseSection(sectionId: number, userId: number) {
     const headers = await getAuthHeaders();
     const response = await apiFetch(
       `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
       { method: 'POST', headers },
+      TIMEOUTS.DEFAULT
+    );
+    return response.json();
+  },
+
+  async unenrollFromCourseSection(sectionId: number, userId: number) {
+    const headers = await getAuthHeaders();
+    const response = await apiFetch(
+      `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
+      { method: 'DELETE', headers },
       TIMEOUTS.DEFAULT
     );
     return response.json();
@@ -193,7 +174,7 @@ async getCourseSectionByCRN(crn: number) {
     return response.json();
   },
 
-async getProfessor(professorId: number) {
+  async getProfessor(professorId: number) {
     const headers = await getAuthHeaders();
     const response = await apiFetch(
       API_ENDPOINTS.PROFESSOR_BY_ID(professorId),
@@ -222,5 +203,4 @@ async getProfessor(professorId: number) {
     );
     return response.json();
   },
-
 };

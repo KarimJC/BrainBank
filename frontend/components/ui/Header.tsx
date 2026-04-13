@@ -1,16 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
-import { supabase } from '@/services/supabase';
-import { api } from '@/services/api';
-
-interface UserProfile {
-  user_id: number;
-  auth_id: string;
-  neu_email: string;
-  first_name: string;
-  last_name: string;
-  profile_picture?: string | null;
-}
+import { useUser } from '@/contexts/UserContext';
 
 interface HeaderProps {
   onNavigate: (route: string) => void;
@@ -18,41 +8,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [initials, setInitials] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session) {
-          console.error('No active session:', sessionError?.message);
-          return;
-        }
-
-        // Extract first name initial from NEU email format: lastname.firstname@...
-        const email = session.user.email ?? '';
-        const localPart = email.split('@')[0]; // e.g. "crowley.all"
-        const parts = localPart.split('.');
-        if (parts.length >= 2) {
-          setInitials(parts[1][0]?.toUpperCase() ?? '');
-        } else {
-          setInitials(parts[0][0]?.toUpperCase() ?? '');
-        }
-
-        const data: UserProfile = await api.getCurrentUser();
-
-        setUser(data);
-        setInitials(data.first_name.charAt(0).toUpperCase());
-      } catch (err) {
-        console.error('Header fetch error:', (err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
-  }, []);
+  const { user, initials, loading } = useUser();
+  const [imageError, setImageError] = useState(false);
 
   return (
     <View style={styles.header}>
@@ -68,11 +25,11 @@ const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => 
       </View>
       {activeRoute !== 'profile' && (
         <TouchableOpacity style={styles.profileButton} onPress={() => onNavigate('profile')}>
-          {!loading && user?.profile_picture ? (
+          {!loading && user?.profile_picture && !imageError ? (
             <Image
               source={{ uri: user.profile_picture }}
               style={styles.profileImage}
-              onError={() => setUser((prev) => prev ? { ...prev, profile_picture: null } : null)}
+              onError={() => setImageError(true)}
             />
           ) : (
             <View style={styles.defaultProfile}>
@@ -135,7 +92,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   defaultProfileText: {
-    fontSize: 32,
+    fontSize: 18,
     fontWeight: '600',
     color: '#6B5BC7',
   },

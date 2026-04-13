@@ -29,7 +29,6 @@ const formatDate = (d: Date): string => {
 
 export default function NotesListPage() {
   const router = useRouter();
-
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
