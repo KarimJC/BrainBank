@@ -124,10 +124,10 @@ export default function CoursePage() {
   };
 
   const loadClassmates = async () => {
-    if (!courseId) return;
+    if (!courseSectionId) return;
     setLoadingClassmates(true);
     try {
-      const data = await api.getCourseSectionStudents(Number(courseId));
+      const data = await api.getCourseSectionStudents(Number(courseSectionId));
       setClassmates(data);
       setShowClassmates(true);
     } catch (err) {
