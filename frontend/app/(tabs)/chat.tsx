@@ -66,7 +66,7 @@ const ConversationRow: React.FC<ConversationRowProps> = ({ messageData, onPress 
 
 export default function ChatScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'chats' | 'requests'>('chats');
+  const [activeTab, setActiveTab] = useState<'chats' | 'requests' | 'blocked'>('chats');
   const [conversations, setConversations] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -147,43 +147,41 @@ export default function ChatScreen() {
               )}
             </View>
           </TouchableOpacity>
+
+          {/* Blocked Tab */}
+          <TouchableOpacity
+            style={[styles.toggleButton, activeTab === 'blocked' && styles.activeToggle]}
+            onPress={() => setActiveTab('blocked')}
+          >
+            <Text style={[styles.toggleText, activeTab === 'blocked' && styles.activeText]}>
+              Blocked
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {activeTab === 'chats'
-          ? conversations
-              .filter(c => c.status === 'accepted')
-              .map(c => (
-                <ConversationRow
-                  key={c.conversation_id}
-                  messageData={{
-                    ...c,
-                    initiator_name: c.initiator_id === currentUserId
-                      ? c.recipient_name
-                      : c.initiator_name,
-                    profile_picture: c.initiator_id === currentUserId
-                      ? c.recipient_profile_picture
-                      : c.initiator_profile_picture,
-                  }}
-                  onPress={() => router.push(`/conversation/${c.conversation_id}` as any)}
-                />
-              ))
-          : conversations
-              .filter(c => c.status === 'pending')
-              .map(c => (
-                <ConversationRow
-                  key={c.conversation_id}
-                  messageData={{
-                    ...c,
-                    initiator_name: c.initiator_id === currentUserId
-                      ? c.recipient_name
-                      : c.initiator_name,
-                    profile_picture: c.initiator_id === currentUserId
-                      ? c.recipient_profile_picture
-                      : c.initiator_profile_picture,
-                  }}
-                  onPress={() => router.push(`/conversation/${c.conversation_id}` as any)}
-                />
-              ))
+        {conversations
+          .filter(c =>
+            activeTab === 'chats'
+              ? c.status === 'accepted'
+              : activeTab === 'requests'
+              ? c.status === 'pending'
+              : c.status === 'blocked'
+          )
+          .map(c => (
+            <ConversationRow
+              key={c.conversation_id}
+              messageData={{
+                ...c,
+                initiator_name: c.initiator_id === currentUserId
+                  ? c.recipient_name
+                  : c.initiator_name,
+                profile_picture: c.initiator_id === currentUserId
+                  ? c.recipient_profile_picture
+                  : c.initiator_profile_picture,
+              }}
+              onPress={() => router.push(`/conversation/${c.conversation_id}` as any)}
+            />
+          ))
         }
       </ScrollView>
     </AppLayout>

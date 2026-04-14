@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api, WS_URL} from '@/services/api';
@@ -133,6 +134,24 @@ export default function ConversationScreen() {
     }
   };
 
+  const handleBlock = async () => {
+    try {
+      const updated = await api.updateConversation(conversation.conversation_id, 'blocked');
+      setConversation(updated);
+    } catch (error) {
+      console.error('Failed to block:', error);
+    }
+  };
+
+  const handleUnblock = async () => {
+    try {
+      const updated = await api.updateConversation(conversation.conversation_id, 'accepted');
+      setConversation(updated);
+    } catch (error) {
+      console.error('Failed to unblock:', error);
+    }
+  };
+
   if (loading || !conversation) {
     return (
       <SafeAreaView style={styles.container}>
@@ -175,6 +194,23 @@ export default function ConversationScreen() {
             </View>
             <Text style={styles.nameLarge}>{otherPersonName}</Text>
           </View>
+          {conversation.status === 'accepted' && (
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() =>
+                Alert.alert('Options', undefined, [
+                  {
+                    text: `Block ${otherPersonName}`,
+                    style: 'destructive',
+                    onPress: handleBlock,
+                  },
+                  { text: 'Cancel', style: 'cancel' },
+                ])
+              }
+            >
+              <Text style={styles.menuIcon}>⋮</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* MESSAGE LIST */}
@@ -214,17 +250,33 @@ export default function ConversationScreen() {
         {/* INPUT BAR */}
         {conversation.status === 'pending' ? (
           <View style={styles.requestActionsBottom}>
-            <TouchableOpacity style={styles.acceptButton} onPress={handleAccept}>
-              <Text style={styles.acceptText}>Accept</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.declineButton} onPress={handleDecline}>
-              <Text style={styles.declineText}>Decline</Text>
+            {conversation.recipient_id === currentUserId && (
+              <>
+                <TouchableOpacity style={styles.acceptButton} onPress={handleAccept}>
+                  <Text style={styles.acceptText}>Accept</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.declineButton} onPress={handleDecline}>
+                  <Text style={styles.declineText}>Decline</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={styles.blockButton} onPress={handleBlock}>
+              <Text style={styles.blockText}>Block</Text>
             </TouchableOpacity>
           </View>
         ) : conversation.blocked_by !== null ? (
-          <View style={styles.blockedInputBar}>
-            <Text style={styles.blockedInputText}>You can&apos;t reply to this conversation</Text>
-          </View>
+          conversation.blocked_by === currentUserId ? (
+            <View style={styles.blockedInputBar}>
+              <Text style={styles.blockedInputText}>You blocked {otherPersonName}</Text>
+              <TouchableOpacity style={styles.unblockButton} onPress={handleUnblock}>
+                <Text style={styles.unblockText}>Unblock</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.blockedInputBar}>
+              <Text style={styles.blockedInputText}>You can&apos;t reply to this conversation</Text>
+            </View>
+          )
         ) : (
           <View style={styles.inputBar}>
             <TextInput
@@ -408,5 +460,48 @@ const styles = StyleSheet.create({
   declineText: {
     color: '#111827',
     fontWeight: '600',
+  },
+  blockButton: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  blockText: {
+    color: '#DC2626',
+    fontWeight: '600',
+  },
+  unblockButton: {
+    marginTop: 8,
+    backgroundColor: '#6B4CE6',
+    paddingHorizontal: 20,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  unblockText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  menuButton: {
+    position: 'absolute',
+    right: 16,
+    top: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuIcon: {
+    fontSize: 26,
+    color: '#6B4CE6',
+    fontWeight: '700',
+    lineHeight: 26,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });
