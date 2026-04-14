@@ -10,8 +10,9 @@ from db.crud.conversation import (
     check_conversation_exists as check_conversation_exists_crud,
 )
 
-from db.crud.user import get_user_by_id
-from api.schemas.conversation import ConversationCreate, ConversationUpdate, ConversationResponse
+from db.crud.user import get_user_by_id, get_user_by_auth_id
+from api.schemas.conversation import ConversationCreate, ConversationUpdate, ConversationResponse, ConversationStatus
+from auth import get_current_user
 from core.exceptions import DatabaseException, ConversationAlreadyExists, ConversationNotFound, UserNotFoundException
 from db.connection import get_db
 from cache.redis_client import cache_get, cache_set, cache_delete
@@ -36,14 +37,22 @@ def create_conversation(
 
 @router.patch("/conversations/{conversation_id}", response_model=ConversationResponse, status_code=status.HTTP_200_OK)
 def update_conversation(
-    conversation_id: int, updated_conversation_data: ConversationUpdate, db: Connection = Depends(get_db)
+    conversation_id: int,
+    updated_conversation_data: ConversationUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: Connection = Depends(get_db),
 ):
     conv = get_conversation_by_id_crud(conversation_id, db)
     if not conv:
         raise ConversationNotFound(conversation_id)
 
+    user = get_user_by_auth_id(current_user["auth_id"], db)
+
+    # Record who blocked; clear it for any other status transition
+    blocked_by = user["user_id"] if updated_conversation_data.status == ConversationStatus.blocked else None
+
     updated_conversation = update_conversation_status_crud(
-        conversation_id, updated_conversation_data.status.name, None, db
+        conversation_id, updated_conversation_data.status.name, blocked_by, db
     )
     cache_delete(
         f"conversations:{conv['initiator_id']}",
