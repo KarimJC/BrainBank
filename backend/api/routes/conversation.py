@@ -8,6 +8,7 @@ from db.crud.conversation import (
     get_user_conversations as get_user_conversations_crud,
     update_conversation_status as update_conversation_status_crud,
     check_conversation_exists as check_conversation_exists_crud,
+    mark_conversation_read as mark_conversation_read_crud,
 )
 
 from db.crud.user import get_user_by_id, get_user_by_auth_id
@@ -73,7 +74,7 @@ def get_user_conversations(user_id: int, db: Connection = Depends(get_db)):
         return cached
 
     conversations = get_user_conversations_crud(user_id, db)
-    cache_set(cache_key, conversations, ttl=30)
+    cache_set(cache_key, conversations, ttl=5)
     return conversations
 
 
@@ -84,3 +85,21 @@ def get_conversation(conversation_id: int, db: Connection = Depends(get_db)):
         raise ConversationNotFound(conversation_id)
     else:
         return get_conversation
+
+
+@router.post("/conversations/{conversation_id}/read", status_code=status.HTTP_204_NO_CONTENT)
+def mark_read(
+    conversation_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Connection = Depends(get_db),
+):
+    conv = get_conversation_by_id_crud(conversation_id, db)
+    if not conv:
+        raise ConversationNotFound(conversation_id)
+
+    user = get_user_by_auth_id(current_user["auth_id"], db)
+    mark_conversation_read_crud(conversation_id, user["user_id"], db)
+    cache_delete(
+        f"conversations:{conv['initiator_id']}",
+        f"conversations:{conv['recipient_id']}",
+    )

@@ -71,6 +71,8 @@ export default function ConversationScreen() {
       const result = await api.getMessages(Number(id));
       setMessages(result.messages);
       setNextCursor(result.next_cursor);
+      // Mark as read — fire and forget, don't block the UI
+      api.markConversationRead(Number(id)).catch(() => {});
     } catch (error) {
       console.error('Failed to load conversation:', error);
     } finally {

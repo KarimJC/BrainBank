@@ -180,6 +180,14 @@ async getMessages(
   return response.json();
 },
 
+async markConversationRead(conversationId: number) {
+  const headers = await getAuthHeaders();
+  await fetch(`${API_BASE_URL}/api/v1/conversations/${conversationId}/read`, {
+    method: 'POST',
+    headers,
+  });
+},
+
 async createConversation(initiatorId: number, recipientId: number) {
   const headers = await getAuthHeaders();
   const response = await fetch(

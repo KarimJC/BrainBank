@@ -52,7 +52,7 @@ export default function ProfileScreen() {
   const testCreateConversation = async () => {
   try {
     const currentUser = await api.getCurrentUser();
-    await api.createConversation(currentUser.user_id, 16); // replace with real id
+    await api.createConversation(currentUser.user_id, 40); // replace with real id
     Alert.alert('Success', 'Conversation created!');
   } catch (error) {
     console.error('Failed:', error);

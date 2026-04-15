@@ -1,5 +1,5 @@
 import AppLayout from '@/components/layout/AppLayout';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
   View,
@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { api } from '@/services/api';
 
@@ -22,6 +24,7 @@ interface ConversationRowProps {
     blocked_by: number | null;
     initiator_name: string;
     profile_picture: string | null;
+    unread_count: number;
   };
   onPress: () => void;
 }
@@ -54,15 +57,23 @@ const ConversationRow: React.FC<ConversationRowProps> = ({ messageData, onPress 
         </View>
 
         {/* RIGHT SIDE */}
-        {messageData.blocked_by !== null && (
+        {messageData.blocked_by !== null ? (
           <View style={styles.blockedBadge}>
             <Text style={styles.blockedText}>Blocked</Text>
           </View>
-        )}
+        ) : messageData.unread_count > 0 ? (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadBadgeText}>
+              {messageData.unread_count > 99 ? '99+' : messageData.unread_count}
+            </Text>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
 };
+
+const POLL_INTERVAL_MS = 5000;
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -71,13 +82,61 @@ export default function ChatScreen() {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isFocused = useRef(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   const pendingCount = conversations.filter(c => c.status === 'pending').length;
 
+  // Silent refresh — no loading spinner, used by the poller
+  const refreshConversations = useCallback(async (userId: number) => {
+    try {
+      const data = await api.getConversations(userId);
+      setConversations(data);
+    } catch {
+      // silently ignore poll errors
+    }
+  }, []);
+
+  const startPolling = useCallback((userId: number) => {
+    if (intervalRef.current) return; // already running
+    intervalRef.current = setInterval(() => {
+      refreshConversations(userId);
+    }, POLL_INTERVAL_MS);
+  }, [refreshConversations]);
+
+  const stopPolling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // Stop polling when app goes to background; resume when foregrounded
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      const prev = appStateRef.current;
+      appStateRef.current = next;
+      if (next === 'active' && prev !== 'active' && isFocused.current && currentUserId) {
+        refreshConversations(currentUserId);
+        startPolling(currentUserId);
+      } else if (next !== 'active') {
+        stopPolling();
+      }
+    });
+    return () => sub.remove();
+  }, [currentUserId, refreshConversations, startPolling, stopPolling]);
+
+  // Start/stop polling with screen focus
   useFocusEffect(
     useCallback(() => {
+      isFocused.current = true;
       loadConversations();
-    }, [])
+      return () => {
+        isFocused.current = false;
+        stopPolling();
+      };
+    }, [stopPolling])
   );
 
   const loadConversations = async () => {
@@ -88,6 +147,7 @@ export default function ChatScreen() {
       setCurrentUserId(user.user_id);
       const data = await api.getConversations(user.user_id);
       setConversations(data);
+      startPolling(user.user_id);
     } catch (error) {
       console.error('Failed to load conversations:', error);
     } finally {
@@ -178,6 +238,7 @@ export default function ChatScreen() {
                 profile_picture: c.initiator_id === currentUserId
                   ? c.recipient_profile_picture
                   : c.initiator_profile_picture,
+                unread_count: c.unread_count ?? 0,
               }}
               onPress={() => router.push(`/conversation/${c.conversation_id}` as any)}
             />
@@ -285,5 +346,19 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
+  },
+  unreadBadge: {
+    backgroundColor: '#6B4CE6',
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  unreadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
