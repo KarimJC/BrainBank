@@ -43,6 +43,7 @@ class MessageResponse(BaseModel):
 
 class MessageDeleteResponse(BaseModel):
     message: str
+<<<<<<< HEAD
     deleted_id: str
 
 
@@ -50,3 +51,6 @@ class PaginatedMessagesResponse(BaseModel):
     messages: List[MessageResponse]
     next_cursor: Optional[str] = None
     has_more: bool
+=======
+    deleted_id: str  
+>>>>>>> origin/main

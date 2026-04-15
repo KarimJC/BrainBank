@@ -105,7 +105,7 @@ export default function NotesFilterModal({
               >
                 <Text style={[styles.inputText, !selectedCourseSection && styles.placeholder]}>
                   {selectedCourseSection
-                    ? `${selectedCourseSection.course_code} ${selectedCourseSection.course_title}`
+                    ? `${selectedCourseSection.course_code} ${selectedCourseSection.course_name}`
                     : 'All courses'}
                 </Text>
                 <Ionicons name="chevron-down" size={20} color="#6B5BC7" />
@@ -139,7 +139,7 @@ export default function NotesFilterModal({
                     >
                       <Text style={[styles.courseOptionText, isSelected && styles.courseOptionTextSelected]}>
                         {section
-                          ? `${section.course_code} ${section.course_title}`
+                          ? `${section.course_code} ${section.course_name}`
                           : 'All courses'}
                       </Text>
                       {isSelected && (

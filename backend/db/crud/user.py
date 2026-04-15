@@ -6,13 +6,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-USER_COLUMNS = "user_id, auth_id, neu_email, first_name, last_name, profile_picture"
-
-
 def get_user_by_id(user_id: int, db: Connection):
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(f"SELECT {USER_COLUMNS} FROM public.user WHERE user_id = %s", (user_id,))
+        query = """
+            SELECT user_id, auth_id, neu_email, first_name, last_name, profile_picture
+            FROM public.user
+            WHERE user_id = %s
+        """
+        cursor.execute(query, (user_id,))
         result = cursor.fetchone()
         cursor.close()
         return dict(result) if result else None
@@ -24,7 +26,12 @@ def get_user_by_id(user_id: int, db: Connection):
 def get_user_by_auth_id(auth_id: str, db: Connection):
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(f"SELECT {USER_COLUMNS} FROM public.user WHERE auth_id = %s", (auth_id,))
+        query = """
+            SELECT user_id, auth_id, neu_email, first_name, last_name, profile_picture
+            FROM public.user
+            WHERE auth_id = %s
+        """
+        cursor.execute(query, (auth_id,))
         result = cursor.fetchone()
         cursor.close()
         return dict(result) if result else None
@@ -39,9 +46,6 @@ def update_user(user_id: int, user_data: UserUpdate, db: Connection) -> dict:
         update_fields = []
         values = []
 
-        if user_data.neu_email is not None:
-            update_fields.append("neu_email = %s")
-            values.append(user_data.neu_email)
         if user_data.first_name is not None:
             update_fields.append("first_name = %s")
             values.append(user_data.first_name)
@@ -60,16 +64,14 @@ def update_user(user_id: int, user_data: UserUpdate, db: Connection) -> dict:
             UPDATE public.user
             SET {", ".join(update_fields)}
             WHERE user_id = %s
-            RETURNING {USER_COLUMNS}
+            RETURNING user_id, auth_id, neu_email, first_name, last_name, profile_picture
         """
         cursor.execute(query, values)
         result = cursor.fetchone()
         db.commit()
         cursor.close()
-
         logger.info(f"Updated user {user_id}")
         return dict(result) if result else None
-
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update user {user_id}: {str(e)}")
@@ -82,9 +84,6 @@ def update_user_by_auth_id(auth_id: str, user_data: UserUpdate, db: Connection) 
         update_fields = []
         values = []
 
-        if user_data.neu_email is not None:
-            update_fields.append("neu_email = %s")
-            values.append(user_data.neu_email)
         if user_data.first_name is not None:
             update_fields.append("first_name = %s")
             values.append(user_data.first_name)
@@ -103,16 +102,14 @@ def update_user_by_auth_id(auth_id: str, user_data: UserUpdate, db: Connection) 
             UPDATE public.user
             SET {", ".join(update_fields)}
             WHERE auth_id = %s
-            RETURNING {USER_COLUMNS}
+            RETURNING user_id, auth_id, neu_email, first_name, last_name, profile_picture
         """
         cursor.execute(query, values)
         result = cursor.fetchone()
         db.commit()
         cursor.close()
-
         logger.info(f"Updated user with auth_id {auth_id}")
         return dict(result) if result else None
-
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update user by auth_id {auth_id}: {str(e)}")
@@ -122,7 +119,8 @@ def update_user_by_auth_id(auth_id: str, user_data: UserUpdate, db: Connection) 
 def delete_user(user_id: int, db: Connection) -> bool:
     try:
         cursor = db.cursor()
-        cursor.execute("DELETE FROM public.user WHERE user_id = %s", (user_id,))
+        query = "DELETE FROM public.user WHERE user_id = %s"
+        cursor.execute(query, (user_id,))
         db.commit()
         deleted = cursor.rowcount > 0
         cursor.close()
@@ -137,7 +135,8 @@ def delete_user(user_id: int, db: Connection) -> bool:
 def delete_user_by_auth_id(auth_id: str, db: Connection) -> bool:
     try:
         cursor = db.cursor()
-        cursor.execute("DELETE FROM public.user WHERE auth_id = %s", (auth_id,))
+        query = "DELETE FROM public.user WHERE auth_id = %s"
+        cursor.execute(query, (auth_id,))
         db.commit()
         deleted = cursor.rowcount > 0
         cursor.close()
@@ -152,7 +151,8 @@ def delete_user_by_auth_id(auth_id: str, db: Connection) -> bool:
 def check_email_exists(email: str, db: Connection) -> bool:
     try:
         cursor = db.cursor()
-        cursor.execute("SELECT EXISTS(SELECT 1 FROM public.user WHERE neu_email = %s)", (email,))
+        query = "SELECT EXISTS(SELECT 1 FROM public.user WHERE neu_email = %s)"
+        cursor.execute(query, (email,))
         exists = cursor.fetchone()[0]
         cursor.close()
         return exists

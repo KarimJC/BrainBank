@@ -13,6 +13,7 @@ import {
   AppStateStatus,
 } from 'react-native';
 import { api } from '@/services/api';
+import ErrorView from '@/components/ui/ErrorView';
 
 // Conversation Row Component
 interface ConversationRowProps {
@@ -80,8 +81,10 @@ export default function ChatScreen() {
   const [activeTab, setActiveTab] = useState<'chats' | 'requests' | 'blocked'>('chats');
   const [conversations, setConversations] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFocused = useRef(false);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
@@ -142,14 +145,17 @@ export default function ChatScreen() {
   const loadConversations = async () => {
     if (loading) return;
     setLoading(true);
+    setError(null);
     try {
       const user = await api.getCurrentUser();
       setCurrentUserId(user.user_id);
+      setProfileImage(user.profile_picture ?? null);
       const data = await api.getConversations(user.user_id);
       setConversations(data);
       startPolling(user.user_id);
-    } catch (error) {
-      console.error('Failed to load conversations:', error);
+    } catch (err) {
+      console.error('Failed to load conversations:', err);
+      setError('Failed to load conversations. Please try again.');
     } finally {
       setLoading(false);
       setInitialLoad(false);
@@ -165,7 +171,7 @@ export default function ChatScreen() {
 
   if (initialLoad) {
     return (
-      <AppLayout userName="User" onNavigate={handleNavigation} activeRoute="chat">
+      <AppLayout onNavigate={handleNavigation} activeRoute="chat">
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#6B4CE6" />
         </View>
@@ -173,13 +179,21 @@ export default function ChatScreen() {
     );
   }
 
+  if (error) {
+    return (
+      <AppLayout onNavigate={handleNavigation} activeRoute="chat">
+        <ErrorView message={error} onRetry={loadConversations} />
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout
-      userName="User"
       onNavigate={handleNavigation}
       activeRoute="chat"
     >
       <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={styles.pageHeader}>Messages</Text>
         <View style={styles.toggleContainer}>
           {/* Chats Tab */}
           <TouchableOpacity
@@ -250,13 +264,19 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
+  pageHeader: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#000',
+    marginTop: 16,
+    marginBottom: 8,
+  },
   toggleContainer: {
     flexDirection: 'row',
     backgroundColor: '#F2F2F7',
     borderRadius: 12,
     padding: 4,
     marginHorizontal: 16,
-    marginTop: 16,
   },
   toggleButton: {
     flex: 1,

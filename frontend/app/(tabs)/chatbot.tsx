@@ -18,6 +18,7 @@ import {
   DocumentType,
   GeneratedDocument,
   DOC_LABEL,
+  getUserDbId,
   sendChatMessage,
   loadChatHistory,
   generateDocument,
@@ -153,19 +154,23 @@ export default function ChatbotScreen() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
-  // TODO: replace with real user ID lookup once backend auth is set up
-  const [userId, setUserId] = useState<number | null>(5);
+  const [useAllSections, setUseAllSections] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
   const [userIdError, setUserIdError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [docGenerating, setDocGenerating] = useState<DocumentType | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
 
-  // On mount: load chat history
+  // On mount: resolve real user ID then load chat history
   useEffect(() => {
+    setMessages([WELCOME_MESSAGE]);
+    setUserIdError(false);
     (async () => {
       try {
-        const history = await loadChatHistory(5, sectionId);
+        const id = await getUserDbId();
+        setUserId(id);
+        const history = await loadChatHistory(id, sectionId);
         if (history.length > 0) {
           setMessages(history);
         }
@@ -174,7 +179,7 @@ export default function ChatbotScreen() {
         setUserIdError(true);
       }
     })();
-  }, []);
+  }, [sectionId]);
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
@@ -196,7 +201,7 @@ export default function ChatbotScreen() {
     setIsLoading(true);
 
     try {
-      const aiText = await sendChatMessage(userId, sectionId, userMsg.content);
+      const aiText = await sendChatMessage(userId, sectionId, userMsg.content, useAllSections);
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -220,20 +225,21 @@ export default function ChatbotScreen() {
   const handleGenerate = async (type: DocumentType) => {
     if (!userId || docGenerating) return;
 
+    const scopeLabel = useAllSections ? "all sections taught by your professor" : 'this section';
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: `Generate a ${DOC_LABEL[type]} for this course.`,
+      content: `Generate a ${DOC_LABEL[type]} for ${scopeLabel}.`,
     };
     setMessages((prev) => [...prev, userMsg]);
     setDocGenerating(type);
 
     try {
-      const doc: GeneratedDocument = await generateDocument(userId, sectionId, type);
+      const doc: GeneratedDocument = await generateDocument(userId, sectionId, type, useAllSections);
       const docMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Your ${DOC_LABEL[type]} is ready! Tap the button below to open and share the PDF.`,
+        content: `Your ${DOC_LABEL[type]} for ${scopeLabel} is ready! Tap the button below to open and share the PDF.`,
         isDocument: true,
         docType: type,
         docId: doc.docId,
@@ -309,6 +315,26 @@ export default function ChatbotScreen() {
           </View>
         </View>
         <View style={{ width: 40 }} />
+      </View>
+
+      {/* Context toggle */}
+      <View style={styles.contextToggle}>
+        <TouchableOpacity
+          style={[styles.contextButton, !useAllSections && styles.contextButtonActive]}
+          onPress={() => setUseAllSections(false)}
+        >
+          <Text style={[styles.contextButtonText, !useAllSections && styles.contextButtonTextActive]}>
+            This Section
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.contextButton, useAllSections && styles.contextButtonActive]}
+          onPress={() => setUseAllSections(true)}
+        >
+          <Text style={[styles.contextButtonText, useAllSections && styles.contextButtonTextActive]}>
+            Prof's Sections
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Quick-action document buttons */}
@@ -615,6 +641,35 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.4,
+  },
+  contextToggle: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGrey,
+    backgroundColor: COLORS.white,
+  },
+  contextButton: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.mediumGrey,
+    alignItems: 'center',
+  },
+  contextButtonActive: {
+    borderColor: COLORS.darkPurple,
+    backgroundColor: COLORS.lightPurple,
+  },
+  contextButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.mediumGrey,
+  },
+  contextButtonTextActive: {
+    color: COLORS.darkPurple,
   },
   typingDots: {
     flexDirection: 'row',

@@ -31,4 +31,7 @@ jobs:
         run: npm run lint
 
       - name: Build (web export)
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: npx expo export --platform web

@@ -11,10 +11,14 @@ import {
   Animated,
   PanResponder,
   Dimensions,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { NoteItem, CourseSection } from '@/services/notesService';
+import { NoteItem, CourseSection, deleteNote } from '@/services/notesService';
 import NoteEditModal from './NoteEditModal';
 
 interface NoteDetailModalProps {
@@ -22,6 +26,8 @@ interface NoteDetailModalProps {
   courseSections: CourseSection[];
   onClose: () => void;
   onUpdated: (updated: NoteItem) => void;
+  onDeleted?: (noteId: number) => void;
+  editable?: boolean;
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -40,9 +46,55 @@ const formatDisplayDate = (dateStr?: string | null): string => {
   }
 };
 
-export default function NoteDetailModal({ note, courseSections, onClose, onUpdated }: NoteDetailModalProps) {
+export default function NoteDetailModal({ note, courseSections, onClose, onUpdated, onDeleted, editable = true }: NoteDetailModalProps) {
   const insets = useSafeAreaInsets();
   const [showEdit, setShowEdit] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!note) return;
+    Alert.alert('Delete Note', 'Are you sure you want to delete this note?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          try {
+            setDeleting(true);
+            await deleteNote(note.noteId);
+            onDeleted?.(note.noteId);
+            handleDismiss();
+          } catch {
+            Alert.alert('Error', 'Failed to delete note.');
+          } finally {
+            setDeleting(false);
+          }
+        }
+      }
+    ]);
+  };
+
+  const handleDownload = async () => {
+    if (!note) return;
+    const url = note.fileUrl || note.mediaUrl;
+    if (!url) return;
+
+    try {
+      setDownloading(true);
+      const filename = note.fileName || url.split('/').pop() || 'download';
+      const localUri = FileSystem.documentDirectory + filename;
+      const { uri } = await FileSystem.downloadAsync(url, localUri);
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri);
+      } else {
+        Alert.alert('Downloaded', 'File saved successfully.');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to download the file. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
   const translateX = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
@@ -122,10 +174,35 @@ export default function NoteDetailModal({ note, courseSections, onClose, onUpdat
               <TouchableOpacity onPress={handleDismiss} hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}>
                 <Ionicons name="chevron-back" size={32} color="#000" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.editButton} onPress={() => setShowEdit(true)}>
-                <Ionicons name="pencil-outline" size={18} color="#6B5BC7" />
-                <Text style={styles.editButtonText}>Edit</Text>
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                {(note.fileUrl || note.mediaUrl) && (
+                  <TouchableOpacity style={styles.downloadButton} onPress={handleDownload} disabled={downloading}>
+                    {downloading ? (
+                      <ActivityIndicator size="small" color="#6B5BC7" />
+                    ) : (
+                      <>
+                        <Ionicons name="download-outline" size={18} color="#6B5BC7" />
+                        <Text style={styles.editButtonText}>Download</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
+                {editable && (
+                  <>
+                    <TouchableOpacity style={styles.editButton} onPress={() => setShowEdit(true)}>
+                      <Ionicons name="pencil-outline" size={18} color="#6B5BC7" />
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} disabled={deleting}>
+                      {deleting ? (
+                        <ActivityIndicator size="small" color="#E53935" />
+                      ) : (
+                        <Ionicons name="trash-outline" size={20} color="#E53935" />
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
             </View>
 
             <View style={styles.courseBadge}>
@@ -148,6 +225,13 @@ export default function NoteDetailModal({ note, courseSections, onClose, onUpdat
               <View style={styles.metaRow}>
                 <Ionicons name="person-outline" size={16} color="#999" />
                 <Text style={styles.metaText}>Prof. {note.professorName}</Text>
+              </View>
+            )}
+
+            {note.uploaderName && (
+              <View style={styles.metaRow}>
+                <Ionicons name="person-circle-outline" size={16} color="#999" />
+                <Text style={styles.metaText}>Uploaded by {note.uploaderName}</Text>
               </View>
             )}
 
@@ -239,6 +323,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 20,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -247,6 +336,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     gap: 6,
+  },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8E5F5',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 6,
+    minWidth: 44,
+    justifyContent: 'center',
   },
   editButtonText: {
     fontSize: 14,
@@ -334,5 +434,13 @@ const styles = StyleSheet.create({
   fileSizeText: {
     fontSize: 13,
     color: '#999',
+  },
+  deleteButton: {
+    backgroundColor: '#FDECEA',
+    borderRadius: 20,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 36,
   },
 });

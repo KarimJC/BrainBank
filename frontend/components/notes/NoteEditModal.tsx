@@ -291,7 +291,7 @@ export default function NoteEditModal({ note, courseSections, onClose, onUpdated
               >
                 <Text style={[styles.inputText, !selectedCourseSection && styles.placeholder]}>
                   {selectedCourseSection
-                    ? `${selectedCourseSection.course_code} ${selectedCourseSection.course_title}`
+                    ? `${selectedCourseSection.course_code} ${selectedCourseSection.course_name}`
                     : 'Select a course section'}
                 </Text>
                 <Ionicons name="chevron-down" size={20} color="#6B5BC7" />

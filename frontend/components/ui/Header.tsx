@@ -1,39 +1,45 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { useUser } from '@/contexts/UserContext';
 
 interface HeaderProps {
-  userName: string;
-  profileImage?: any;
-  onProfilePress?: () => void;
+  onNavigate: (route: string) => void;
+  activeRoute?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ 
-  userName, 
-  profileImage,
-  onProfilePress 
-}) => {
+const Header: React.FC<HeaderProps> = ({ onNavigate, activeRoute = 'home' }) => {
+  const { user, initials, loading } = useUser();
+  const [imageError, setImageError] = useState(false);
+
   return (
     <View style={styles.header}>
-      <Text style={styles.logo}>
-        Brain<Text style={styles.logoAccent}>Bank</Text>
-      </Text>
-      <TouchableOpacity 
-        style={styles.profileButton}
-        onPress={onProfilePress}
-      >
-        {profileImage ? (
-          <Image
-            source={profileImage}
-            style={styles.profileImage}
-          />
-        ) : (
-          <View style={styles.defaultProfile}>
-            <Text style={styles.defaultProfileText}>
-              {userName.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      <View style={styles.logoContainer}>
+        <Text style={styles.logo}>
+          Brain<Text style={styles.logoAccent}>Bank</Text>
+        </Text>
+        <Image
+          source={require('@/assets/images/piggybank.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+      </View>
+      {activeRoute !== 'profile' && (
+        <TouchableOpacity style={styles.profileButton} onPress={() => onNavigate('profile')}>
+          {!loading && user?.profile_picture && !imageError ? (
+            <Image
+              source={{ uri: user.profile_picture }}
+              style={styles.profileImage}
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <View style={styles.defaultProfile}>
+              {initials ? (
+                <Text style={styles.defaultProfileText}>{initials}</Text>
+              ) : null}
+            </View>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -43,23 +49,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 12,
     backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  logoImage: {
+    width: 55,
+    height: 55,
   },
   logo: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#000',
+    marginTop: 5,
   },
   logoAccent: {
     color: '#6B5BC7',
   },
   profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     overflow: 'hidden',
   },
   profileImage: {

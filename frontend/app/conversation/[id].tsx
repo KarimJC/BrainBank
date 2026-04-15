@@ -11,9 +11,12 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api, WS_URL} from '@/services/api';
+import { Ionicons } from '@expo/vector-icons';
+import GifPicker from '@/components/ui/GifPicker'; 
 
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams();
@@ -27,6 +30,13 @@ export default function ConversationScreen() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttempts = useRef(0);
+  const isMounted = useRef(true);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+
+  const isGif = (content: string) => content.startsWith('[GIF]:');
+  const getGifUrl = (content: string) => content.replace('[GIF]:', '');
 
   useEffect(() => {
     setLoading(true);
@@ -37,29 +47,55 @@ export default function ConversationScreen() {
   }, [id]);
 
   useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!currentUserId) return;
 
-    const ws = new WebSocket(`${WS_URL}/api/v1/ws/${currentUserId}`);
+    const connect = () => {
+      const ws = new WebSocket(`${WS_URL}/api/v1/ws/${currentUserId}`);
 
-    ws.onopen = () => console.log('WebSocket connected');
+      ws.onopen = () => {
+        reconnectAttempts.current = 0;
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const incoming = JSON.parse(event.data);
-        if (incoming.conversation_id === Number(id)) {
-          setMessages(prev => [...prev, incoming]);
+      ws.onmessage = (event) => {
+        try {
+          const incoming = JSON.parse(event.data);
+          if (incoming.conversation_id === Number(id)) {
+            setMessages(prev => [...prev, incoming]);
+          }
+        } catch (e) {
+          console.error('Failed to parse WS message:', e);
         }
-      } catch (e) {
-        console.error('Failed to parse message:', e);
-      }
+      };
+
+      ws.onerror = () => {};
+
+      ws.onclose = () => {
+        if (!isMounted.current) return;
+        // Reconnect up to 5 times with exponential backoff (1s, 2s, 4s, 8s, 16s)
+        if (reconnectAttempts.current < 5) {
+          const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 16000);
+          reconnectAttempts.current += 1;
+          reconnectTimer.current = setTimeout(connect, delay);
+        }
+      };
+
+      wsRef.current = ws;
     };
 
-    ws.onerror = (error) => console.error('WebSocket error:', error);
-    ws.onclose = () => console.log('WebSocket disconnected');
+    connect();
 
-    wsRef.current = ws;
-
-    return () => ws.close();
+    return () => {
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      wsRef.current?.close();
+    };
   }, [currentUserId]);
 
   const loadConversation = async () => {
@@ -94,28 +130,41 @@ export default function ConversationScreen() {
     }
   };
 
-  const handleSend = async () => {
-    if (!inputText.trim()) return;
-    if (!wsRef.current || wsRef.current.readyState != WebSocket.OPEN) {
-      console.error('Websocket is not ready')
-      return;
-    }
-    const messageData = {
-      conversation_id: Number(id),
-      content: inputText.trim(),
-    };
+  const sendContent = async (text: string) => {
+    if (!text) return;
 
-    wsRef.current.send(JSON.stringify(messageData));
-
-    setMessages(prev => [...prev, {
+    const optimistic = {
       message_id: Date.now().toString(),
       sender_id: currentUserId,
-      content: inputText.trim(),
+      content: text,
       conversation_id: Number(id),
       created_at: new Date().toISOString(),
-    }]);
+    };
 
+    setMessages(prev => [...prev, optimistic]);
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ conversation_id: Number(id), content: text }));
+    } else {
+      try {
+        await api.sendMessage(Number(id), text);
+      } catch (e) {
+        console.error('Failed to send via REST fallback:', e);
+        setMessages(prev => prev.filter(m => m.message_id !== optimistic.message_id));
+      }
+    }
+  };
+
+  const handleSelectGif = (gifUrl: string) => {
+    setShowGifPicker(false);
+    sendContent(`[GIF]:${gifUrl}`);
+  };
+
+  const handleSend = async () => {
+    const text = inputText.trim();
+    if (!text) return;
     setInputText('');
+    await sendContent(text);
   };
 
   const handleAccept = async () => {
@@ -176,6 +225,8 @@ export default function ConversationScreen() {
     .join('')
     .toUpperCase();
 
+  const isPendingRequest = conversation.status === 'pending';
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -234,15 +285,29 @@ export default function ConversationScreen() {
 
           {messages.map(message => {
             const isMyMessage = message.sender_id === currentUserId;
+            const messageIsGif = isGif(message.content);
+            
             return (
               <View
                 key={message.message_id}
                 style={[styles.messageRow, isMyMessage ? styles.myMessageRow : styles.theirMessageRow]}
               >
-                <View style={[styles.messageBubble, isMyMessage ? styles.myBubble : styles.theirBubble]}>
-                  <Text style={[styles.messageText, isMyMessage && { color: '#FFFFFF' }]}>
-                    {message.content}
-                  </Text>
+                <View style={[
+                  styles.messageBubble, 
+                  isMyMessage ? styles.myBubble : styles.theirBubble,
+                  messageIsGif && styles.gifBubble
+                ]}>
+                  {messageIsGif ? (
+                    <Image
+                      source={{ uri: getGifUrl(message.content) }}
+                      style={styles.gifImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={[styles.messageText, isMyMessage && { color: '#FFFFFF' }]}>
+                      {message.content}
+                    </Text>
+                  )}
                 </View>
               </View>
             );
@@ -250,7 +315,8 @@ export default function ConversationScreen() {
         </ScrollView>
 
         {/* INPUT BAR */}
-        {conversation.status === 'pending' ? (
+        {isPendingRequest ? (
+          // Show Accept/decline if you're the recipient 
           <View style={styles.requestActionsBottom}>
             {conversation.recipient_id === currentUserId && (
               <>
@@ -280,19 +346,34 @@ export default function ConversationScreen() {
             </View>
           )
         ) : (
+          // Show normal input bar for accepted conversations or if you're the initiator waiting for response
           <View style={styles.inputBar}>
+            <TouchableOpacity 
+              style={styles.gifButton} 
+              onPress={() => setShowGifPicker(true)}
+            >
+              <Ionicons name="happy-outline" size={24} color="#6B4CE6" />
+            </TouchableOpacity>
+            
             <TextInput
               value={inputText}
               onChangeText={setInputText}
               placeholder="Type a message..."
               style={styles.input}
             />
+            
             <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
               <Text style={styles.sendText}>Send</Text>
             </TouchableOpacity>
           </View>
         )}
       </KeyboardAvoidingView>
+
+      <GifPicker
+        visible={showGifPicker}
+        onClose={() => setShowGifPicker(false)}
+        onSelectGif={handleSelectGif}
+      />
     </SafeAreaView>
   );
 }
@@ -376,6 +457,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     borderBottomLeftRadius: 4,
   },
+  gifBubble: {
+    padding: 0,
+    overflow: 'hidden',
+  },
+  gifImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 18,
+  },
   messageText: {
     fontSize: 15,
     color: '#111827',
@@ -398,6 +488,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
+    gap: 8,
+  },
+  gifButton: {
+    padding: 8,
   },
   input: {
     flex: 1,
@@ -405,7 +499,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    marginRight: 8,
   },
   sendButton: {
     backgroundColor: '#6B4CE6',

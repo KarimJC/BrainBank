@@ -1,5 +1,4 @@
 from typing import Optional
-from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
@@ -11,20 +10,22 @@ class UserUpdate(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
-                {"first_name": "Angel", "last_name": "El Moucary", "profile_picture": "https://pfp.com/pfp.jpg"}
+                {
+                    "first_name": "Angel",
+                    "last_name": "El Moucary",
+                    "profile_picture": "https://pfp.com/pfp.jpg"
+                }
             ]
         }
     )
-
 
 class UserResponse(BaseModel):
     user_id: int
     auth_id: str  # Added: UUID from Supabase auth
     neu_email: str
-    first_name: str
-    last_name: str
-    profile_picture: Optional[str]
-    created_at: Optional[datetime] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    profile_picture: Optional[str] = None
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -35,8 +36,7 @@ class UserResponse(BaseModel):
                     "neu_email": "elmoucary.a@northeastern.edu",
                     "first_name": "Angel",
                     "last_name": "El Moucary",
-                    "profile_picture": "https://pfp.com/pfp.jpg",
-                    "created_at": "2024-02-12T10:30:00Z",
+                    "profile_picture": "https://pfp.com/pfp.jpg"
                 }
             ]
         }
