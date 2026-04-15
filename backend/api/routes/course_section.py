@@ -1,5 +1,6 @@
+from venv import logger
 from fastapi import HTTPException, status, APIRouter, Depends
-from typing import List, Optional
+from typing import List
 from psycopg2.extensions import connection as Connection
 from db.connection import get_db
 from db.crud.course_section import (
@@ -11,10 +12,14 @@ from db.crud.course_section import (
     update_course_section as update_course_section_crud,
     delete_course_section as delete_course_section_crud,
     check_crn_exists,
+    get_course_section_by_CRN,
+    enroll_user_in_course_section,
+    unenroll_user_from_course_section,
 )
 from api.schemas.course_section import CourseSectionCreate, CourseSectionUpdate, CourseSectionResponse, DeleteResponse
 from core.exceptions import CourseSectionNotFoundException, CourseSectionAlreadyExistsException
 from pydantic import BaseModel
+from psycopg2.extras import RealDictCursor
 from auth import get_current_user
 from db.crud.user import get_user_by_auth_id
 
@@ -25,8 +30,7 @@ class CourseSectionDetailResponse(BaseModel):
     course_section_id: int
     course_id: int
     course_crn: int
-    professor_id: Optional[int] = None
-    professor_name: Optional[str] = None
+    professor_id: int | None
     course_code: str
     course_name: str
     subject: str | None
@@ -64,6 +68,36 @@ async def get_course_sections_for_user_endpoint(user_id: int, conn=Depends(get_d
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# GET a course section by CRN
+@router.get("/crn/{crn}", response_model=CourseSectionDetailResponse)
+async def get_course_section_by_crn_endpoint(crn: int, conn=Depends(get_db)):
+    course_section = get_course_section_by_CRN(crn, conn)
+    if not course_section:
+        raise HTTPException(status_code=404, detail="Course section not found")
+    return course_section
+
+
+# POST enroll a user in a course section
+@router.post("/{section_id}/enroll", status_code=status.HTTP_200_OK)
+async def enroll_user_endpoint(section_id: int, user_id: int, conn=Depends(get_db)):
+    course_section = get_course_section_by_id(section_id, conn)
+    if not course_section:
+        raise HTTPException(status_code=404, detail="Course section not found")
+    inserted = enroll_user_in_course_section(user_id, section_id, conn)
+    if not inserted:
+        raise HTTPException(status_code=409, detail="Already enrolled in this course")
+    return {"message": "Enrolled successfully"}
+
+
+# DELETE unenroll a user from a course section
+@router.delete("/{section_id}/enroll", status_code=status.HTTP_200_OK)
+async def unenroll_user_endpoint(section_id: int, user_id: int, conn=Depends(get_db)):
+    removed = unenroll_user_from_course_section(user_id, section_id, conn)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Enrollment not found")
+    return {"message": "Unenrolled successfully"}
+
+
 # GET a specific course section with joined details
 @router.get("/{course_section_id}", response_model=CourseSectionDetailResponse)
 async def get_course_section_endpoint(course_section_id: int, conn=Depends(get_db)):
@@ -77,6 +111,30 @@ async def get_course_section_endpoint(course_section_id: int, conn=Depends(get_d
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# For course page gets all the students in a course
+@router.get("/{section_id}/students", response_model=List[dict], status_code=status.HTTP_200_OK)
+def get_students_in_section(section_id: int, db: Connection = Depends(get_db)):
+    """Get all students enrolled in a course section"""
+    try:
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+        query = """
+            SELECT 
+                u.user_id,
+                u.first_name,
+                u.last_name,
+                u.profile_picture
+            FROM user_course_sections ucs
+            JOIN public.user u ON ucs.user_id = u.user_id
+            WHERE ucs.course_section_id = %s
+            ORDER BY u.first_name, u.last_name
+        """
+        cursor.execute(query, (section_id,))
+        results = cursor.fetchall()
+        cursor.close()
+        return [dict(row) for row in results]
+    except Exception as e:
+        logger.error(f"Failed to get students for section {section_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # POST create a new course section
 @router.post("", response_model=CourseSectionResponse, status_code=status.HTTP_201_CREATED)
@@ -87,7 +145,7 @@ def create_course_section(course_section_data: CourseSectionCreate, db: Connecti
 
 
 # GET course sections by subject
-@router.get("/subject/{subject}", response_model=List[CourseSectionResponse], status_code=status.HTTP_200_OK)
+@router.get("/subject/{subject}", response_model=list[CourseSectionResponse], status_code=status.HTTP_200_OK)
 def get_course_sections_by_subject(subject: str, db: Connection = Depends(get_db)):
     return get_course_sections_by_subject_crud(subject, db)
 

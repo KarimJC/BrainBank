@@ -43,4 +43,4 @@ class MessageResponse(BaseModel):
 
 class MessageDeleteResponse(BaseModel):
     message: str
-    deleted_id: str
+    deleted_id: str  
