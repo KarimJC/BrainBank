@@ -4,7 +4,6 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes import api_router
-from telemetry import setup_telemetry
 from db.connection import init_pool, close_pool
 from cache.redis_client import init_redis, close_redis
 
@@ -25,9 +24,6 @@ async def startup():
 async def shutdown():
     close_pool()
     close_redis()
-
-# Sets up tracing before routes
-setup_telemetry(app)
 
 app.add_middleware(
     CORSMiddleware,
