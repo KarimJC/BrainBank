@@ -41,7 +41,7 @@ export default function GifPicker({ visible, onClose, onSelectGif }: GifPickerPr
         return;
       }
       setGifs(data.data || []);
-    } catch (e) {
+    } catch {
       setError('Could not reach Giphy. Check your connection.');
     } finally {
       setLoading(false);
@@ -77,7 +77,7 @@ export default function GifPicker({ visible, onClose, onSelectGif }: GifPickerPr
         setGifs(data.data || []);
       }
       setOffset(currentOffset + 25);
-    } catch (e) {
+    } catch {
       setError('Could not reach Giphy. Check your connection.');
     } finally {
       setLoading(false);

@@ -208,7 +208,7 @@ export default function ChatbotScreen() {
         content: aiText,
       };
       setMessages((prev) => [...prev, aiMsg]);
-    } catch (e) {
+    } catch {
       const errMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -245,7 +245,7 @@ export default function ChatbotScreen() {
         docId: doc.docId,
       };
       setMessages((prev) => [...prev, docMsg]);
-    } catch (e) {
+    } catch {
       const errMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -264,7 +264,7 @@ export default function ChatbotScreen() {
     setViewingId(msg.id);
     try {
       await openPdfInBrowser(msg.docId);
-    } catch (e) {
+    } catch {
       Alert.alert('View Error', 'Could not open the PDF. Please try again.');
     } finally {
       setViewingId(null);
@@ -278,7 +278,7 @@ export default function ChatbotScreen() {
     setSharingId(msg.id);
     try {
       await shareAsPdf(msg.docId, msg.docType as DocumentType, courseName);
-    } catch (e) {
+    } catch {
       Alert.alert('PDF Error', 'Could not fetch the PDF from the server. Please try again.');
     } finally {
       setSharingId(null);
@@ -332,7 +332,7 @@ export default function ChatbotScreen() {
           onPress={() => setUseAllSections(true)}
         >
           <Text style={[styles.contextButtonText, useAllSections && styles.contextButtonTextActive]}>
-            Prof's Sections
+            Prof&apos;s Sections
           </Text>
         </TouchableOpacity>
       </View>

@@ -81,7 +81,7 @@ export default function ChatScreen() {
   const [activeTab, setActiveTab] = useState<'chats' | 'requests' | 'blocked'>('chats');
   const [conversations, setConversations] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +149,7 @@ export default function ChatScreen() {
     try {
       const user = await api.getCurrentUser();
       setCurrentUserId(user.user_id);
-      setProfileImage(user.profile_picture ?? null);
+
       const data = await api.getConversations(user.user_id);
       setConversations(data);
       startPolling(user.user_id);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,7 @@ interface ClassmatesModalProps {
 
 export default function ClassmatesModal({ visible, classmates, currentUserId, onClose }: ClassmatesModalProps) {
   const router = useRouter();
-  const [initiatingChat, setInitiatingChat] = useState<number | null>(null);
+  const initiatingChat: number | null = null;
 
   const handleMessage = async (recipientId: number) => {
     if (!currentUserId) {

@@ -79,7 +79,7 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
         setEnrolledIds(ids);
         setEnrolledCodes(codes);
         setUserId(user.user_id);
-      } catch (e) {
+      } catch {
         setError('Could not load courses. Make sure the backend is running.');
       } finally {
         setLoading(false);
@@ -137,7 +137,7 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
         Array.from(pendingIds).map((id) => api.enrollInCourseSection(id, userId))
       );
       if (onClassAdded) onClassAdded();
-    } catch (e) {
+    } catch {
       Alert.alert('Error', 'Could not enroll in one or more classes. Please try again.');
     } finally {
       setConfirming(false);

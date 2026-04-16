@@ -48,7 +48,7 @@ export default function AddClassModal({ onClose, onClassAdded }: { onClose?: () 
       } else {
         setNotFound(true);
       }
-    } catch (e) {
+    } catch {
       setNotFound(true);
     } finally {
       setLoading(false);

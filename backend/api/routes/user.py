@@ -3,6 +3,7 @@ from psycopg2.extensions import connection as Connection
 
 
 from db.crud.user import (
+    check_email_exists,
     get_user_by_id,
     get_user_by_auth_id,
     update_user as update_user_crud,
@@ -12,8 +13,6 @@ from db.crud.user import (
 
 from api.schemas.user import UserUpdate, UserResponse, DeleteResponse
 from core.exceptions import UserNotFoundException, UserAlreadyExistsException
-from api.schemas.user import UserUpdate, UserResponse, DeleteResponse  # Remove UserCreate
-from core.exceptions import UserNotFoundException, UserAlreadyExistsException 
 from db.connection import get_db
 from auth import get_current_user
 from cache.redis_client import cache_get, cache_set, cache_delete
