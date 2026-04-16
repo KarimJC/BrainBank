@@ -14,18 +14,23 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { CourseSection } from '@/services/notesService';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface NotesFilterModalProps {
   visible: boolean;
-  selectedCourseSection: CourseSection | null;
   startDate: Date | null;
   endDate: Date | null;
-  courseSections: CourseSection[];
-  onSelectCourse: (section: CourseSection | null) => void;
   onSelectStartDate: (date: Date | null) => void;
   onSelectEndDate: (date: Date | null) => void;
   onReset: () => void;
   onClose: () => void;
+  // Optional — only shown when provided (e.g. personal notes page)
+  selectedCourseSection?: CourseSection | null;
+  courseSections?: CourseSection[];
+  onSelectCourse?: (section: CourseSection | null) => void;
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatDate = (d: Date): string => {
   const year = d.getFullYear();
@@ -34,21 +39,30 @@ const formatDate = (d: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+const formatCourseLabel = (section: CourseSection): string => {
+  const base = `${section.course_code} - ${section.course_name}`;
+  return section.professor_name ? `${base} (${section.professor_name})` : base;
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function NotesFilterModal({
   visible,
-  selectedCourseSection,
   startDate,
   endDate,
-  courseSections,
-  onSelectCourse,
   onSelectStartDate,
   onSelectEndDate,
   onReset,
   onClose,
+  selectedCourseSection = null,
+  courseSections = [],
+  onSelectCourse,
 }: NotesFilterModalProps) {
   const [showCoursePicker, setShowCoursePicker] = useState(false);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+
+  const showCourseFilter = onSelectCourse !== undefined;
 
   const handleClose = () => {
     setShowStartPicker(false);
@@ -78,6 +92,8 @@ export default function NotesFilterModal({
         <Pressable style={styles.backdrop} onPress={handleClose} />
 
         <View style={styles.container}>
+
+          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={handleClose}>
               <Text style={styles.cancelText}>Cancel</Text>
@@ -90,65 +106,65 @@ export default function NotesFilterModal({
 
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
 
-            {/* ── Course Section ── */}
-            <Text style={styles.filterLabel}>Course Section</Text>
+            {/* ── Course Section (optional) ── */}
+            {showCourseFilter && (
+              <>
+                <Text style={styles.filterLabel}>Course Section</Text>
 
-            {/* Collapsed: show selected value as a tappable row */}
-            {!showCoursePicker ? (
-              <TouchableOpacity
-                style={styles.input}
-                onPress={() => {
-                  setShowStartPicker(false);
-                  setShowEndPicker(false);
-                  setShowCoursePicker(true);
-                }}
-              >
-                <Text style={[styles.inputText, !selectedCourseSection && styles.placeholder]}>
-                  {selectedCourseSection
-                    ? `${selectedCourseSection.course_code} ${selectedCourseSection.course_name}`
-                    : 'All courses'}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color="#6B5BC7" />
-              </TouchableOpacity>
-            ) : (
-              /* Expanded: inline list of options */
-              <View style={styles.inlinePicker}>
-                <View style={styles.inlinePickerHeader}>
-                  <Text style={styles.inlinePickerTitle}>Select Course</Text>
-                  <TouchableOpacity onPress={() => setShowCoursePicker(false)}>
-                    <Text style={styles.actionText}>Done</Text>
+                {!showCoursePicker ? (
+                  <TouchableOpacity
+                    style={styles.input}
+                    onPress={() => {
+                      setShowStartPicker(false);
+                      setShowEndPicker(false);
+                      setShowCoursePicker(true);
+                    }}
+                  >
+                    <Text style={[styles.inputText, !selectedCourseSection && styles.placeholder]}>
+                      {selectedCourseSection
+                        ? formatCourseLabel(selectedCourseSection)
+                        : 'All courses'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color={PURPLE} />
                   </TouchableOpacity>
-                </View>
-                {courseOptions.map((section, idx) => {
-                  const isSelected =
-                    section === null
-                      ? selectedCourseSection === null
-                      : selectedCourseSection?.course_section_id === section.course_section_id;
-                  return (
-                    <TouchableOpacity
-                      key={section ? section.course_section_id : 'all'}
-                      style={[
-                        styles.courseOption,
-                        idx < courseOptions.length - 1 && styles.courseOptionBorder,
-                        isSelected && styles.courseOptionSelected,
-                      ]}
-                      onPress={() => {
-                        onSelectCourse(section);
-                        setShowCoursePicker(false);
-                      }}
-                    >
-                      <Text style={[styles.courseOptionText, isSelected && styles.courseOptionTextSelected]}>
-                        {section
-                          ? `${section.course_code} ${section.course_name}`
-                          : 'All courses'}
-                      </Text>
-                      {isSelected && (
-                        <Ionicons name="checkmark" size={18} color="#6B5BC7" />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+                ) : (
+                  <View style={styles.inlinePicker}>
+                    <View style={styles.inlinePickerHeader}>
+                      <Text style={styles.inlinePickerTitle}>Select Course</Text>
+                      <TouchableOpacity onPress={() => setShowCoursePicker(false)}>
+                        <Text style={styles.actionText}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {courseOptions.map((section, idx) => {
+                      const isSelected =
+                        section === null
+                          ? selectedCourseSection === null
+                          : selectedCourseSection?.course_section_id === section.course_section_id;
+                      return (
+                        <TouchableOpacity
+                          key={section ? section.course_section_id : 'all'}
+                          style={[
+                            styles.courseOption,
+                            idx < courseOptions.length - 1 && styles.courseOptionBorder,
+                            isSelected && styles.courseOptionSelected,
+                          ]}
+                          onPress={() => {
+                            onSelectCourse!(section);
+                            setShowCoursePicker(false);
+                          }}
+                        >
+                          <Text style={[styles.courseOptionText, isSelected && styles.courseOptionTextSelected]}>
+                            {section ? formatCourseLabel(section) : 'All courses'}
+                          </Text>
+                          {isSelected && (
+                            <Ionicons name="checkmark" size={18} color={PURPLE} />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </>
             )}
 
             {/* ── Date Range ── */}
@@ -165,7 +181,7 @@ export default function NotesFilterModal({
               <Text style={[styles.inputText, !startDate && styles.placeholder]}>
                 {startDate ? `From: ${formatDate(startDate)}` : 'Start date'}
               </Text>
-              <Ionicons name="calendar-outline" size={20} color="#6B5BC7" />
+              <Ionicons name="calendar-outline" size={20} color={PURPLE} />
             </TouchableOpacity>
 
             {Platform.OS === 'ios' && showStartPicker && (
@@ -198,7 +214,7 @@ export default function NotesFilterModal({
               <Text style={[styles.inputText, !endDate && styles.placeholder]}>
                 {endDate ? `To: ${formatDate(endDate)}` : 'End date'}
               </Text>
-              <Ionicons name="calendar-outline" size={20} color="#6B5BC7" />
+              <Ionicons name="calendar-outline" size={20} color={PURPLE} />
             </TouchableOpacity>
 
             {Platform.OS === 'ios' && showEndPicker && (
@@ -250,7 +266,12 @@ export default function NotesFilterModal({
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const PURPLE = '#6B5BC7';
+
 const styles = StyleSheet.create({
+  // Modal
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -265,6 +286,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     maxHeight: '80%',
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -285,9 +308,11 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 16,
-    color: '#6B5BC7',
+    color: PURPLE,
     fontWeight: '600',
   },
+
+  // Scroll
   scroll: {
     paddingHorizontal: 20,
   },
@@ -295,6 +320,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
   },
+
+  // Filter rows
   filterLabel: {
     fontSize: 16,
     fontWeight: '600',
@@ -320,6 +347,8 @@ const styles = StyleSheet.create({
   placeholder: {
     color: '#999',
   },
+
+  // Inline picker
   inlinePicker: {
     marginTop: 8,
     backgroundColor: '#F5F3FA',
@@ -342,6 +371,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#000',
   },
+
+  // Course options
   courseOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -362,11 +393,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   courseOptionTextSelected: {
-    color: '#6B5BC7',
+    color: PURPLE,
     fontWeight: '600',
   },
+
+  // Apply button
   applyButton: {
-    backgroundColor: '#6B5BC7',
+    backgroundColor: PURPLE,
     borderRadius: 24,
     padding: 16,
     alignItems: 'center',

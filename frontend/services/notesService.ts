@@ -10,7 +10,7 @@ export interface CourseSection {
   course_crn: number;
   professor_id: number | null;
   course_code: string;
-  course_name: string;  
+  course_name: string;
   subject: string | null;
   professor_name: string | null;
 }
@@ -65,12 +65,10 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const validateAttachment = (mimeType: string | undefined, size: number | undefined) => {
-  if (mimeType && !ALLOWED_MIME_TYPES.includes(mimeType)) {
+  if (mimeType && !ALLOWED_MIME_TYPES.includes(mimeType))
     throw new Error('File type not supported. Please upload a JPEG, PNG, HEIC, or PDF.');
-  }
-  if (size && size > MAX_FILE_SIZE) {
+  if (size && size > MAX_FILE_SIZE)
     throw new Error('File size exceeds 10MB limit.');
-  }
 };
 
 const getAuthToken = async (): Promise<string> => {
@@ -96,47 +94,60 @@ const mapNote = (n: any): NoteItem => ({
   notesContent: n.notesContent ?? n.notes_content,
 });
 
+// ── Fetch notes with optional filters (user-scoped) ────────────────────────────
 export const fetchNotes = async (params: FetchNotesParams = {}): Promise<NoteItem[]> => {
   const query = new URLSearchParams();
-  if (params.search) query.append('search', params.search);
+  if (params.search)          query.append('search', params.search);
   if (params.courseSectionId) query.append('courseSectionId', params.courseSectionId.toString());
-  if (params.startDate) query.append('startDate', params.startDate);
-  if (params.endDate) query.append('endDate', params.endDate);
-  if (params.limit) query.append('limit', params.limit.toString());
-  if (params.skip) query.append('skip', params.skip.toString());
+  if (params.startDate)       query.append('startDate', params.startDate);
+  if (params.endDate)         query.append('endDate', params.endDate);
+  if (params.limit)           query.append('limit', params.limit.toString());
+  if (params.skip)            query.append('skip', params.skip.toString());
 
   const token = await getAuthToken();
-  const url = `${API_BASE_URL}/api/v1/notes${query.toString() ? `?${query.toString()}` : ''}`;
+  const url = `${API_ENDPOINTS.NOTES}${query.toString() ? `?${query.toString()}` : ''}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
 
-  const response = await apiFetch(url, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
-  }, TIMEOUTS.FAST);
-
-  const data = await response.json();
-  return data.map(mapNote);
+  if (!res.ok) throw new Error(`Failed to fetch notes: ${res.status} ${await res.text()}`);
+  return (await res.json()).map(mapNote);
 };
 
+// ── Fetch notes for a specific course section (user's section only) ─────────────
+export const fetchAllNotesByCourseSection = async (courseSectionId: number): Promise<NoteItem[]> => {
+  const url = `${API_BASE_URL}/api/v1/notes/course-section/${courseSectionId}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch course notes: ${res.status} ${await res.text()}`);
+  return (await res.json()).map(mapNote);
+};
+
+// ── Fetch notes for ALL sections of a course, filtered by professor ─────────────
+export const fetchNotesByCourse = async (
+  courseId: number,
+  professorId?: number,
+): Promise<NoteItem[]> => {
+  const query = new URLSearchParams();
+  if (professorId != null) query.append('professor_id', professorId.toString());
+
+  const base = API_ENDPOINTS.NOTES_BY_COURSE(String(courseId));
+  const url = query.toString() ? `${base}?${query.toString()}` : base;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch course notes: ${res.status} ${await res.text()}`);
+  // FIX: removed dead code (second apiFetch-based implementation) that appeared after this return
+  return (await res.json()).map(mapNote);
+};
+
+// ── Fetch available course sections ────────────────────────────────────────────
 export const fetchNoteCourseSections = async (): Promise<CourseSection[]> => {
   const token = await getAuthToken();
-  const response = await apiFetch(`${API_BASE_URL}/api/v1/notes/course-sections`, {
-    method: 'GET',
+  const res = await fetch(API_ENDPOINTS.NOTES_COURSE_SECTIONS, {
     headers: { Authorization: `Bearer ${token}` },
-  }, TIMEOUTS.FAST);
-  return response.json();
+  });
+  if (!res.ok) throw new Error('Failed to fetch note course sections');
+  // FIX: removed dead code (second apiFetch-based implementation) that appeared after this return
+  return res.json();
 };
 
-export const fetchAllNotesByCourseSection = async (courseId: number): Promise<NoteItem[]> => {
-  const token = await getAuthToken();
-  const response = await apiFetch(`${API_BASE_URL}/api/v1/notes/course-section/${courseId}`, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
-  }, TIMEOUTS.FAST);
-  const data = await response.json();
-  return data.map(mapNote);
-};
-
-// Returns only course sections the logged-in user is enrolled in
+// ── Returns only course sections the logged-in user is enrolled in ──────────────
 export const fetchCourseSections = async (): Promise<CourseSection[]> => {
   const token = await getAuthToken();
   const response = await apiFetch(`${API_BASE_URL}/api/v1/course-sections/me`, {
@@ -146,36 +157,43 @@ export const fetchCourseSections = async (): Promise<CourseSection[]> => {
   return response.json();
 };
 
+// ── Upload a new note ───────────────────────────────────────────────────────────
 export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
   if (params.media) validateAttachment(params.media.mimeType, undefined);
-  if (params.file) validateAttachment(params.file.mimeType, params.file.size);
+  if (params.file)  validateAttachment(params.file.mimeType, params.file.size);
 
   const token = await getAuthToken();
   const formData = new FormData();
   formData.append('title', params.title);
   formData.append('date', params.date);
   formData.append('courseSectionId', params.courseSectionId.toString());
-
-  if (params.description.trim()) {
-    formData.append('description', params.description);
-  }
+  if (params.description.trim()) formData.append('description', params.description);
 
   if (params.media) {
     const filename = params.media.uri.split('/').pop() || 'image.jpg';
     const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : 'image/jpeg';
-    formData.append('media', { uri: params.media.uri, name: filename, type } as any);
+    formData.append('media', { uri: params.media.uri, name: filename, type: match ? `image/${match[1]}` : 'image/jpeg' } as any);
   } else if (params.file) {
     const filename = params.file.name || params.file.uri.split('/').pop() || 'file';
-    const mimeType = params.file.mimeType || 'application/octet-stream';
-    formData.append('file', { uri: params.file.uri, name: filename, type: mimeType } as any);
+    formData.append('file', { uri: params.file.uri, name: filename, type: params.file.mimeType || 'application/octet-stream' } as any);
   }
 
-  await apiFetch(`${API_BASE_URL}/api/v1/notes`, {
+  // FIX: fetch() only accepts 2 arguments — removed the invalid third argument TIMEOUTS.SLOW
+  const response = await fetch(API_ENDPOINTS.NOTES, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
-  }, TIMEOUTS.SLOW);
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMessage = `Upload failed with status ${response.status}`;
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMessage = errorData.detail || errorMessage;
+    } catch {}
+    throw new Error(errorMessage);
+  }
 };
 
 export const deleteNote = async (noteId: number): Promise<void> => {
@@ -184,33 +202,38 @@ export const deleteNote = async (noteId: number): Promise<void> => {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
+
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Delete failed: ${response.status} ${errorText}`);
+    let errorMessage = `Delete failed with status ${response.status}`;
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMessage = errorData.detail || errorMessage;
+    } catch {}
+    throw new Error(errorMessage);
   }
 };
 
+// ── Update an existing note ─────────────────────────────────────────────────────
 export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> => {
   if (params.media) validateAttachment(params.media.mimeType, undefined);
-  if (params.file) validateAttachment(params.file.mimeType, params.file.size);
+  if (params.file)  validateAttachment(params.file.mimeType, params.file.size);
 
   const token = await getAuthToken();
   const formData = new FormData();
-  if (params.title) formData.append('title', params.title);
-  if (params.description !== undefined) formData.append('description', params.description);
-  if (params.notesContent !== undefined) formData.append('notesContent', params.notesContent);
-  if (params.date) formData.append('date', params.date);
-  if (params.courseSectionId) formData.append('courseSectionId', params.courseSectionId.toString());
+  if (params.title !== undefined)           formData.append('title', params.title);
+  if (params.description !== undefined)     formData.append('description', params.description);
+  if (params.notesContent !== undefined)    formData.append('notesContent', params.notesContent);
+  if (params.date !== undefined)            formData.append('date', params.date);
+  if (params.courseSectionId !== undefined) formData.append('courseSectionId', params.courseSectionId.toString());
 
   if (params.media) {
     const filename = params.media.uri.split('/').pop() || 'image.jpg';
     const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : 'image/jpeg';
-    formData.append('media', { uri: params.media.uri, name: filename, type } as any);
+    formData.append('media', { uri: params.media.uri, name: filename, type: match ? `image/${match[1]}` : 'image/jpeg' } as any);
   } else if (params.file) {
     const filename = params.file.name || params.file.uri.split('/').pop() || 'file';
-    const mimeType = params.file.mimeType || 'application/octet-stream';
-    formData.append('file', { uri: params.file.uri, name: filename, type: mimeType } as any);
+    formData.append('file', { uri: params.file.uri, name: filename, type: params.file.mimeType || 'application/octet-stream' } as any);
   }
 
   const response = await apiFetch(`${API_BASE_URL}/api/v1/notes/${params.noteId}`, {
@@ -219,5 +242,6 @@ export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> =>
     body: formData,
   }, TIMEOUTS.SLOW);
 
+  // FIX: was `res.json()` but the variable is named `response`
   return mapNote(await response.json());
 };

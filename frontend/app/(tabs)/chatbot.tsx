@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -41,7 +42,7 @@ const WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome',
   role: 'assistant',
   content:
-    "Hi! I'm BrainBot 🤖 I've read all your course notes and I'm ready to help.\n\nYou can ask me anything about the course, or tap a button above to generate a Study Guide, Practice Exam, or Summary — I'll create it as a PDF you can save!",
+    "Hi! I'm BrainBot. I've read all your course notes and I'm ready to help.\n\nYou can ask me anything about the course, or tap a button above to generate a Study Guide, Practice Exam, or Summary — I'll create it as a PDF you can save!",
 };
 
 const DOC_BUTTONS: { type: DocumentType; label: string }[] = [
@@ -54,9 +55,6 @@ const DOC_BUTTONS: { type: DocumentType; label: string }[] = [
 
 const TypingIndicator = () => (
   <View style={[styles.bubbleWrapper, styles.bubbleWrapperBot]}>
-    <View style={styles.avatarTiny}>
-      <Text style={{ fontSize: 12 }}>🤖</Text>
-    </View>
     <View style={[styles.bubble, styles.bubbleBot]}>
       <View style={styles.typingDots}>
         <View style={styles.dot} />
@@ -83,11 +81,6 @@ const MessageBubble = ({ msg, courseName, onSharePdf, onViewPdf, sharingId, view
       msg.role === 'user' ? styles.bubbleWrapperUser : styles.bubbleWrapperBot,
     ]}
   >
-    {msg.role === 'assistant' && (
-      <View style={styles.avatarTiny}>
-        <Text style={{ fontSize: 12 }}>🤖</Text>
-      </View>
-    )}
     <View style={styles.bubbleColumn}>
       <View
         style={[
@@ -185,8 +178,6 @@ export default function ChatbotScreen() {
     scrollRef.current?.scrollToEnd({ animated: true });
   }, [messages, isLoading, docGenerating]);
 
-  // ── Send a chat message ────────────────────────────────────────────────────
-
   const handleSend = async () => {
     if (!input.trim() || isLoading || !userId) return;
 
@@ -219,8 +210,6 @@ export default function ChatbotScreen() {
       setIsLoading(false);
     }
   };
-
-  // ── Generate a document ────────────────────────────────────────────────────
 
   const handleGenerate = async (type: DocumentType) => {
     if (!userId || docGenerating) return;
@@ -257,8 +246,6 @@ export default function ChatbotScreen() {
     }
   };
 
-  // ── View a document PDF in-app ────────────────────────────────────────────
-
   const handleViewPdf = async (msg: ChatMessage) => {
     if (!msg.docId) return;
     setViewingId(msg.id);
@@ -270,8 +257,6 @@ export default function ChatbotScreen() {
       setViewingId(null);
     }
   };
-
-  // ── Share a document as PDF ────────────────────────────────────────────────
 
   const handleSharePdf = async (msg: ChatMessage) => {
     if (!msg.docType || !msg.docId) return;
@@ -285,8 +270,6 @@ export default function ChatbotScreen() {
     }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -298,17 +281,21 @@ export default function ChatbotScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <IconSymbol
             name="chevron.right"
-            size={24}
+            size={28}
             color={COLORS.black}
             style={{ transform: [{ rotate: '180deg' }] }}
           />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <View style={styles.avatarSmall}>
-            <Text style={styles.avatarEmoji}>🤖</Text>
-          </View>
+          <Image
+            source={require('@/assets/images/BrainBot.png')}
+            style={styles.avatarImage}
+            resizeMode="contain"
+          />
           <View>
-            <Text style={styles.headerTitle}>BrainBot</Text>
+          <Text style={styles.headerTitle}>
+            Brain<Text style={{ color: COLORS.darkPurple }}>Bot</Text>
+          </Text>
             <Text style={styles.headerSubtitle} numberOfLines={1}>
               {courseName}
             </Text>
@@ -359,7 +346,6 @@ export default function ChatbotScreen() {
         ))}
       </View>
 
-      {/* Backend connection warning */}
       {userIdError && (
         <View style={styles.warningBar}>
           <Text style={styles.warningText}>
@@ -368,7 +354,6 @@ export default function ChatbotScreen() {
         </View>
       )}
 
-      {/* Messages */}
       <ScrollView
         ref={scrollRef}
         style={styles.messageList}
@@ -389,7 +374,6 @@ export default function ChatbotScreen() {
         {(isLoading || docGenerating) && <TypingIndicator />}
       </ScrollView>
 
-      {/* Input bar */}
       <View style={styles.inputBar}>
         <TextInput
           style={styles.input}
@@ -428,55 +412,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 16,
+    paddingTop: 64,
+    paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.lightGrey,
     backgroundColor: COLORS.white,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     flex: 1,
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 22,
     fontWeight: '700',
     color: COLORS.black,
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.mediumGrey,
-    maxWidth: 160,
+    maxWidth: 180,
+    marginTop: 2,
   },
-  avatarSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.lightPurple,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarEmoji: {
-    fontSize: 18,
-  },
-  avatarTiny: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: COLORS.lightPurple,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 6,
-    alignSelf: 'flex-end',
+  avatarImage: {
+    width: 56,
+    height: 56,
+    marginBottom: 5,
   },
   quickActions: {
     flexDirection: 'row',

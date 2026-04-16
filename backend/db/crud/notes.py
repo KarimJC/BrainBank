@@ -13,26 +13,22 @@ logger = logging.getLogger(__name__)
 def build_attachments(media_url, file_url, file_name, file_size) -> list:
     attachments = []
     if media_url:
-        attachments.append(
-            {
-                "id": media_url.split("/")[-1].split(".")[0],
-                "url": media_url,
-                "filename": media_url.split("/")[-1],
-                "type": "image",
-                "uploadedAt": datetime.utcnow().isoformat(),
-            }
-        )
+        attachments.append({
+            "id": media_url.split("/")[-1].split(".")[0],
+            "url": media_url,
+            "filename": media_url.split("/")[-1],
+            "type": "image",
+            "uploadedAt": datetime.utcnow().isoformat(),
+        })
     if file_url:
-        attachments.append(
-            {
-                "id": file_url.split("/")[-1].split(".")[0],
-                "url": file_url,
-                "filename": file_name,
-                "size": file_size,
-                "type": "document",
-                "uploadedAt": datetime.utcnow().isoformat(),
-            }
-        )
+        attachments.append({
+            "id": file_url.split("/")[-1].split(".")[0],
+            "url": file_url,
+            "filename": file_name,
+            "size": file_size,
+            "type": "document",
+            "uploadedAt": datetime.utcnow().isoformat(),
+        })
     return attachments
 
 
@@ -83,7 +79,6 @@ def create_note(
 ) -> dict:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-
         attachments = build_attachments(media_url, file_url, file_name, file_size)
 
         if attachments:
@@ -104,23 +99,14 @@ def create_note(
                       date_uploaded, notes_content, attachments
         """
 
-        cursor.execute(
-            query,
-            (
-                user_id,
-                course_section_id,
-                note_data.title,
-                note_data.description,
-                note_data.date,
-                notes_content,
-                *attachments_params,
-            ),
-        )
+        cursor.execute(query, (
+            user_id, course_section_id, note_data.title, note_data.description,
+            note_data.date, notes_content, *attachments_params,
+        ))
 
         result = cursor.fetchone()
         db.commit()
         cursor.close()
-
         logger.info(f"Created note with id: {result['note_id']}")
 
         return {
@@ -143,12 +129,9 @@ def get_note_by_id(note_id: int, db: Connection) -> Optional[dict]:
         cursor.execute(NOTE_SELECT + "WHERE n.note_id = %s", (note_id,))
         result = cursor.fetchone()
         cursor.close()
-
         if not result:
             return None
-
         return parse_attachments(dict(result))
-
     except Exception as e:
         logger.error(f"Failed to get note {note_id}: {str(e)}")
         raise DatabaseException(f"Failed to get note: {str(e)}")
@@ -166,47 +149,32 @@ def get_all_notes(
 ) -> List[dict]:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-
-        conditions = []
-        params = []
+        conditions, params = [], []
 
         if user_id:
             conditions.append("n.user_id = %s")
             params.append(user_id)
-
         if course_section_id:
             conditions.append("n.course_id = %s")
             params.append(course_section_id)
-
         if search_query:
             conditions.append("(n.title ILIKE %s OR n.description ILIKE %s OR c.course ILIKE %s)")
-            search_pattern = f"%{search_query}%"
-            params.extend([search_pattern, search_pattern, search_pattern])
-
+            pattern = f"%{search_query}%"
+            params.extend([pattern, pattern, pattern])
         if start_date:
             conditions.append("n.date_uploaded >= %s")
             params.append(start_date)
-
         if end_date:
             conditions.append("n.date_uploaded < %s::date + interval '1 day'")
             params.append(end_date)
 
-        where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-
-        query = (
-            NOTE_SELECT
-            + f"""
-            {where_clause}
-            ORDER BY n.date_uploaded DESC
-            LIMIT %s OFFSET %s
-        """
-        )
-
+        where = "WHERE " + " AND ".join(conditions) if conditions else ""
+        query = NOTE_SELECT + f"{where} ORDER BY n.date_uploaded DESC LIMIT %s OFFSET %s"
         params.extend([limit, skip])
+
         cursor.execute(query, params)
         results = cursor.fetchall()
         cursor.close()
-
         return [parse_attachments(dict(row)) for row in results]
 
     except Exception as e:
@@ -214,11 +182,42 @@ def get_all_notes(
         raise DatabaseException(f"Failed to get notes: {str(e)}")
 
 
+def get_notes_by_course(
+    course_id: int,
+    professor_id: Optional[int] = None,
+    db: Connection = None,
+) -> List[dict]:
+    """
+    Fetch notes across ALL sections of a course, optionally filtered by professor.
+    This is the 'all sections' view — joins through course_section to match on
+    the parent course_id (c.id) rather than the section id (cs.id).
+    """
+    try:
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+        conditions = ["c.id = %s"]
+        params = [course_id]
+
+        if professor_id is not None:
+            conditions.append("cs.professor_id = %s")
+            params.append(professor_id)
+
+        where = "WHERE " + " AND ".join(conditions)
+        query = NOTE_SELECT + f"{where} ORDER BY n.date_uploaded DESC"
+
+        cursor.execute(query, params)
+        results = cursor.fetchall()
+        cursor.close()
+        return [parse_attachments(dict(row)) for row in results]
+
+    except Exception as e:
+        logger.error(f"Failed to get notes for course {course_id}: {str(e)}")
+        raise DatabaseException(f"Failed to get notes by course: {str(e)}")
+
+
 def get_available_course_sections(db: Connection) -> List[dict]:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-
-        query = """
+        cursor.execute("""
             SELECT DISTINCT
                 cs.id as course_section_id,
                 c.course as course_code,
@@ -229,14 +228,10 @@ def get_available_course_sections(db: Connection) -> List[dict]:
             JOIN course c ON cs.course_id = c.id
             LEFT JOIN professor p ON cs.professor_id = p.professor_id
             ORDER BY c.course, c.title
-        """
-
-        cursor.execute(query)
+        """)
         results = cursor.fetchall()
         cursor.close()
-
         return [dict(row) for row in results]
-
     except Exception as e:
         logger.error(f"Failed to get available course sections: {str(e)}")
         raise DatabaseException(f"Failed to get available course sections: {str(e)}")
@@ -252,45 +247,34 @@ def count_notes(
 ) -> int:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-
-        conditions = []
-        params = []
+        conditions, params = [], []
 
         if user_id:
             conditions.append("n.user_id = %s")
             params.append(user_id)
-
         if course_section_id:
             conditions.append("n.course_id = %s")
             params.append(course_section_id)
-
         if search_query:
             conditions.append("(n.title ILIKE %s OR n.description ILIKE %s OR c.course ILIKE %s)")
-            search_pattern = f"%{search_query}%"
-            params.extend([search_pattern, search_pattern, search_pattern])
-
+            pattern = f"%{search_query}%"
+            params.extend([pattern, pattern, pattern])
         if start_date:
             conditions.append("n.date_uploaded >= %s")
             params.append(start_date)
-
         if end_date:
             conditions.append("n.date_uploaded < %s::date + interval '1 day'")
             params.append(end_date)
 
-        where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-
-        query = f"""
-            SELECT COUNT(*)
-            FROM notes n
+        where = "WHERE " + " AND ".join(conditions) if conditions else ""
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM notes n
             LEFT JOIN course_section cs ON n.course_id = cs.id
             LEFT JOIN course c ON cs.course_id = c.id
-            {where_clause}
-        """
-
-        cursor.execute(query, params)
+            {where}
+        """, params)
         result = cursor.fetchone()
         cursor.close()
-
         return result["count"]
 
     except Exception as e:
@@ -301,52 +285,34 @@ def count_notes(
 def update_note(note_id: int, note_data: NoteUpdate, notes_content: Optional[str], db: Connection) -> Optional[dict]:
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
-
         cursor.execute("SELECT * FROM notes WHERE note_id = %s", (note_id,))
-        existing = cursor.fetchone()
-        if not existing:
+        if not cursor.fetchone():
             return None
 
-        update_fields = []
-        values = []
+        fields, values = [], []
 
         if note_data.title is not None:
-            update_fields.append("title = %s")
-            values.append(note_data.title)
-
+            fields.append("title = %s"); values.append(note_data.title)
         if note_data.description is not None:
-            update_fields.append("description = %s")
-            values.append(note_data.description)
-
+            fields.append("description = %s"); values.append(note_data.description)
         if note_data.date is not None:
-            update_fields.append("date_uploaded = %s")
-            values.append(note_data.date)
-
+            fields.append("date_uploaded = %s"); values.append(note_data.date)
         if note_data.courseSectionId is not None:
-            update_fields.append("course_id = %s")
-            values.append(note_data.courseSectionId)
-
+            fields.append("course_id = %s"); values.append(note_data.courseSectionId)
         if notes_content is not None:
-            update_fields.append("notes_content = %s")
-            values.append(notes_content)
+            fields.append("notes_content = %s"); values.append(notes_content)
 
-        if not update_fields:
+        if not fields:
             return None
 
         values.append(note_id)
-
-        query = f"""
-            UPDATE notes
-            SET {", ".join(update_fields)}
-            WHERE note_id = %s
-            RETURNING *
-        """
-
-        cursor.execute(query, values)
+        cursor.execute(
+            f"UPDATE notes SET {', '.join(fields)} WHERE note_id = %s RETURNING *",
+            values,
+        )
         result = cursor.fetchone()
         db.commit()
         cursor.close()
-
         logger.info(f"Updated note {note_id}")
         return dict(result) if result else None
 
