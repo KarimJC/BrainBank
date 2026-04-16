@@ -1,5 +1,5 @@
 import AppLayout from '@/components/layout/AppLayout';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
   View,
@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { api } from '@/services/api';
 import ErrorView from '@/components/ui/ErrorView';
@@ -23,6 +25,7 @@ interface ConversationRowProps {
     blocked_by: number | null;
     initiator_name: string;
     profile_picture: string | null;
+    unread_count: number;
   };
   onPress: () => void;
 }
@@ -55,34 +58,88 @@ const ConversationRow: React.FC<ConversationRowProps> = ({ messageData, onPress 
         </View>
 
         {/* RIGHT SIDE */}
-        {messageData.blocked_by !== null && (
+        {messageData.blocked_by !== null ? (
           <View style={styles.blockedBadge}>
             <Text style={styles.blockedText}>Blocked</Text>
           </View>
-        )}
+        ) : messageData.unread_count > 0 ? (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadBadgeText}>
+              {messageData.unread_count > 99 ? '99+' : messageData.unread_count}
+            </Text>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
 };
 
+const POLL_INTERVAL_MS = 5000;
+
 export default function ChatScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'chats' | 'requests'>('chats');
+  const [activeTab, setActiveTab] = useState<'chats' | 'requests' | 'blocked'>('chats');
   const [conversations, setConversations] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isFocused = useRef(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
-    const pendingCount = conversations.filter(c => 
-    c.status === 'pending' && c.recipient_id === currentUserId
-  ).length;
+  const pendingCount = conversations.filter(c => c.status === 'pending').length;
 
+  // Silent refresh — no loading spinner, used by the poller
+  const refreshConversations = useCallback(async (userId: number) => {
+    try {
+      const data = await api.getConversations(userId);
+      setConversations(data);
+    } catch {
+      // silently ignore poll errors
+    }
+  }, []);
+
+  const startPolling = useCallback((userId: number) => {
+    if (intervalRef.current) return; // already running
+    intervalRef.current = setInterval(() => {
+      refreshConversations(userId);
+    }, POLL_INTERVAL_MS);
+  }, [refreshConversations]);
+
+  const stopPolling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // Stop polling when app goes to background; resume when foregrounded
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      const prev = appStateRef.current;
+      appStateRef.current = next;
+      if (next === 'active' && prev !== 'active' && isFocused.current && currentUserId) {
+        refreshConversations(currentUserId);
+        startPolling(currentUserId);
+      } else if (next !== 'active') {
+        stopPolling();
+      }
+    });
+    return () => sub.remove();
+  }, [currentUserId, refreshConversations, startPolling, stopPolling]);
+
+  // Start/stop polling with screen focus
   useFocusEffect(
     useCallback(() => {
+      isFocused.current = true;
       loadConversations();
-    }, [])
+      return () => {
+        isFocused.current = false;
+        stopPolling();
+      };
+    }, [stopPolling])
   );
 
   const loadConversations = async () => {
@@ -92,12 +149,13 @@ export default function ChatScreen() {
     try {
       const user = await api.getCurrentUser();
       setCurrentUserId(user.user_id);
-      setProfileImage(user.profile_picture ?? null);
+
       const data = await api.getConversations(user.user_id);
       setConversations(data);
+      startPolling(user.user_id);
     } catch (err) {
       console.error('Failed to load conversations:', err);
-      setError('Could not load messages. Check your connection and try again.');
+      setError('Failed to load conversations. Please try again.');
     } finally {
       setLoading(false);
       setInitialLoad(false);
@@ -110,7 +168,6 @@ export default function ChatScreen() {
     else if (route === 'chat') router.push('/(tabs)/chat');
     else if (route === 'profile') router.push('/(tabs)/profile');
   };
-
 
   if (initialLoad) {
     return (
@@ -164,39 +221,42 @@ export default function ChatScreen() {
               )}
             </View>
           </TouchableOpacity>
+
+          {/* Blocked Tab */}
+          <TouchableOpacity
+            style={[styles.toggleButton, activeTab === 'blocked' && styles.activeToggle]}
+            onPress={() => setActiveTab('blocked')}
+          >
+            <Text style={[styles.toggleText, activeTab === 'blocked' && styles.activeText]}>
+              Blocked
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {activeTab === 'chats'
-          ? conversations
-              .filter(c => c.status === 'accepted')
-              .map(c => (
-                <ConversationRow
-                  key={c.conversation_id}
-                  messageData={{
-                    ...c,
-                    initiator_name: c.initiator_id === currentUserId
-                      ? c.recipient_name
-                      : c.initiator_name,
-                    profile_picture: c.initiator_id === currentUserId
-                      ? c.recipient_profile_picture
-                      : c.initiator_profile_picture,
-                  }}
-                  onPress={() => router.push(`/(tabs)/${c.conversation_id}` as any)}
-                />
-              ))
-          : conversations
-              .filter(c => c.status === 'pending' && c.recipient_id === currentUserId)
-              .map(c => (
-                <ConversationRow
-                  key={c.conversation_id}
-                  messageData={{
-                    ...c,
-                    initiator_name: c.initiator_name,
-                    profile_picture: c.initiator_profile_picture,
-                  }}
-                  onPress={() => router.push(`/(tabs)/${c.conversation_id}` as any)}
-                />
-              ))
+        {conversations
+          .filter(c =>
+            activeTab === 'chats'
+              ? c.status === 'accepted'
+              : activeTab === 'requests'
+              ? c.status === 'pending'
+              : c.status === 'blocked'
+          )
+          .map(c => (
+            <ConversationRow
+              key={c.conversation_id}
+              messageData={{
+                ...c,
+                initiator_name: c.initiator_id === currentUserId
+                  ? c.recipient_name
+                  : c.initiator_name,
+                profile_picture: c.initiator_id === currentUserId
+                  ? c.recipient_profile_picture
+                  : c.initiator_profile_picture,
+                unread_count: c.unread_count ?? 0,
+              }}
+              onPress={() => router.push(`/conversation/${c.conversation_id}` as any)}
+            />
+          ))
         }
       </ScrollView>
     </AppLayout>
@@ -307,29 +367,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
   },
-  errorContainer: {
-    flex: 1,
+  unreadBadge: {
+    backgroundColor: '#6B4CE6',
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    marginTop: 40,
+    paddingHorizontal: 6,
   },
-  errorText: {
-    color: '#CC0000',
-    fontSize: 16,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
-  retryButton: {
-    backgroundColor: '#6B4CE6',
-    borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    marginTop: 8,
-  },
-  retryText: {
+  unreadBadgeText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

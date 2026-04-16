@@ -1,16 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
 import AppLayout from '@/components/layout/AppLayout';
-import { useRouter } from 'expo-router';
+import { useFocusEffect , useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { api } from '@/services/api';
 import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';

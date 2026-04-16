@@ -59,11 +59,11 @@ def get_conversation_by_id(conversation_id: int, db: Connection) -> dict | None:
 
 
 def get_user_conversations(user_id: int, db: Connection) -> list[dict]:
-    """Get all conversations for a user with participant names"""
+    """Get all conversations for a user with participant names and unread counts"""
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)
         query = """
-            SELECT 
+            SELECT
                 c.id AS conversation_id,
                 c.initiator_id,
                 c.recipient_id,
@@ -73,14 +73,24 @@ def get_user_conversations(user_id: int, db: Connection) -> list[dict]:
                 initiator.first_name || ' ' || initiator.last_name AS initiator_name,
                 initiator.profile_picture AS initiator_profile_picture,
                 recipient.first_name || ' ' || recipient.last_name AS recipient_name,
-                recipient.profile_picture AS recipient_profile_picture
+                recipient.profile_picture AS recipient_profile_picture,
+                (
+                    SELECT COUNT(*)
+                    FROM message m
+                    WHERE m.conversation_id = c.id
+                      AND m.sender_id != %s
+                      AND m.created_at > CASE
+                            WHEN c.initiator_id = %s THEN COALESCE(c.initiator_last_read_at, '-infinity'::timestamptz)
+                            ELSE COALESCE(c.recipient_last_read_at, '-infinity'::timestamptz)
+                          END
+                ) AS unread_count
             FROM conversation c
             JOIN public.user initiator ON c.initiator_id = initiator.user_id
             JOIN public.user recipient ON c.recipient_id = recipient.user_id
             WHERE c.initiator_id = %s OR c.recipient_id = %s
             ORDER BY c.created_at DESC
         """
-        cursor.execute(query, (user_id, user_id))
+        cursor.execute(query, (user_id, user_id, user_id, user_id))
         results = cursor.fetchall()
         cursor.close()
         return [dict(row) for row in results]
@@ -110,6 +120,27 @@ def update_conversation_status(
         db.rollback()
         logger.error(f"Failed to update conversation {conversation_id}: {str(e)}")
         raise DatabaseException(f"Failed to update conversation: {str(e)}")
+
+
+def mark_conversation_read(conversation_id: int, user_id: int, db: Connection) -> None:
+    """Update the last-read timestamp for the given user in this conversation"""
+    try:
+        cursor = db.cursor()
+        # Determine whether this user is the initiator or the recipient and update accordingly
+        query = """
+            UPDATE conversation
+            SET
+                initiator_last_read_at = CASE WHEN initiator_id = %s THEN NOW() ELSE initiator_last_read_at END,
+                recipient_last_read_at = CASE WHEN recipient_id = %s THEN NOW() ELSE recipient_last_read_at END
+            WHERE id = %s
+        """
+        cursor.execute(query, (user_id, user_id, conversation_id))
+        db.commit()
+        cursor.close()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to mark conversation {conversation_id} as read: {str(e)}")
+        raise DatabaseException(f"Failed to mark conversation as read: {str(e)}")
 
 
 def check_conversation_exists(initiator_id: int, recipient_id: int, db: Connection) -> bool:

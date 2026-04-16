@@ -41,3 +41,4 @@ class ConversationResponse(BaseModel):
     initiator_profile_picture: Optional[str] = None
     recipient_name: str
     recipient_profile_picture: Optional[str] = None
+    unread_count: int = 0

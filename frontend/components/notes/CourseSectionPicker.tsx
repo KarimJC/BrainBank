@@ -61,7 +61,7 @@ export default function CourseSectionPicker({
               >
                 <View style={styles.optionContent}>
                   <Text style={styles.courseCode}>{section.course_code}</Text>
-                  <Text style={styles.optionTitle}>{section.course_title}</Text>
+                  <Text style={styles.optionTitle}>{section.course_name}</Text>
                   {section.professor_name && (
                     <Text style={styles.professor}>Prof. {section.professor_name}</Text>
                   )}
