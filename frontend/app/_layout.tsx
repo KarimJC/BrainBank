@@ -1,4 +1,3 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 
 export const unstable_settings = {
@@ -10,7 +9,7 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      {/* <Stack.Screen name="(tabs)/chatbot" options={{ headerShown: false }} /> */}
+      <Stack.Screen name="conversation/[id]" options={{ animation: 'slide_from_right', headerShown: false }} />
     </Stack>
   );
 }

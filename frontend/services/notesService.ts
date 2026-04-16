@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/services/api';
+import { API_BASE_URL, API_ENDPOINTS } from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '@/services/supabase';

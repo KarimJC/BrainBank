@@ -1,27 +1,20 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: neunotesadmin
-      POSTGRES_PASSWORD: changeme123
-      POSTGRES_DB: neunotes
+  redis:
+    image: redis:7-alpine
+    container_name: brainbank-redis
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - "6379:6379"
+    restart: unless-stopped
 
-  backend:
-    build: ./backend
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: brainbank-jaeger
     ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
     environment:
-      DATABASE_URL: postgresql://neunotesadmin:changeme123@db:5432/neunotes
-    depends_on:
-      - db
-
-volumes:
-  postgres_data:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: unless-stopped

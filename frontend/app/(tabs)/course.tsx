@@ -44,7 +44,6 @@ export default function CoursePage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterOption>('All');
   const [bookmarked, setBookmarked] = useState(false);
-  const [leaving, setLeaving] = useState(false);
 
   // classmates 
   const [showClassmates, setShowClassmates] = useState(false);

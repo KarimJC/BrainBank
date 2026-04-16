@@ -52,7 +52,7 @@ const SignUpScreen: React.FC = () => {
 
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password: password,
       options: {

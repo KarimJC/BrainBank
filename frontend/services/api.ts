@@ -67,61 +67,114 @@ async function getAuthHeaders() {
 }
 
 export const api = {
-  async getCurrentUser() {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(`${API_BASE_URL}/api/v1/me`, { headers }, TIMEOUTS.FAST);
-    return response.json();
-  },
+async getCurrentUser() {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/api/v1/me`, { headers }); // remove /user
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('API Error:', error);
+    throw new Error(`Failed to fetch user: ${error}`);
+  }
+
+  return response.json();
+},
 
   async getConversations(userId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/conversations/user/${userId}`,
-      { headers },
-      TIMEOUTS.FAST
-    );
-    return response.json();
-  },
+  const headers = await getAuthHeaders();
 
-  async getConversation(conversationId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/conversations/${conversationId}`,
-      { headers },
-      TIMEOUTS.FAST
-    );
-    return response.json();
-  },
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/conversations/user/${userId}`,
+    { headers }
+  );
 
-  async updateConversation(conversationId: number, status: string) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/conversations/${conversationId}`,
-      { method: 'PATCH', headers, body: JSON.stringify({ status }) },
-      TIMEOUTS.DEFAULT
-    );
-    return response.json();
-  },
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to fetch conversations: ${error}`);
+  }
 
-  async sendMessage(conversationId: number, content: string) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/messages`,
-      { method: 'POST', headers, body: JSON.stringify({ conversation_id: conversationId, content }) },
-      TIMEOUTS.DEFAULT
-    );
-    return response.json();
-  },
+  return response.json();
+},
 
-  async getMessages(conversationId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/messages?conversation_id=${conversationId}`,
-      { headers },
-      TIMEOUTS.FAST
-    );
-    return response.json();
-  },
+async getConversation(conversationId: number) {
+  const headers = await getAuthHeaders();
+
+  const response = await fetch(
+`${API_BASE_URL}/api/v1/conversations/${conversationId}`,
+    { headers }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to fetch conversation: ${error}`);
+  }
+
+  return response.json();
+},
+
+async updateConversation(conversationId: number, status: string) {
+  const headers = await getAuthHeaders();
+
+  const response = await fetch(
+`${API_BASE_URL}/api/v1/conversations/${conversationId}`,
+    {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ status }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to update conversation: ${error}`);
+  }
+
+  return response.json();
+},
+
+async sendMessage(conversationId: number, content: string) {
+  const headers = await getAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/api/v1/messages`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ conversation_id: conversationId, content }),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to send message: ${error}`);
+  }
+  return response.json();
+},
+
+async getMessages(
+  conversationId: number,
+  options?: { before?: string; limit?: number }
+): Promise<{ messages: any[]; next_cursor: string | null; has_more: boolean }> {
+  const headers = await getAuthHeaders();
+  const params = new URLSearchParams({ conversation_id: String(conversationId) });
+  if (options?.before) params.set('before', options.before);
+  if (options?.limit) params.set('limit', String(options.limit));
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/messages?${params}`,
+    { headers }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to fetch messages: ${error}`);
+  }
+
+  return response.json();
+},
+
+async markConversationRead(conversationId: number) {
+  const headers = await getAuthHeaders();
+  await fetch(`${API_BASE_URL}/api/v1/conversations/${conversationId}/read`, {
+    method: 'POST',
+    headers,
+  });
+},
 
   async createConversation(initiatorId: number, recipientId: number) {
     const headers = await getAuthHeaders();
@@ -204,3 +257,4 @@ export const api = {
     return response.json();
   },
 };
+
