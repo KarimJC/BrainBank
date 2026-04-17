@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { api } from '@/services/api';
 
 interface ClassmatesModalProps {
   visible: boolean;
@@ -22,7 +23,7 @@ interface ClassmatesModalProps {
 
 export default function ClassmatesModal({ visible, classmates, currentUserId, onClose }: ClassmatesModalProps) {
   const router = useRouter();
-  const initiatingChat: number | null = null;
+  const [initiatingChat, setInitiatingChat] = useState<number | null>(null);
 
   const handleMessage = async (recipientId: number) => {
     if (!currentUserId) {
@@ -34,8 +35,31 @@ export default function ClassmatesModal({ visible, classmates, currentUserId, on
       Alert.alert('Info', 'This is you!');
       return;
     }
-    onClose();
-    router.push(`/(tabs)/user/${recipientId}` as any);
+
+    setInitiatingChat(recipientId);
+    try {
+      const conversation = await api.createConversation(currentUserId, recipientId);
+      onClose();
+      router.push(`/conversation/${conversation.conversation_id}` as any);
+    } catch (error: any) {
+      if (error.message?.includes('already exists')) {
+        const convos = await api.getConversations(currentUserId);
+        const existing = convos.find((c: any) =>
+          (c.initiator_id === currentUserId && c.recipient_id === recipientId) ||
+          (c.initiator_id === recipientId && c.recipient_id === currentUserId)
+        );
+        if (existing) {
+          onClose();
+          router.push(`/conversation/${existing.conversation_id}` as any);
+        } else {
+          Alert.alert('Error', 'Conversation exists but could not be found');
+        }
+      } else {
+        Alert.alert('Error', 'Failed to start conversation');
+      }
+    } finally {
+      setInitiatingChat(null);
+    }
   };
 
   const renderItem = ({ item }: { item: any }) => {
