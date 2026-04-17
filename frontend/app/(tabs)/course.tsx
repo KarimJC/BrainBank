@@ -28,10 +28,10 @@ import NotesFilterModal from '@/components/notes/NotesFilterModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type FilterOption = 'All' | 'Recent' | 'Saved';
+type FilterOption = 'All' | 'Recent';
 type ViewMode = 'mine' | 'myProfessor' | 'allProfessors';
 
-const FILTERS: FilterOption[] = ['All', 'Recent', 'Saved'];
+const FILTERS: FilterOption[] = ['All', 'Recent'];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 

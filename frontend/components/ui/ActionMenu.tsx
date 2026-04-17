@@ -15,7 +15,6 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
   const actions = [
     { id: 'add-class', label: 'Add class' },
     { id: 'upload-notes', label: 'Upload notes' },
-    { id: 'generate-document', label: 'Generate document' },
   ];
 
   return (
