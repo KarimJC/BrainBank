@@ -329,7 +329,7 @@ export default function ConversationScreen() {
         {isPendingRequest ? (
           // Show Accept/decline if you're the recipient 
           <View style={styles.requestActionsBottom}>
-            {conversation.recipient_id === currentUserId && (
+            {Number(conversation.recipient_id) === currentUserId && (
               <>
                 <TouchableOpacity style={styles.acceptButton} onPress={handleAccept}>
                   <Text style={styles.acceptText}>Accept</Text>
@@ -339,9 +339,15 @@ export default function ConversationScreen() {
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity style={styles.blockButton} onPress={handleBlock}>
-              <Text style={styles.blockText}>Block</Text>
-            </TouchableOpacity>
+            {Number(conversation.recipient_id) === currentUserId ? (
+              <TouchableOpacity style={styles.blockButton} onPress={handleBlock}>
+                <Text style={styles.blockText}>Block</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.declineButton} onPress={handleDecline}>
+                <Text style={styles.declineText}>Withdraw</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : conversation.blocked_by !== null ? (
           conversation.blocked_by === currentUserId ? (
