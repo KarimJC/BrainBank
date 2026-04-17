@@ -59,7 +59,7 @@ export default function UserProfileScreen() {
     setInitiatingChat(true);
     try {
       const conversation = await api.createConversation(currentUserId, Number(userId));
-      router.replace(`/(tabs)/${conversation.conversation_id}` as any);
+      router.replace(`/conversation/${conversation.conversation_id}` as any);
     } catch (error: any) {
       if (error.message.includes('already exists')) {
         // Fetch existing conversation
