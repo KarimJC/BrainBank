@@ -217,6 +217,10 @@ export default function ConversationScreen() {
     ? conversation.recipient_name
     : conversation.initiator_name;
 
+  const otherPersonProfilePicture = conversation.initiator_id === currentUserId
+    ? conversation.recipient_profile_picture
+    : conversation.initiator_profile_picture;
+
   const initials = otherPersonName
     .trim()
     .split(' ')
@@ -242,9 +246,16 @@ export default function ConversationScreen() {
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <View style={styles.avatarFallbackLarge}>
-              <Text style={styles.avatarInitialsLarge}>{initials}</Text>
-            </View>
+            {otherPersonProfilePicture ? (
+              <Image
+                source={{ uri: otherPersonProfilePicture }}
+                style={styles.avatarImageLarge}
+              />
+            ) : (
+              <View style={styles.avatarFallbackLarge}>
+                <Text style={styles.avatarInitialsLarge}>{initials}</Text>
+              </View>
+            )}
             <Text style={styles.nameLarge}>{otherPersonName}</Text>
           </View>
           {conversation.status === 'accepted' && (
@@ -415,6 +426,12 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     alignItems: 'center',
+  },
+  avatarImageLarge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginBottom: 6,
   },
   avatarFallbackLarge: {
     width: 56,
