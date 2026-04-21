@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useFocusEffect , useRouter } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
@@ -7,6 +7,7 @@ import { api } from '@/services/api';
 import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';
 import { Ionicons } from '@expo/vector-icons';
 import ErrorView from '@/components/ui/ErrorView';
+import ClassmatesModal from '@/components/course/ClassmatesModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,9 +28,10 @@ interface ClassCardProps {
   classData: CourseSection;
   onPress: () => void;
   onAiPress: () => void;
+  onPressClass: () => void;
 }
 
-const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onAiPress }) => (
+const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onAiPress, onPressClass }) => (
   <View style={styles.card}>
     <View style={styles.cardTop}>
       <View style={styles.cardInfo}>
@@ -45,10 +47,16 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onAiPress }) 
         </TouchableOpacity>
       </View>
     </View>
+    <View style={styles.buttonStyles}>
     <TouchableOpacity style={styles.viewNotesButton} onPress={onPress}>
       <IconSymbol name="folder" size={16} color="#FFFFFF" />
       <Text style={styles.viewNotesText}>View Notes</Text>
     </TouchableOpacity>
+    <TouchableOpacity style={styles.viewNotesButton} onPress={onPressClass}>
+      <IconSymbol name="person" size={16} color="#FFFFFF" />
+      <Text style={styles.viewNotesText}>See People</Text>
+    </TouchableOpacity>
+    </View>
   </View>
 );
 
@@ -61,12 +69,19 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+    // Classmates
+    const [showClassmates, setShowClassmates] = useState(false);
+    const [classmates, setClassmates] = useState<any[]>([]);
+    const [loadingClassmates, setLoadingClassmates] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
       const user = await api.getCurrentUser();
       setUserName(user.first_name ?? user.neu_email ?? 'there');
+      setCurrentUserId(user.user_id);
       const sections = await api.getUserCourseSections(user.user_id);
       setClasses(sections);
     } catch (err) {
@@ -116,6 +131,23 @@ export default function HomeScreen() {
     });
   };
 
+  const handleViewClassmates = (courseSectionId: number) => {
+    const loadClassmates = async () => {
+        if (!courseSectionId) return;
+        setLoadingClassmates(true);
+        try {
+          const data = await api.getCourseSectionStudents(Number(courseSectionId));
+          setClassmates(data);
+          setShowClassmates(true);
+        } catch (err) {
+          Alert.alert('Error', 'Failed to load classmates');
+        } finally {
+          setLoadingClassmates(false);
+        }
+      };
+      loadClassmates();
+  }
+
   return (
     <AppLayout onNavigate={handleNavigation} activeRoute="home" onClassAdded={fetchData}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -129,6 +161,12 @@ export default function HomeScreen() {
               <Text style={styles.welcome}>
                 Welcome, <Text style={styles.userName}>{userName}!</Text>
               </Text>
+               <ClassmatesModal
+                      visible={showClassmates}
+                      classmates={classmates}
+                      currentUserId={currentUserId}
+                      onClose={() => setShowClassmates(false)}
+                    />
               {classes.length === 0 ? (
                 <Text style={styles.emptyText}>No classes yet. Add one to get started!</Text>
               ) : (
@@ -140,6 +178,7 @@ export default function HomeScreen() {
                     onAiPress={() =>
                       handleOpenAiChat(String(classData.course_section_id), classData.course_code)
                     }
+                    onPressClass={() => handleViewClassmates(classData.course_section_id)}
                   />
                 ))
               )}
@@ -222,6 +261,12 @@ const styles = StyleSheet.create({
   },
 
   // Buttons
+  buttonStyles: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: 8
+
+  },
   viewNotesButton: {
     flexDirection: 'row',
     alignItems: 'center',
