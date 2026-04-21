@@ -64,11 +64,16 @@ export default function CoursePage() {
   const [filterStartDate, setFilterStartDate] = useState<Date | null>(null);
   const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
 
-  // Classmates
-  const [showClassmates, setShowClassmates] = useState(false);
-  const [classmates, setClassmates] = useState<any[]>([]);
-  const [loadingClassmates, setLoadingClassmates] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    loadNotes();
+  }, [debouncedSearch, viewMode]);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -81,15 +86,6 @@ export default function CoursePage() {
     };
     fetchCurrentUser();
   }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  useEffect(() => {
-    loadNotes();
-  }, [debouncedSearch, viewMode]);
 
   // ─── Data Loading ───────────────────────────────────────────────────────────
 
@@ -123,21 +119,6 @@ export default function CoursePage() {
     }
   };
 
-  const loadClassmates = async () => {
-    if (!courseSectionId) return;
-    setLoadingClassmates(true);
-    try {
-      const data = await api.getCourseSectionStudents(Number(courseSectionId));
-      setClassmates(data);
-      setShowClassmates(true);
-    } catch (err) {
-      console.error('Failed to load classmates:', err);
-      Alert.alert('Error', 'Failed to load classmates');
-    } finally {
-      setLoadingClassmates(false);
-    }
-  };
-
   const handleUnenroll = () => {
     Alert.alert(
       'Unenroll from Course',
@@ -165,9 +146,9 @@ export default function CoursePage() {
   // ─── Navigation ─────────────────────────────────────────────────────────────
 
   const handleNavigate = (route: string) => {
-    if (route === 'home')         router.push('/(tabs)');
-    else if (route === 'notes')   router.push('/(tabs)/notes');
-    else if (route === 'chat')    router.push('/(tabs)/chat');
+    if (route === 'home') router.push('/(tabs)');
+    else if (route === 'notes') router.push('/(tabs)/notes');
+    else if (route === 'chat') router.push('/(tabs)/chat');
     else if (route === 'profile') router.push('/(tabs)/profile');
   };
 
@@ -242,17 +223,6 @@ export default function CoursePage() {
           </TouchableOpacity>
 
           <View style={styles.topRowRight}>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={loadClassmates}
-              disabled={loadingClassmates}
-            >
-              {loadingClassmates ? (
-                <ActivityIndicator size="small" color={PURPLE} />
-              ) : (
-                <Ionicons name="people-outline" size={22} color={PURPLE} />
-              )}
-            </TouchableOpacity>
 
             <TouchableOpacity style={styles.iconBtn} onPress={handleUnenroll}>
               <Ionicons name="trash-outline" size={22} color="#E53935" />
@@ -370,13 +340,6 @@ export default function CoursePage() {
           setFilterEndDate(null);
         }}
         onClose={() => setShowFilterModal(false)}
-      />
-
-      <ClassmatesModal
-        visible={showClassmates}
-        classmates={classmates}
-        currentUserId={currentUserId}
-        onClose={() => setShowClassmates(false)}
       />
 
       <NoteDetailModal
