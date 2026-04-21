@@ -23,7 +23,6 @@ import {
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
 import ErrorView from '@/components/ui/ErrorView';
-import ClassmatesModal from '@/components/course/ClassmatesModal';
 import NotesFilterModal from '@/components/notes/NotesFilterModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -73,7 +72,7 @@ export default function CoursePage() {
 
   useEffect(() => {
     loadNotes();
-  }, [debouncedSearch, viewMode]);
+  }, [debouncedSearch, viewMode, courseSectionId]);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -98,6 +97,7 @@ export default function CoursePage() {
 
       if (viewMode === 'mine') {
         if (!courseSectionId) return;
+        console.log(professorName, professorId)
         data = await fetchAllNotesByCourseSection(Number(courseSectionId));
       } else if (viewMode === 'myProfessor') {
         if (!courseId) return;
