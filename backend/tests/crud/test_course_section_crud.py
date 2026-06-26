@@ -106,7 +106,8 @@ class TestGetCourseSectionsBySubject:
         from db.crud.course_section import get_course_sections_by_subject
         db, cursor = make_db_mock(fetchall=[SECTION_ROW])
         result = get_course_sections_by_subject("CS", db)
-        assert len(result) >= 1
+        assert len(result) == 1
+        assert result[0]["course_section_id"] == SECTION_ROW["course_section_id"]
 
     def test_returns_empty_when_none(self):
         from db.crud.course_section import get_course_sections_by_subject

@@ -47,24 +47,31 @@ class TestGetAllDocuments:
     def test_with_user_id_filter(self):
         from db.crud.document import get_all_documents
         db, cursor = make_db_mock(fetchall=[DOC_ROW])
-        result = get_all_documents(db, user_id=1)
-        sql = cursor.execute.call_args[0][0]
-        assert "user_id" in sql.lower()
+        get_all_documents(db, user_id=1)
+        sql, params = cursor.execute.call_args[0]
+        # WHERE clause must be present and contain the specific filter condition
+        assert "WHERE" in sql
+        assert "user_id = %s" in sql
+        assert 1 in params
 
     def test_with_course_id_filter(self):
         from db.crud.document import get_all_documents
         db, cursor = make_db_mock(fetchall=[DOC_ROW])
-        result = get_all_documents(db, course_id=5)
-        sql = cursor.execute.call_args[0][0]
-        assert "course_id" in sql.lower()
+        get_all_documents(db, course_id=5)
+        sql, params = cursor.execute.call_args[0]
+        assert "WHERE" in sql
+        assert "course_id = %s" in sql
+        assert 5 in params
 
     def test_with_both_filters(self):
         from db.crud.document import get_all_documents
         db, cursor = make_db_mock(fetchall=[DOC_ROW])
-        result = get_all_documents(db, user_id=1, course_id=5)
-        sql = cursor.execute.call_args[0][0]
-        assert "user_id" in sql.lower()
-        assert "course_id" in sql.lower()
+        get_all_documents(db, user_id=1, course_id=5)
+        sql, params = cursor.execute.call_args[0]
+        assert "user_id = %s" in sql
+        assert "course_id = %s" in sql
+        assert 1 in params
+        assert 5 in params
 
     def test_returns_empty_list(self):
         from db.crud.document import get_all_documents

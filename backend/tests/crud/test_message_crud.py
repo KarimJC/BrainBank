@@ -45,7 +45,6 @@ class TestCreateMessage:
         db, cursor = make_db_mock(fetchone=MSG_ROW)
         # check_user_exists will also call fetchone; set it up to return (True,) first
         call_count = [0]
-        original = cursor.fetchone
 
         def side_effect():
             call_count[0] += 1
@@ -58,6 +57,7 @@ class TestCreateMessage:
         data = MessageCreate(conversation_id=2, content="Hello!")
         result = create_message(data, sender_id=1, db=db)
         assert result == MSG_ROW
+        db.commit.assert_called_once()
 
     def test_raises_when_user_not_exists(self):
         from db.crud.message import create_message
@@ -138,9 +138,12 @@ class TestGetMessagesPaginated:
     def test_with_before_cursor(self):
         from db.crud.message import get_messages_paginated
         db, cursor = make_db_mock(fetchall=[MSG_ROW])
-        result = get_messages_paginated(2, 50, "2025-01-01T12:00:00", db)
-        sql = cursor.execute.call_args[0][0]
-        assert "created_at" in sql
+        get_messages_paginated(2, 50, "2025-01-01T12:00:00", db)
+        sql, params = cursor.execute.call_args[0]
+        # With a before cursor, the WHERE clause must filter on created_at < %s
+        assert "created_at < %s" in sql
+        # The timestamp cursor value must appear in the params
+        assert "2025-01-01T12:00:00" in params
 
     def test_raises_on_error(self):
         from db.crud.message import get_messages_paginated

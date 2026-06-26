@@ -117,6 +117,22 @@ class TestNoteUpdate:
         n = NoteUpdate(title="Updated")
         assert n.title == "Updated"
 
+    def test_future_date_raises(self):
+        with pytest.raises(Exception):
+            NoteUpdate(date="2099-01-01")
+
+    def test_invalid_date_format_raises(self):
+        with pytest.raises(Exception):
+            NoteUpdate(date="01-01-2025")
+
+    def test_none_date_is_valid(self):
+        n = NoteUpdate(date=None)
+        assert n.date is None
+
+    def test_negative_course_section_id_raises(self):
+        with pytest.raises(Exception):
+            NoteUpdate(courseSectionId=0)
+
 
 class TestNoteResponse:
     def test_valid(self):

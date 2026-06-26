@@ -59,14 +59,18 @@ class TestGetAllNotes:
     def test_with_course_section_id_filter(self):
         from db.crud.notes import get_all_notes
         db, cursor = make_db_mock(fetchall=[NOTE_ROW])
-        result = get_all_notes(course_section_id=2, db=db)
-        sql = cursor.execute.call_args[0][0]
-        assert "course_id" in sql.lower()
+        get_all_notes(course_section_id=2, db=db)
+        sql, params = cursor.execute.call_args[0]
+        # Verify the WHERE clause was actually constructed with n.course_id = %s
+        assert "WHERE" in sql
+        assert "n.course_id = %s" in sql
+        # The course_section_id value (2) must be in the params before limit/skip
+        assert 2 in params
 
     def test_with_search_filter(self):
         from db.crud.notes import get_all_notes
         db, cursor = make_db_mock(fetchall=[NOTE_ROW])
-        result = get_all_notes(search_query="lecture", db=db)
+        get_all_notes(search_query="lecture", db=db)
         sql = cursor.execute.call_args[0][0]
         assert "ILIKE" in sql
 
@@ -88,9 +92,12 @@ class TestGetNotesByCourse:
     def test_with_professor_filter(self):
         from db.crud.notes import get_notes_by_course
         db, cursor = make_db_mock(fetchall=[NOTE_ROW])
-        result = get_notes_by_course(1, professor_id=3, db=db)
-        sql = cursor.execute.call_args[0][0]
-        assert "professor_id" in sql.lower()
+        get_notes_by_course(1, professor_id=3, db=db)
+        sql, params = cursor.execute.call_args[0]
+        # Verify the WHERE clause includes the professor_id condition specifically
+        assert "cs.professor_id = %s" in sql
+        # The professor_id value (3) must be in the params
+        assert 3 in params
 
     def test_raises_on_error(self):
         from db.crud.notes import get_notes_by_course
@@ -125,7 +132,7 @@ class TestCountNotes:
     def test_with_user_id_filter(self):
         from db.crud.notes import count_notes
         db, cursor = make_db_mock(fetchone={"count": 5})
-        result = count_notes(user_id=1, db=db)
+        count_notes(user_id=1, db=db)
         sql = cursor.execute.call_args[0][0]
         assert "user_id" in sql.lower()
 

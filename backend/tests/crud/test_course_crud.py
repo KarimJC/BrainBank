@@ -72,7 +72,7 @@ class TestGetAllCourses:
     def test_with_subject_filter(self):
         from db.crud.course import get_all_courses
         db, cursor = make_db_mock(fetchall=[COURSE_ROW])
-        result = get_all_courses(db, subject="CS")
+        get_all_courses(db, subject="CS")
         sql = cursor.execute.call_args[0][0]
         assert "subject" in sql.lower()
 
