@@ -1,4 +1,5 @@
 """Tests for core/ai_service.py — AIService.build_context_prompt (pure method)."""
+
 import pytest
 from core.ai_service import AIService
 

@@ -62,9 +62,15 @@ docker-compose up
 
 **Or use the Makefile:**
 ```bash
-make dev        # Run backend and frontend in parallel
+make dev        # Run backend and frontend in parallel, may need to create venv first
 make backend    # Backend only (http://0.0.0.0:8000)
 make frontend   # Frontend only (Expo)
+make format     # Correctly reformats backend
+make fix        # Fixes frontend and backend linting errors
+make test       # Runs all tests
+make test-backend-install # installs dev requirements - used mostly in tests
+make test-backend         # Runs all backend tests
+
 ```
 
 **or running them individually:**

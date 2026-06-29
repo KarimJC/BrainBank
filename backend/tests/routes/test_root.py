@@ -1,4 +1,5 @@
 """Tests for root endpoints in main.py."""
+
 import pytest
 
 

@@ -157,7 +157,7 @@ def update_course_section(section_id: int, course_section_data: CourseSectionUpd
 
         values.append(section_id)
 
-        if  len(update_fields) ==0: #if we have not updated the fields, we want to close and return early 
+        if len(update_fields) == 0:  # if we have not updated the fields, we want to close and return early
             cursor.close()
             return get_course_section_by_id(section_id, db)
 
@@ -232,14 +232,14 @@ def enroll_user_in_course_section(user_id: int, course_section_id: int, db: Conn
         cursor = db.cursor()
         cursor.execute(
             "SELECT 1 FROM public.user_course_sections WHERE user_id = %s AND course_section_id = %s",
-            (user_id, course_section_id)
+            (user_id, course_section_id),
         )
         if cursor.fetchone():
             cursor.close()
             return False
         cursor.execute(
             "INSERT INTO public.user_course_sections (user_id, course_section_id) VALUES (%s, %s)",
-            (user_id, course_section_id)
+            (user_id, course_section_id),
         )
         db.commit()
         cursor.close()

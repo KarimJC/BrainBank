@@ -1,4 +1,5 @@
 """Tests for api/routes/user.py."""
+
 import pytest
 
 
@@ -42,7 +43,9 @@ class TestPatchMe:
         # behavior so any future code change that accidentally makes it work differently
         # is caught.
         monkeypatch.setattr("api.routes.user.get_user_by_auth_id", lambda *a, **k: USER_DATA)
-        monkeypatch.setattr("api.routes.user.update_user_by_auth_id", lambda *a, **k: {**USER_DATA, "first_name": "Bob"})
+        monkeypatch.setattr(
+            "api.routes.user.update_user_by_auth_id", lambda *a, **k: {**USER_DATA, "first_name": "Bob"}
+        )
         monkeypatch.setattr("api.routes.user.cache_delete", lambda *a, **k: None)
         resp = client.patch("/api/v1/me", json={"first_name": "Bob"})
         assert resp.status_code == 500

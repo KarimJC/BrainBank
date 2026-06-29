@@ -13,22 +13,26 @@ logger = logging.getLogger(__name__)
 def build_attachments(media_url, file_url, file_name, file_size) -> list:
     attachments = []
     if media_url:
-        attachments.append({
-            "id": media_url.split("/")[-1].split(".")[0],
-            "url": media_url,
-            "filename": media_url.split("/")[-1],
-            "type": "image",
-            "uploadedAt": datetime.utcnow().isoformat(),
-        })
+        attachments.append(
+            {
+                "id": media_url.split("/")[-1].split(".")[0],
+                "url": media_url,
+                "filename": media_url.split("/")[-1],
+                "type": "image",
+                "uploadedAt": datetime.utcnow().isoformat(),
+            }
+        )
     if file_url:
-        attachments.append({
-            "id": file_url.split("/")[-1].split(".")[0],
-            "url": file_url,
-            "filename": file_name,
-            "size": file_size,
-            "type": "document",
-            "uploadedAt": datetime.utcnow().isoformat(),
-        })
+        attachments.append(
+            {
+                "id": file_url.split("/")[-1].split(".")[0],
+                "url": file_url,
+                "filename": file_name,
+                "size": file_size,
+                "type": "document",
+                "uploadedAt": datetime.utcnow().isoformat(),
+            }
+        )
     return attachments
 
 
@@ -99,10 +103,18 @@ def create_note(
                       date_uploaded, notes_content, attachments
         """
 
-        cursor.execute(query, (
-            user_id, course_section_id, note_data.title, note_data.description,
-            note_data.date, notes_content, *attachments_params,
-        ))
+        cursor.execute(
+            query,
+            (
+                user_id,
+                course_section_id,
+                note_data.title,
+                note_data.description,
+                note_data.date,
+                notes_content,
+                *attachments_params,
+            ),
+        )
 
         result = cursor.fetchone()
         db.commit()
@@ -267,12 +279,15 @@ def count_notes(
             params.append(end_date)
 
         where = "WHERE " + " AND ".join(conditions) if conditions else ""
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
             SELECT COUNT(*) FROM notes n
             LEFT JOIN course_section cs ON n.course_id = cs.id
             LEFT JOIN course c ON cs.course_id = c.id
             {where}
-        """, params)
+        """,
+            params,
+        )
         result = cursor.fetchone()
         cursor.close()
         return result["count"]
@@ -292,15 +307,20 @@ def update_note(note_id: int, note_data: NoteUpdate, notes_content: Optional[str
         fields, values = [], []
 
         if note_data.title is not None:
-            fields.append("title = %s"); values.append(note_data.title)
+            fields.append("title = %s")
+            values.append(note_data.title)
         if note_data.description is not None:
-            fields.append("description = %s"); values.append(note_data.description)
+            fields.append("description = %s")
+            values.append(note_data.description)
         if note_data.date is not None:
-            fields.append("date_uploaded = %s"); values.append(note_data.date)
+            fields.append("date_uploaded = %s")
+            values.append(note_data.date)
         if note_data.courseSectionId is not None:
-            fields.append("course_id = %s"); values.append(note_data.courseSectionId)
+            fields.append("course_id = %s")
+            values.append(note_data.courseSectionId)
         if notes_content is not None:
-            fields.append("notes_content = %s"); values.append(notes_content)
+            fields.append("notes_content = %s")
+            values.append(notes_content)
 
         if not fields:
             return None

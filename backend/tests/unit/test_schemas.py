@@ -1,4 +1,5 @@
 """Pydantic schema validation tests."""
+
 import pytest
 from datetime import datetime
 from uuid import UUID
@@ -17,6 +18,7 @@ from api.schemas.document import DocumentResponse, DocumentDeleteResponse
 
 # ── User Schemas ──────────────────────────────────────────────────────────────
 
+
 class TestUserUpdate:
     def test_all_optional(self):
         u = UserUpdate()
@@ -30,10 +32,7 @@ class TestUserUpdate:
 
 class TestUserResponse:
     def test_valid(self):
-        u = UserResponse(
-            user_id=1, auth_id="uuid-abc", neu_email="a@neu.edu",
-            first_name="Alice", last_name="Smith"
-        )
+        u = UserResponse(user_id=1, auth_id="uuid-abc", neu_email="a@neu.edu", first_name="Alice", last_name="Smith")
         assert u.user_id == 1
         assert u.auth_id == "uuid-abc"
 
@@ -50,6 +49,7 @@ class TestUserDeleteResponse:
 
 
 # ── Course Schemas ────────────────────────────────────────────────────────────
+
 
 class TestCourseCreate:
     def test_valid(self):
@@ -89,6 +89,7 @@ class TestCourseList:
 
 
 # ── Notes Schemas ─────────────────────────────────────────────────────────────
+
 
 class TestNoteCreate:
     def test_valid(self):
@@ -137,15 +138,21 @@ class TestNoteUpdate:
 class TestNoteResponse:
     def test_valid(self):
         n = NoteResponse(
-            noteId=1, title="T", description=None,
-            dateUploaded="2025-01-01", courseSectionId=1,
-            courseCode="CS3000", courseName="Algo",
-            professorName="Smith", uploaderName="Alice"
+            noteId=1,
+            title="T",
+            description=None,
+            dateUploaded="2025-01-01",
+            courseSectionId=1,
+            courseCode="CS3000",
+            courseName="Algo",
+            professorName="Smith",
+            uploaderName="Alice",
         )
         assert n.noteId == 1
 
 
 # ── Message Schemas ───────────────────────────────────────────────────────────
+
 
 class TestMessageCreate:
     def test_valid(self):
@@ -178,6 +185,7 @@ class TestMessageDeleteResponse:
 
 
 # ── Conversation Schemas ──────────────────────────────────────────────────────
+
 
 class TestConversationCreate:
     def test_valid(self):
@@ -214,6 +222,7 @@ class TestConversationResponse:
 
 # ── AI Chat Schemas ───────────────────────────────────────────────────────────
 
+
 class TestChatRequest:
     def test_valid(self):
         r = ChatRequest(user_id=1, section_id=2, message="Help me")
@@ -240,6 +249,7 @@ class TestAIChatMessageCreate:
 
 # ── Professor Schemas ─────────────────────────────────────────────────────────
 
+
 class TestProfessorCreate:
     def test_valid(self):
         p = ProfessorCreate(name="Dr. Smith", email="smith@neu.edu")
@@ -259,6 +269,7 @@ class TestProfessorResponse:
 
 
 # ── Course Section Schemas ────────────────────────────────────────────────────
+
 
 class TestCourseSectionCreate:
     def test_valid(self):
@@ -280,6 +291,7 @@ class TestCourseSectionResponse:
 
 # ── Document Schemas ──────────────────────────────────────────────────────────
 
+
 class TestDocumentResponse:
     def test_valid(self):
         d = DocumentResponse(
@@ -291,9 +303,7 @@ class TestDocumentResponse:
         assert isinstance(d.doc_id, UUID)
 
     def test_optional_fields(self):
-        d = DocumentResponse(
-            doc_id=uuid.uuid4(), user_id=1, doc_type="summary", doc_content="x"
-        )
+        d = DocumentResponse(doc_id=uuid.uuid4(), user_id=1, doc_type="summary", doc_content="x")
         assert d.doc_date is None
         assert d.course_id is None
 

@@ -25,19 +25,19 @@ FACULTY_SLEEP = 0.5  # seconds between per-CRN faculty requests
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
 
+
 def get_conn():
     return psycopg2.connect(os.getenv("DATABASE_URL"))
+
 
 def get_or_create_professor(cursor, name: str, email: str = "") -> int:
     cursor.execute("SELECT professor_id FROM professor WHERE name = %s", (name,))
     row = cursor.fetchone()
     if row:
         return row["professor_id"]
-    cursor.execute(
-        "INSERT INTO professor (name, email) VALUES (%s, %s) RETURNING professor_id",
-        (name, email)
-    )
+    cursor.execute("INSERT INTO professor (name, email) VALUES (%s, %s) RETURNING professor_id", (name, email))
     return cursor.fetchone()["professor_id"]
+
 
 def get_or_create_course(cursor, subject: str, course_number: str, title: str) -> int:
     course_code = f"{subject}{course_number}"
@@ -46,35 +46,31 @@ def get_or_create_course(cursor, subject: str, course_number: str, title: str) -
     if row:
         return row["id"]
     cursor.execute(
-        "INSERT INTO course (course, title, subject) VALUES (%s, %s, %s) RETURNING id",
-        (title, course_code, subject)
+        "INSERT INTO course (course, title, subject) VALUES (%s, %s, %s) RETURNING id", (title, course_code, subject)
     )
     return cursor.fetchone()["id"]
+
 
 def crn_exists(cursor, crn: int) -> bool:
     cursor.execute('SELECT 1 FROM course_section WHERE "course_CRN" = %s', (crn,))
     return cursor.fetchone() is not None
 
+
 # ── Banner session ────────────────────────────────────────────────────────────
+
 
 def make_session() -> requests.Session:
     s = requests.Session()
     s.headers.update({"User-Agent": "Mozilla/5.0"})
     return s
 
+
 def select_term(session: requests.Session, subject: str):
     """Banner requires term + subject selection before each search."""
     session.post(f"{BASE}/classSearch/resetDataForm", timeout=15)
-    session.post(
-        f"{BASE}/term/search?mode=search",
-        data={"term": TERM},
-        timeout=15
-    )
-    session.get(
-        f"{BASE}/classSearch/classSearch",
-        params={"term": TERM, "subject": subject},
-        timeout=15
-    )
+    session.post(f"{BASE}/term/search?mode=search", data={"term": TERM}, timeout=15)
+    session.get(f"{BASE}/classSearch/classSearch", params={"term": TERM, "subject": subject}, timeout=15)
+
 
 def fetch_sections(session: requests.Session, subject: str) -> list[dict]:
     """Fetch all sections for a subject from Banner."""
@@ -94,7 +90,7 @@ def fetch_sections(session: requests.Session, subject: str) -> list[dict]:
                     "sortColumn": "subjectDescription",
                     "sortDirection": "asc",
                 },
-                timeout=20
+                timeout=20,
             )
             resp.raise_for_status()
             data = resp.json()
@@ -119,6 +115,7 @@ def fetch_sections(session: requests.Session, subject: str) -> list[dict]:
 
     return all_sections
 
+
 def get_section_faculty(session: requests.Session, crn: str) -> tuple[str, str]:
     """
     Fetch professor name + email for a single CRN via Banner's faculty endpoint.
@@ -130,7 +127,7 @@ def get_section_faculty(session: requests.Session, crn: str) -> tuple[str, str]:
         resp = session.get(
             f"{BASE}/searchResults/getFacultyMeetingTimes",
             params={"term": TERM, "courseReferenceNumber": crn},
-            timeout=10
+            timeout=10,
         )
         data = resp.json()
         fmt = data.get("fmt", [])
@@ -143,7 +140,9 @@ def get_section_faculty(session: requests.Session, crn: str) -> tuple[str, str]:
         pass
     return "Staff", ""
 
+
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def seed():
     conn = get_conn()
@@ -193,8 +192,7 @@ def seed():
         # Bulk upsert professors
         if profs:
             cursor.executemany(
-                "INSERT INTO professor (name, email) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING",
-                list(profs.items())
+                "INSERT INTO professor (name, email) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING", list(profs.items())
             )
             conn.commit()
             print(f"  [{subject}] upserted {len(profs)} professors")
@@ -203,7 +201,7 @@ def seed():
         if courses:
             cursor.executemany(
                 "INSERT INTO course (course, title, subject) VALUES (%s, %s, %s) ON CONFLICT (title) DO NOTHING",
-                [(title, code, subj) for code, (subj, _, title) in courses.items()]
+                [(title, code, subj) for code, (subj, _, title) in courses.items()],
             )
             conn.commit()
 
@@ -225,7 +223,7 @@ def seed():
         if section_rows:
             cursor.executemany(
                 'INSERT INTO course_section (course_id, "course_CRN", professor_id) VALUES (%s, %s, %s) ON CONFLICT ("course_CRN") DO NOTHING',
-                section_rows
+                section_rows,
             )
             conn.commit()
             total_sections += len(section_rows)
@@ -239,6 +237,7 @@ def seed():
     print(f"  Sections inserted:  {total_sections}")
     print(f"  Sections skipped:   {total_skipped}")
     print("──────────────────────────────────────────")
+
 
 if __name__ == "__main__":
     seed()

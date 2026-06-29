@@ -28,7 +28,7 @@ def get_section_faculty(session: requests.Session, crn: int) -> tuple[str, str]:
         resp = session.get(
             f"{BASE}/searchResults/getFacultyMeetingTimes",
             params={"term": TERM, "courseReferenceNumber": crn},
-            timeout=10
+            timeout=10,
         )
         data = resp.json()
         fmt = data.get("fmt", [])
@@ -48,10 +48,7 @@ def get_or_create_professor(cursor, name: str, email: str) -> int:
     row = cursor.fetchone()
     if row:
         return row["professor_id"]
-    cursor.execute(
-        "INSERT INTO professor (name, email) VALUES (%s, %s) RETURNING professor_id",
-        (name, email)
-    )
+    cursor.execute("INSERT INTO professor (name, email) VALUES (%s, %s) RETURNING professor_id", (name, email))
     return cursor.fetchone()["professor_id"]
 
 
@@ -85,10 +82,7 @@ def fix_staff():
             still_staff += 1
         else:
             prof_id = get_or_create_professor(cursor, prof_name, prof_email)
-            cursor.execute(
-                "UPDATE course_section SET professor_id = %s WHERE id = %s",
-                (prof_id, section_id)
-            )
+            cursor.execute("UPDATE course_section SET professor_id = %s WHERE id = %s", (prof_id, section_id))
             conn.commit()
             updated += 1
 

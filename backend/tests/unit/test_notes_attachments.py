@@ -1,4 +1,5 @@
 """Tests for db/crud/notes.py — build_attachments and parse_attachments."""
+
 import pytest
 from db.crud.notes import build_attachments, parse_attachments
 
@@ -54,19 +55,13 @@ class TestParseAttachments:
         assert result["media_url"] is None
 
     def test_image_attachment(self):
-        row = {
-            "attachments": [{"type": "image", "url": "http://img.com/x.png"}]
-        }
+        row = {"attachments": [{"type": "image", "url": "http://img.com/x.png"}]}
         result = parse_attachments(row)
         assert result["media_url"] == "http://img.com/x.png"
         assert result["file_url"] is None
 
     def test_document_attachment(self):
-        row = {
-            "attachments": [
-                {"type": "document", "url": "http://file.com/a.pdf", "filename": "a.pdf", "size": 500}
-            ]
-        }
+        row = {"attachments": [{"type": "document", "url": "http://file.com/a.pdf", "filename": "a.pdf", "size": 500}]}
         result = parse_attachments(row)
         assert result["file_url"] == "http://file.com/a.pdf"
         assert result["file_name"] == "a.pdf"

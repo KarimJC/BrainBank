@@ -3,6 +3,7 @@ Tests for api/routes/course_section.py.
 
 NOTE: get_students_in_section endpoint is NOT tested — see tests/TODO.md.
 """
+
 import pytest
 
 

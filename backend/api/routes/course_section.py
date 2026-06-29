@@ -111,6 +111,7 @@ async def get_course_section_endpoint(course_section_id: int, conn=Depends(get_d
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # For course page gets all the students in a course
 @router.get("/{section_id}/students", response_model=List[dict], status_code=status.HTTP_200_OK)
 def get_students_in_section(section_id: int, db: Connection = Depends(get_db)):
@@ -135,6 +136,7 @@ def get_students_in_section(section_id: int, db: Connection = Depends(get_db)):
     except Exception as e:
         logger.error(f"Failed to get students for section {section_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # POST create a new course section
 @router.post("", response_model=CourseSectionResponse, status_code=status.HTTP_201_CREATED)

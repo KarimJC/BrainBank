@@ -10,14 +10,11 @@ class UserUpdate(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
-                {
-                    "first_name": "Angel",
-                    "last_name": "El Moucary",
-                    "profile_picture": "https://pfp.com/pfp.jpg"
-                }
+                {"first_name": "Angel", "last_name": "El Moucary", "profile_picture": "https://pfp.com/pfp.jpg"}
             ]
         }
     )
+
 
 class UserResponse(BaseModel):
     user_id: int
@@ -36,7 +33,7 @@ class UserResponse(BaseModel):
                     "neu_email": "elmoucary.a@northeastern.edu",
                     "first_name": "Angel",
                     "last_name": "El Moucary",
-                    "profile_picture": "https://pfp.com/pfp.jpg"
+                    "profile_picture": "https://pfp.com/pfp.jpg",
                 }
             ]
         }

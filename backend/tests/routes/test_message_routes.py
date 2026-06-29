@@ -2,6 +2,7 @@
 Tests for api/routes/message.py HTTP endpoints only.
 chat_websocket is NOT tested — see tests/TODO.md.
 """
+
 import pytest
 from datetime import datetime
 import uuid
@@ -74,7 +75,9 @@ class TestGetMessages:
 class TestUpdateMessage:
     def test_updates_message(self, client, monkeypatch):
         monkeypatch.setattr("api.routes.message.get_message_by_id", lambda *a, **k: MSG_DATA)
-        monkeypatch.setattr("api.routes.message.update_message_crud", lambda *a, **k: {**MSG_DATA, "content": "Updated"})
+        monkeypatch.setattr(
+            "api.routes.message.update_message_crud", lambda *a, **k: {**MSG_DATA, "content": "Updated"}
+        )
         resp = client.patch(f"/api/v1/messages/{MSG_UUID}", json={"content": "Updated"})
         assert resp.status_code == 200
 
