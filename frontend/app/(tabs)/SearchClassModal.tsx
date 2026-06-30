@@ -11,8 +11,11 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { API_BASE_URL, api } from '@/services/api';
+import { API_BASE_URL } from '@/services/api';
+import { enrollInCourseSection } from '@/services/courseSectionService';
 import { SkeletonList } from '@/components/ui/SkeletonRow';
+import { useUser } from '@/contexts/UserContext';
+import { useCourseSections } from '@/contexts/CourseSectionsContext';
 
 export interface CourseSection {
   course_section_id: number;
@@ -42,16 +45,25 @@ const COLORS = {
 };
 
 const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) => {
+  const { user } = useUser();
+  const { sections: userSections, refresh: refreshSections } = useCourseSections();
+
   const [sections, setSections] = useState<CourseSection[]>([]);
-  const [enrolledIds, setEnrolledIds] = useState<Set<number>>(new Set());
-  const [enrolledCodes, setEnrolledCodes] = useState<Set<string>>(new Set());
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
-  const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [activeSubject, setActiveSubject] = useState<string>('ALL');
+
+  const enrolledIds = useMemo(
+    () => new Set<number>(userSections.map((s) => s.course_section_id)),
+    [userSections],
+  );
+  const enrolledCodes = useMemo(
+    () => new Set<string>(userSections.map((s) => s.course_code)),
+    [userSections],
+  );
 
   useEffect(() => {
     if (!visible) return;
@@ -63,22 +75,12 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
 
     const loadData = async () => {
       try {
-        const [sectionsRes, user] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/v1/course-sections`),
-          api.getCurrentUser(),
-        ]);
+        const sectionsRes = await fetch(`${API_BASE_URL}/api/v1/course-sections`);
 
         if (!sectionsRes.ok) throw new Error(`Server error ${sectionsRes.status}`);
         const allSections: CourseSection[] = await sectionsRes.json();
 
-        const userSections = await api.getUserCourseSections(user.user_id);
-        const ids = new Set<number>(userSections.map((s: CourseSection) => s.course_section_id));
-        const codes = new Set<string>(userSections.map((s: CourseSection) => s.course_code));
-
         setSections(allSections);
-        setEnrolledIds(ids);
-        setEnrolledCodes(codes);
-        setUserId(user.user_id);
       } catch {
         setError('Could not load courses. Make sure the backend is running.');
       } finally {
@@ -130,12 +132,13 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
       onClose();
       return;
     }
-    if (!userId) return;
+    if (!user) return;
     setConfirming(true);
     try {
       await Promise.all(
-        Array.from(pendingIds).map((id) => api.enrollInCourseSection(id, userId))
+        Array.from(pendingIds).map((id) => enrollInCourseSection(id, user.user_id))
       );
+      await refreshSections();
       if (onClassAdded) onClassAdded();
     } catch {
       Alert.alert('Error', 'Could not enroll in one or more classes. Please try again.');

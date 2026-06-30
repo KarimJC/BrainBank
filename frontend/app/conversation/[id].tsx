@@ -14,13 +14,18 @@ import {
   Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { api, WS_URL} from '@/services/api';
+import { WS_URL } from '@/services/api';
+import { getConversation, getMessages, markConversationRead, sendMessage, updateConversation } from '@/services/conversationService';
 import { Ionicons } from '@expo/vector-icons';
-import GifPicker from '@/components/ui/GifPicker'; 
+import GifPicker from '@/components/ui/GifPicker';
+import { useUser } from '@/contexts/UserContext';
+import { useConversations } from '@/contexts/ConversationsContext';
 
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { user } = useUser();
+  const { invalidate: invalidateConversations } = useConversations();
   const scrollViewRef = useRef<ScrollView>(null);
   const [inputText, setInputText] = useState('');
   const [conversation, setConversation] = useState<any>(null);
@@ -100,15 +105,14 @@ export default function ConversationScreen() {
 
   const loadConversation = async () => {
     try {
-      const user = await api.getCurrentUser();
-      setCurrentUserId(user.user_id);
-      const conv = await api.getConversation(Number(id));
+      if (user) setCurrentUserId(user.user_id);
+      const conv = await getConversation(Number(id));
       setConversation(conv);
-      const result = await api.getMessages(Number(id));
+      const result = await getMessages(Number(id));
       setMessages(result.messages);
       setNextCursor(result.next_cursor);
       // Mark as read — fire and forget, don't block the UI
-      api.markConversationRead(Number(id)).catch(() => {});
+      markConversationRead(Number(id)).catch(() => {});
     } catch (error) {
       console.error('Failed to load conversation:', error);
     } finally {
@@ -120,7 +124,7 @@ export default function ConversationScreen() {
     if (!nextCursor || loadingOlder) return;
     setLoadingOlder(true);
     try {
-      const result = await api.getMessages(Number(id), { before: nextCursor });
+      const result = await getMessages(Number(id), { before: nextCursor });
       setMessages(prev => [...result.messages, ...prev]);
       setNextCursor(result.next_cursor);
     } catch (error) {
@@ -147,7 +151,7 @@ export default function ConversationScreen() {
       wsRef.current.send(JSON.stringify({ conversation_id: Number(id), content: text }));
     } else {
       try {
-        await api.sendMessage(Number(id), text);
+        await sendMessage(Number(id), text);
       } catch (e) {
         console.error('Failed to send via REST fallback:', e);
         setMessages(prev => prev.filter(m => m.message_id !== optimistic.message_id));
@@ -169,8 +173,9 @@ export default function ConversationScreen() {
 
   const handleAccept = async () => {
     try {
-      const updated = await api.updateConversation(conversation.conversation_id, 'accepted');
+      const updated = await updateConversation(conversation.conversation_id, 'accepted');
       setConversation(updated);
+      invalidateConversations();
     } catch (error) {
       console.error('Failed to accept:', error);
     }
@@ -178,7 +183,8 @@ export default function ConversationScreen() {
 
   const handleDecline = async () => {
     try {
-      await api.updateConversation(conversation.conversation_id, 'declined');
+      await updateConversation(conversation.conversation_id, 'declined');
+      invalidateConversations();
       router.back();
     } catch (error) {
       console.error('Failed to decline:', error);
@@ -187,8 +193,9 @@ export default function ConversationScreen() {
 
   const handleBlock = async () => {
     try {
-      const updated = await api.updateConversation(conversation.conversation_id, 'blocked');
+      const updated = await updateConversation(conversation.conversation_id, 'blocked');
       setConversation(updated);
+      invalidateConversations();
     } catch (error) {
       console.error('Failed to block:', error);
     }
@@ -196,8 +203,9 @@ export default function ConversationScreen() {
 
   const handleUnblock = async () => {
     try {
-      const updated = await api.updateConversation(conversation.conversation_id, 'accepted');
+      const updated = await updateConversation(conversation.conversation_id, 'accepted');
       setConversation(updated);
+      invalidateConversations();
     } catch (error) {
       console.error('Failed to unblock:', error);
     }

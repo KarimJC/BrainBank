@@ -11,7 +11,10 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '@/services/api';
+import { getUserById } from '@/services/profileService';
+import { createConversation } from '@/services/conversationService';
+import { useUser } from '@/contexts/UserContext';
+import { useConversations } from '@/contexts/ConversationsContext';
 
 const COLORS = {
   darkPurple: '#6B4CE6',
@@ -24,9 +27,12 @@ const COLORS = {
 export default function UserProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const router = useRouter();
+  const { user: currentUser } = useUser();
+  const { refresh: refreshConversations, invalidate: invalidateConversations } = useConversations();
+
+  const currentUserId = currentUser?.user_id ?? null;
 
   const [user, setUser] = useState<any>(null);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [initiatingChat, setInitiatingChat] = useState(false);
 
@@ -37,13 +43,9 @@ export default function UserProfileScreen() {
   const loadUserProfile = async () => {
     try {
       setLoading(true);
-      
-      // Get current user
-      const currentUser = await api.getCurrentUser();
-      setCurrentUserId(currentUser.user_id);
 
       // Get the profile user's data
-      const profileUser = await api.getUserById(Number(userId));
+      const profileUser = await getUserById(Number(userId));
       setUser(profileUser);
     } catch (error) {
       console.error('Failed to load user profile:', error);
@@ -58,18 +60,20 @@ export default function UserProfileScreen() {
 
     setInitiatingChat(true);
     try {
-      const conversation = await api.createConversation(currentUserId, Number(userId));
+      const conversation = await createConversation(currentUserId, Number(userId));
+      invalidateConversations();
       router.replace(`/conversation/${conversation.conversation_id}` as any);
     } catch (error: any) {
       if (error.message.includes('already exists')) {
-        // Fetch existing conversation
-        const convos = await api.getConversations(currentUserId);
-        const existing = convos.find((c: any) =>
+        // Refresh and search the freshly returned list (the `conversations`
+        // closure from render is stale until the next re-render).
+        const fresh = await refreshConversations();
+        const existing = fresh.find((c: any) =>
           (c.initiator_id === currentUserId && c.recipient_id === Number(userId)) ||
           (c.initiator_id === Number(userId) && c.recipient_id === currentUserId)
         );
         if (existing) {
-          router.replace(`/(tabs)/${existing.conversation_id}` as any);
+          router.replace(`/conversation/${existing.conversation_id}` as any);
         } else {
           Alert.alert('Error', 'Conversation exists but could not be found');
         }

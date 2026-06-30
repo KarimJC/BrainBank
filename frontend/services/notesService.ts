@@ -1,8 +1,7 @@
-import { API_BASE_URL, API_ENDPOINTS } from '@/services/api';
+import { API_BASE_URL, API_ENDPOINTS, getAuthHeaders } from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { supabase } from '@/services/supabase';
-import { AuthRequiredError, apiFetch, TIMEOUTS } from './errors';
+import { apiFetch, TIMEOUTS } from './errors';
 
 export interface CourseSection {
   course_section_id: number;
@@ -71,12 +70,6 @@ const validateAttachment = (mimeType: string | undefined, size: number | undefin
     throw new Error('File size exceeds 10MB limit.');
 };
 
-const getAuthToken = async (): Promise<string> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new AuthRequiredError();
-  return session.access_token;
-};
-
 const mapNote = (n: any): NoteItem => ({
   noteId: n.noteId ?? n.note_id,
   title: n.title,
@@ -104,9 +97,9 @@ export const fetchNotes = async (params: FetchNotesParams = {}): Promise<NoteIte
   if (params.limit)           query.append('limit', params.limit.toString());
   if (params.skip)            query.append('skip', params.skip.toString());
 
-  const token = await getAuthToken();
+  const headers = await getAuthHeaders();
   const url = `${API_ENDPOINTS.NOTES}${query.toString() ? `?${query.toString()}` : ''}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const res = await fetch(url, { headers });
 
   if (!res.ok) throw new Error(`Failed to fetch notes: ${res.status} ${await res.text()}`);
   return (await res.json()).map(mapNote);
@@ -138,10 +131,8 @@ export const fetchNotesByCourse = async (
 
 // ── Fetch available course sections ────────────────────────────────────────────
 export const fetchNoteCourseSections = async (): Promise<CourseSection[]> => {
-  const token = await getAuthToken();
-  const res = await fetch(API_ENDPOINTS.NOTES_COURSE_SECTIONS, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const headers = await getAuthHeaders();
+  const res = await fetch(API_ENDPOINTS.NOTES_COURSE_SECTIONS, { headers });
   if (!res.ok) throw new Error('Failed to fetch note course sections');
   // FIX: removed dead code (second apiFetch-based implementation) that appeared after this return
   return res.json();
@@ -149,10 +140,10 @@ export const fetchNoteCourseSections = async (): Promise<CourseSection[]> => {
 
 // ── Returns only course sections the logged-in user is enrolled in ──────────────
 export const fetchCourseSections = async (): Promise<CourseSection[]> => {
-  const token = await getAuthToken();
+  const headers = await getAuthHeaders();
   const response = await apiFetch(`${API_BASE_URL}/api/v1/course-sections/me`, {
     method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
   }, TIMEOUTS.FAST);
   return response.json();
 };
@@ -162,7 +153,7 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
   if (params.media) validateAttachment(params.media.mimeType, undefined);
   if (params.file)  validateAttachment(params.file.mimeType, params.file.size);
 
-  const token = await getAuthToken();
+  const headers = await getAuthHeaders(false);
   const formData = new FormData();
   formData.append('title', params.title);
   formData.append('date', params.date);
@@ -181,7 +172,7 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
   // FIX: fetch() only accepts 2 arguments — removed the invalid third argument TIMEOUTS.SLOW
   const response = await fetch(API_ENDPOINTS.NOTES, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
     body: formData,
   });
 
@@ -197,10 +188,10 @@ export const uploadNote = async (params: UploadNoteParams): Promise<void> => {
 };
 
 export const deleteNote = async (noteId: number): Promise<void> => {
-  const token = await getAuthToken();
+  const headers = await getAuthHeaders();
   const response = await fetch(API_ENDPOINTS.NOTE_BY_ID(String(noteId)), {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
   });
 
   if (!response.ok) {
@@ -219,7 +210,7 @@ export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> =>
   if (params.media) validateAttachment(params.media.mimeType, undefined);
   if (params.file)  validateAttachment(params.file.mimeType, params.file.size);
 
-  const token = await getAuthToken();
+  const headers = await getAuthHeaders(false);
   const formData = new FormData();
   if (params.title !== undefined)           formData.append('title', params.title);
   if (params.description !== undefined)     formData.append('description', params.description);
@@ -238,7 +229,7 @@ export const updateNote = async (params: UpdateNoteParams): Promise<NoteItem> =>
 
   const response = await apiFetch(`${API_BASE_URL}/api/v1/notes/${params.noteId}`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
     body: formData,
   }, TIMEOUTS.SLOW);
 

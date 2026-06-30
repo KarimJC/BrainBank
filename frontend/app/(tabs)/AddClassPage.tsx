@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
-import { api } from "@/services/api";
+import { enrollInCourseSection, getCourseSectionByCRN } from "@/services/courseSectionService";
+import { useUser } from "@/contexts/UserContext";
+import { useCourseSections } from "@/contexts/CourseSectionsContext";
 
 interface CourseResult {
   course_section_id: number;
@@ -11,6 +13,8 @@ interface CourseResult {
 }
 
 export default function AddClassModal({ onClose, onClassAdded }: { onClose?: () => void; onClassAdded?: () => void }) {
+  const { user } = useUser();
+  const { refresh: refreshSections } = useCourseSections();
   const [crn, setCrn] = useState('');
   const [loading, setLoading] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
@@ -19,10 +23,11 @@ export default function AddClassModal({ onClose, onClassAdded }: { onClose?: () 
 
   const handleEnroll = async () => {
     if (!result) return;
+    if (!user) return;
     setEnrolling(true);
     try {
-      const user = await api.getCurrentUser();
-      await api.enrollInCourseSection(result.course_section_id, user.user_id);
+      await enrollInCourseSection(result.course_section_id, user.user_id);
+      await refreshSections();
       if (onClassAdded) onClassAdded();
       if (onClose) onClose();
     } catch (e: any) {
@@ -42,7 +47,7 @@ export default function AddClassModal({ onClose, onClassAdded }: { onClose?: () 
     setResult(null);
     setNotFound(false);
     try {
-      const data = await api.getCourseSectionByCRN(Number(crn));
+      const data = await getCourseSectionByCRN(Number(crn));
       if (data) {
         setResult(data);
       } else {

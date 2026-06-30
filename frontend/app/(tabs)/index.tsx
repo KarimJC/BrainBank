@@ -1,26 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useFocusEffect , useRouter } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { api } from '@/services/api';
-import { AuthRequiredError, getUserFriendlyMessage } from '@/services/errors';
+import { getCourseSectionStudents } from '@/services/courseSectionService';
 import { Ionicons } from '@expo/vector-icons';
 import ErrorView from '@/components/ui/ErrorView';
 import ClassmatesModal from '@/components/course/ClassmatesModal';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface CourseSection {
-  course_section_id: number;
-  course_id: number;
-  course_crn: number;
-  professor_id?: number | null;
-  professor_name?: string | null;
-  course_code: string;
-  course_name: string;
-  subject?: string | null;
-}
+import { useUser } from '@/contexts/UserContext';
+import { useCourseSections } from '@/contexts/CourseSectionsContext';
+import type { CourseSection } from '@/contexts/CourseSectionsContext';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -64,41 +53,27 @@ const ClassCard: React.FC<ClassCardProps> = ({ classData, onPress, onAiPress, on
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [classes, setClasses] = useState<CourseSection[]>([]);
-  const [userName, setUserName] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, loading: userLoading } = useUser();
+  const { sections, loading, error, refresh } = useCourseSections();
 
-    // Classmates
-    const [showClassmates, setShowClassmates] = useState(false);
-    const [classmates, setClassmates] = useState<any[]>([]);
-    const [loadingClassmates, setLoadingClassmates] = useState(false);
-    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const userName = user?.first_name ?? user?.neu_email ?? 'there';
+  const currentUserId = user?.user_id ?? null;
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const user = await api.getCurrentUser();
-      setUserName(user.first_name ?? user.neu_email ?? 'there');
-      setCurrentUserId(user.user_id);
-      const sections = await api.getUserCourseSections(user.user_id);
-      setClasses(sections);
-    } catch (err) {
-      if (err instanceof AuthRequiredError) {
-        router.replace('/(auth)/login');
-        return;
-      }
-      console.error('Fetch failed:', err);
-      setError(getUserFriendlyMessage(err));
-    } finally {
-      setLoading(false);
+  // Classmates
+  const [showClassmates, setShowClassmates] = useState(false);
+  const [classmates, setClassmates] = useState<any[]>([]);
+  const [loadingClassmates, setLoadingClassmates] = useState(false);
+
+  // Redirect to login when user is null and not still loading
+  useEffect(() => {
+    if (!userLoading && user === null) {
+      router.replace('/(auth)/login');
     }
-  };
+  }, [user, userLoading]);
 
   useFocusEffect(useCallback(() => {
-    fetchData();
-  }, []));
+    refresh();
+  }, [refresh]));
 
   const handleNavigation = (route: string) => {
     if (route === 'home')         router.push('/(tabs)');
@@ -136,7 +111,7 @@ export default function HomeScreen() {
         if (!courseSectionId) return;
         setLoadingClassmates(true);
         try {
-          const data = await api.getCourseSectionStudents(Number(courseSectionId));
+          const data = await getCourseSectionStudents(Number(courseSectionId));
           setClassmates(data);
           setShowClassmates(true);
         } catch (err) {
@@ -149,13 +124,13 @@ export default function HomeScreen() {
   }
 
   return (
-    <AppLayout onNavigate={handleNavigation} activeRoute="home" onClassAdded={fetchData}>
+    <AppLayout onNavigate={handleNavigation} activeRoute="home" onClassAdded={refresh}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           {loading ? (
             <ActivityIndicator size="large" color={PURPLE} style={styles.loader} />
           ) : error ? (
-            <ErrorView message={error} onRetry={fetchData} />
+            <ErrorView message={error} onRetry={refresh} />
           ) : (
             <>
               <Text style={styles.welcome}>
@@ -167,10 +142,10 @@ export default function HomeScreen() {
                       currentUserId={currentUserId}
                       onClose={() => setShowClassmates(false)}
                     />
-              {classes.length === 0 ? (
+              {sections.length === 0 ? (
                 <Text style={styles.emptyText}>No classes yet. Add one to get started!</Text>
               ) : (
-                classes.map(classData => (
+                sections.map(classData => (
                   <ClassCard
                     key={classData.course_section_id}
                     classData={classData}

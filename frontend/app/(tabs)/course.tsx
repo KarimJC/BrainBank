@@ -10,7 +10,9 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { api } from '@/services/api';
+import { unenrollFromCourseSection } from '@/services/courseSectionService';
+import { useUser } from '@/contexts/UserContext';
+import { useCourseSections } from '@/contexts/CourseSectionsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AppLayout from '@/components/layout/AppLayout';
@@ -63,7 +65,9 @@ export default function CoursePage() {
   const [filterStartDate, setFilterStartDate] = useState<Date | null>(null);
   const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
 
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const { user } = useUser();
+  const { invalidate: invalidateSections } = useCourseSections();
+  const currentUserId = user?.user_id ?? null;
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 400);
@@ -73,18 +77,6 @@ export default function CoursePage() {
   useEffect(() => {
     loadNotes();
   }, [debouncedSearch, viewMode, courseSectionId]);
-
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const user = await api.getCurrentUser();
-        setCurrentUserId(user.user_id);
-      } catch (err) {
-        console.error('Failed to get current user:', err);
-      }
-    };
-    fetchCurrentUser();
-  }, []);
 
   // ─── Data Loading ───────────────────────────────────────────────────────────
 
@@ -131,7 +123,8 @@ export default function CoursePage() {
           onPress: async () => {
             try {
               if (!currentUserId) throw new Error('User not found');
-              await api.unenrollFromCourseSection(Number(courseSectionId), currentUserId);
+              await unenrollFromCourseSection(Number(courseSectionId), currentUserId);
+              await invalidateSections();
               router.back();
             } catch (err) {
               console.error('Failed to unenroll:', err);

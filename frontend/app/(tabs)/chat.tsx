@@ -1,5 +1,5 @@
 import AppLayout from '@/components/layout/AppLayout';
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
   View,
@@ -9,11 +9,9 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  AppState,
-  AppStateStatus,
 } from 'react-native';
-import { api } from '@/services/api';
 import ErrorView from '@/components/ui/ErrorView';
+import { useConversations } from '@/contexts/ConversationsContext';
 
 // Conversation Row Component
 interface ConversationRowProps {
@@ -74,93 +72,23 @@ const ConversationRow: React.FC<ConversationRowProps> = ({ messageData, onPress 
   );
 };
 
-const POLL_INTERVAL_MS = 5000;
-
 export default function ChatScreen() {
   const router = useRouter();
+  const { conversations, currentUserId, loading, error, refresh, startPolling, stopPolling } = useConversations();
   const [activeTab, setActiveTab] = useState<'chats' | 'requests' | 'blocked'>('chats');
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-
-  const [loading, setLoading] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isFocused = useRef(false);
-  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   const pendingCount = conversations.filter(c => c.status === 'pending').length;
-
-  // Silent refresh — no loading spinner, used by the poller
-  const refreshConversations = useCallback(async (userId: number) => {
-    try {
-      const data = await api.getConversations(userId);
-      setConversations(data);
-    } catch {
-      // silently ignore poll errors
-    }
-  }, []);
-
-  const startPolling = useCallback((userId: number) => {
-    if (intervalRef.current) return; // already running
-    intervalRef.current = setInterval(() => {
-      refreshConversations(userId);
-    }, POLL_INTERVAL_MS);
-  }, [refreshConversations]);
-
-  const stopPolling = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
-  // Stop polling when app goes to background; resume when foregrounded
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
-      const prev = appStateRef.current;
-      appStateRef.current = next;
-      if (next === 'active' && prev !== 'active' && isFocused.current && currentUserId) {
-        refreshConversations(currentUserId);
-        startPolling(currentUserId);
-      } else if (next !== 'active') {
-        stopPolling();
-      }
-    });
-    return () => sub.remove();
-  }, [currentUserId, refreshConversations, startPolling, stopPolling]);
 
   // Start/stop polling with screen focus
   useFocusEffect(
     useCallback(() => {
-      isFocused.current = true;
-      loadConversations();
+      refresh();
+      startPolling();
       return () => {
-        isFocused.current = false;
         stopPolling();
       };
-    }, [stopPolling])
+    }, [refresh, startPolling, stopPolling])
   );
-
-  const loadConversations = async () => {
-    if (loading) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const user = await api.getCurrentUser();
-      setCurrentUserId(user.user_id);
-
-      const data = await api.getConversations(user.user_id);
-      setConversations(data);
-      startPolling(user.user_id);
-    } catch (err) {
-      console.error('Failed to load conversations:', err);
-      setError('Failed to load conversations. Please try again.');
-    } finally {
-      setLoading(false);
-      setInitialLoad(false);
-    }
-  };
 
   const handleNavigation = (route: string) => {
     if (route === 'home') router.push('/(tabs)');
@@ -169,7 +97,7 @@ export default function ChatScreen() {
     else if (route === 'profile') router.push('/(tabs)/profile');
   };
 
-  if (initialLoad) {
+  if (loading) {
     return (
       <AppLayout onNavigate={handleNavigation} activeRoute="chat">
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -182,7 +110,7 @@ export default function ChatScreen() {
   if (error) {
     return (
       <AppLayout onNavigate={handleNavigation} activeRoute="chat">
-        <ErrorView message={error} onRetry={loadConversations} />
+        <ErrorView message={error} onRetry={refresh} />
       </AppLayout>
     );
   }
