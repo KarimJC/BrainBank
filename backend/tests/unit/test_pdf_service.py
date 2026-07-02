@@ -1,4 +1,5 @@
 """Tests for core/pdf_service.py — PDFService._clean_text and markdown_to_pdf."""
+
 import pytest
 from core.pdf_service import PDFService, pdf_service
 

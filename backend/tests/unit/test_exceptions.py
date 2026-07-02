@@ -1,4 +1,5 @@
 """Tests for core/exceptions.py — all HTTPException subclasses."""
+
 import pytest
 from fastapi import status
 

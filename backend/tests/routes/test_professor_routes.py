@@ -1,4 +1,5 @@
 """Tests for api/routes/professor.py."""
+
 import pytest
 
 
@@ -39,7 +40,9 @@ class TestUpdateProfessor:
     def test_updates_professor(self, client, monkeypatch):
         monkeypatch.setattr("api.routes.professor.get_professor_by_id", lambda *a, **k: PROF_DATA)
         monkeypatch.setattr("api.routes.professor.check_professor_email_exists", lambda *a, **k: False)
-        monkeypatch.setattr("api.routes.professor.update_professor_crud", lambda *a, **k: {**PROF_DATA, "name": "Dr. Updated"})
+        monkeypatch.setattr(
+            "api.routes.professor.update_professor_crud", lambda *a, **k: {**PROF_DATA, "name": "Dr. Updated"}
+        )
         resp = client.patch("/api/v1/professors/1", json={"name": "Dr. Updated"})
         assert resp.status_code == 200
 

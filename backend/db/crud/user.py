@@ -6,6 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def get_user_by_id(user_id: int, db: Connection):
     try:
         cursor = db.cursor(cursor_factory=RealDictCursor)

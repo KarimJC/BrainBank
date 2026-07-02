@@ -25,7 +25,11 @@ from auth import get_current_user
 router = APIRouter(prefix="/notes", tags=["notes"])
 
 ALLOWED_MIME_TYPES = {
-    "image/jpeg", "image/png", "image/heic", "image/heif", "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/heic",
+    "image/heif",
+    "application/pdf",
 }
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
@@ -230,8 +234,15 @@ async def create_note_endpoint(
 
     try:
         record = create_note(
-            note_data, media_url, file_name, file_url, file_size,
-            notes_content, user["user_id"], courseSectionId, conn,
+            note_data,
+            media_url,
+            file_name,
+            file_url,
+            file_size,
+            notes_content,
+            user["user_id"],
+            courseSectionId,
+            conn,
         )
         return NoteResponse(
             noteId=record["note_id"],

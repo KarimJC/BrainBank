@@ -1,4 +1,5 @@
 """Tests for db/crud/conversation.py."""
+
 import pytest
 from unittest.mock import MagicMock, patch
 from tests.conftest import make_db_mock
@@ -23,6 +24,7 @@ CONV_ROW = {
 class TestCreateConversation:
     def test_creates_and_returns(self):
         from db.crud.conversation import create_conversation, get_conversation_by_id
+
         db, cursor = make_db_mock(fetchone={"id": 1})
 
         with patch("db.crud.conversation.get_conversation_by_id", return_value=CONV_ROW):
@@ -32,6 +34,7 @@ class TestCreateConversation:
 
     def test_raises_and_rollbacks_on_error(self):
         from db.crud.conversation import create_conversation
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):
@@ -42,18 +45,21 @@ class TestCreateConversation:
 class TestGetConversationById:
     def test_returns_conversation(self):
         from db.crud.conversation import get_conversation_by_id
+
         db, cursor = make_db_mock(fetchone=CONV_ROW)
         result = get_conversation_by_id(1, db)
         assert result == CONV_ROW
 
     def test_returns_none_when_missing(self):
         from db.crud.conversation import get_conversation_by_id
+
         db, cursor = make_db_mock(fetchone=None)
         result = get_conversation_by_id(999, db)
         assert result is None
 
     def test_raises_on_error(self):
         from db.crud.conversation import get_conversation_by_id
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):
@@ -63,18 +69,21 @@ class TestGetConversationById:
 class TestGetUserConversations:
     def test_returns_list(self):
         from db.crud.conversation import get_user_conversations
+
         db, cursor = make_db_mock(fetchall=[CONV_ROW])
         result = get_user_conversations(2, db)
         assert len(result) == 1
 
     def test_returns_empty_when_none(self):
         from db.crud.conversation import get_user_conversations
+
         db, cursor = make_db_mock(fetchall=[])
         result = get_user_conversations(999, db)
         assert result == []
 
     def test_raises_on_error(self):
         from db.crud.conversation import get_user_conversations
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):
@@ -93,6 +102,7 @@ class TestUpdateConversationStatus:
 
     def test_raises_and_rollbacks_on_error(self):
         from db.crud.conversation import update_conversation_status
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):
@@ -103,6 +113,7 @@ class TestUpdateConversationStatus:
 class TestMarkConversationRead:
     def test_executes_update(self):
         from db.crud.conversation import mark_conversation_read
+
         db, cursor = make_db_mock()
         mark_conversation_read(1, 2, db)
         cursor.execute.assert_called_once()
@@ -110,6 +121,7 @@ class TestMarkConversationRead:
 
     def test_raises_and_rollbacks_on_error(self):
         from db.crud.conversation import mark_conversation_read
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):
@@ -120,18 +132,21 @@ class TestMarkConversationRead:
 class TestCheckConversationExists:
     def test_returns_true_when_exists(self):
         from db.crud.conversation import check_conversation_exists
+
         db, cursor = make_db_mock(fetchone=(True,))
         result = check_conversation_exists(1, 2, db)
         assert result is True
 
     def test_returns_false_when_not_exists(self):
         from db.crud.conversation import check_conversation_exists
+
         db, cursor = make_db_mock(fetchone=(False,))
         result = check_conversation_exists(5, 6, db)
         assert result is False
 
     def test_raises_on_error(self):
         from db.crud.conversation import check_conversation_exists
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):

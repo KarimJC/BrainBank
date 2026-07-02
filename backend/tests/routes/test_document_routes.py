@@ -1,4 +1,5 @@
 """Tests for api/routes/document.py — mocking ai_service and pdf_service."""
+
 import pytest
 from datetime import date
 import uuid
@@ -43,7 +44,10 @@ class TestDownloadDocumentPdf:
 
     def test_returns_500_on_pdf_error(self, client, monkeypatch):
         monkeypatch.setattr("api.routes.document.get_document_by_id", lambda *a, **k: DOC_DATA)
-        monkeypatch.setattr("api.routes.document.pdf_service.markdown_to_pdf", lambda *a, **k: (_ for _ in ()).throw(Exception("PDF error")))
+        monkeypatch.setattr(
+            "api.routes.document.pdf_service.markdown_to_pdf",
+            lambda *a, **k: (_ for _ in ()).throw(Exception("PDF error")),
+        )
         resp = client.get(f"/api/v1/documents/{DOC_UUID}/pdf")
         assert resp.status_code == 500
 
@@ -95,17 +99,23 @@ class TestDeleteDocument:
 
 class TestGenerateStudyGuide:
     def test_generates_study_guide(self, client, monkeypatch):
-        monkeypatch.setattr("api.routes.document.ai_service.generate_study_guide", lambda *a, **k: ("guide content", 42))
+        monkeypatch.setattr(
+            "api.routes.document.ai_service.generate_study_guide", lambda *a, **k: ("guide content", 42)
+        )
         monkeypatch.setattr("api.routes.document.create_document", lambda *a, **k: DOC_DATA)
 
         # patch inside document route for the local import
         from db.crud.ai_chat import get_section_context as real_ctx
+
         monkeypatch.setattr("db.crud.ai_chat.get_section_context", lambda *a, **k: {"notes": [], "documents": []})
         resp = client.post("/api/v1/documents/generate/study-guide?user_id=1&section_id=5")
         assert resp.status_code == 201
 
     def test_returns_500_on_exception(self, client, monkeypatch):
-        monkeypatch.setattr("api.routes.document.ai_service.generate_study_guide", lambda *a, **k: (_ for _ in ()).throw(Exception("AI fail")))
+        monkeypatch.setattr(
+            "api.routes.document.ai_service.generate_study_guide",
+            lambda *a, **k: (_ for _ in ()).throw(Exception("AI fail")),
+        )
         monkeypatch.setattr("db.crud.ai_chat.get_section_context", lambda *a, **k: {"notes": [], "documents": []})
         resp = client.post("/api/v1/documents/generate/study-guide?user_id=1&section_id=5")
         assert resp.status_code == 500
@@ -117,7 +127,9 @@ class TestGenerateStudyGuide:
 
 class TestGeneratePracticeExam:
     def test_generates_practice_exam(self, client, monkeypatch):
-        monkeypatch.setattr("api.routes.document.ai_service.generate_practice_exam", lambda *a, **k: ("exam content", 42))
+        monkeypatch.setattr(
+            "api.routes.document.ai_service.generate_practice_exam", lambda *a, **k: ("exam content", 42)
+        )
         monkeypatch.setattr("api.routes.document.create_document", lambda *a, **k: DOC_DATA)
         monkeypatch.setattr("db.crud.ai_chat.get_section_context", lambda *a, **k: {"notes": [], "documents": []})
         resp = client.post("/api/v1/documents/generate/practice-exam?user_id=1&section_id=5")

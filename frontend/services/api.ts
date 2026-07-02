@@ -5,10 +5,6 @@ import { AuthRequiredError, apiFetch, TIMEOUTS } from './errors';
 /**
  * Resolve the dev machine's host (IP) from Expo's runtime config.
  *
- * A physical device running the app already knows this host — it's the same
- * address it used to reach the Metro bundler — so we can derive the backend
- * URL automatically and never need the IP hardcoded in a .env file.
- *
  * Expo exposes this host under different fields depending on the run mode
  * (Expo Go vs. dev build) and SDK version, so we check each in turn.
  */

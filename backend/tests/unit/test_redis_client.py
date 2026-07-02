@@ -1,4 +1,5 @@
 """Tests for cache/redis_client.py — no-op behaviour and live client behaviour."""
+
 import pytest
 from unittest.mock import MagicMock, patch
 import cache.redis_client as redis_module

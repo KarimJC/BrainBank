@@ -1,4 +1,5 @@
 """Tests for auth.py — get_current_user with mocked jose.jwt."""
+
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi import HTTPException
@@ -15,8 +16,7 @@ class TestGetCurrentUser:
     def test_valid_token_returns_user(self):
         from auth import get_current_user
 
-        with patch("auth.jwk.construct") as mock_construct, \
-             patch("auth.jwt.decode") as mock_decode:
+        with patch("auth.jwk.construct") as mock_construct, patch("auth.jwt.decode") as mock_decode:
             mock_construct.return_value = MagicMock()
             mock_decode.return_value = {"sub": "auth-uuid-123", "email": "user@neu.edu"}
 
@@ -26,8 +26,7 @@ class TestGetCurrentUser:
     def test_missing_sub_raises_401(self):
         from auth import get_current_user
 
-        with patch("auth.jwk.construct") as mock_construct, \
-             patch("auth.jwt.decode") as mock_decode:
+        with patch("auth.jwk.construct") as mock_construct, patch("auth.jwt.decode") as mock_decode:
             mock_construct.return_value = MagicMock()
             mock_decode.return_value = {"email": "user@neu.edu"}  # no 'sub'
 
@@ -39,8 +38,7 @@ class TestGetCurrentUser:
         from auth import get_current_user
         from jose import JWTError
 
-        with patch("auth.jwk.construct") as mock_construct, \
-             patch("auth.jwt.decode") as mock_decode:
+        with patch("auth.jwk.construct") as mock_construct, patch("auth.jwt.decode") as mock_decode:
             mock_construct.return_value = MagicMock()
             mock_decode.side_effect = JWTError("bad token")
 
@@ -61,8 +59,7 @@ class TestGetCurrentUser:
     def test_returns_auth_id_from_sub(self):
         from auth import get_current_user
 
-        with patch("auth.jwk.construct") as mock_construct, \
-             patch("auth.jwt.decode") as mock_decode:
+        with patch("auth.jwk.construct") as mock_construct, patch("auth.jwt.decode") as mock_decode:
             mock_construct.return_value = MagicMock()
             mock_decode.return_value = {"sub": "specific-sub-value", "email": "x@y.com"}
 

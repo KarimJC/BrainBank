@@ -53,6 +53,7 @@ def download_document_pdf(doc_id: str, db: Connection = Depends(get_db)):
         )
     except Exception as e:
         import traceback
+
         logger.error(f"Failed to generate PDF for document {doc_id}: {str(e)}\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to generate PDF: {str(e)}"
@@ -81,7 +82,9 @@ def delete_document_route(doc_id: str, db: Connection = Depends(get_db)):
 
 
 @router.post("/documents/generate/study-guide", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
-def generate_study_guide(user_id: int, section_id: int, use_all_sections: bool = False, db: Connection = Depends(get_db)):
+def generate_study_guide(
+    user_id: int, section_id: int, use_all_sections: bool = False, db: Connection = Depends(get_db)
+):
     """Generate a study guide from course materials and save it as a document"""
     try:
         from db.crud.ai_chat import get_section_context, get_course_context
@@ -96,7 +99,13 @@ def generate_study_guide(user_id: int, section_id: int, use_all_sections: bool =
 
 
 @router.post("/documents/generate/practice-exam", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
-def generate_practice_exam(user_id: int, section_id: int, num_questions: int = 10, use_all_sections: bool = False, db: Connection = Depends(get_db)):
+def generate_practice_exam(
+    user_id: int,
+    section_id: int,
+    num_questions: int = 10,
+    use_all_sections: bool = False,
+    db: Connection = Depends(get_db),
+):
     """Generate a practice exam from course materials and save it as a document"""
     try:
         from db.crud.ai_chat import get_section_context, get_course_context
