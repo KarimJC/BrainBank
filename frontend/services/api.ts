@@ -2,7 +2,33 @@ import Constants from 'expo-constants';
 import { supabase } from './supabase';
 import { AuthRequiredError, apiFetch, TIMEOUTS } from './errors';
 
+/**
+ * Resolve the dev machine's host (IP) from Expo's runtime config.
+ *
+ * Expo exposes this host under different fields depending on the run mode
+ * (Expo Go vs. dev build) and SDK version, so we check each in turn.
+ */
+const getDevHost = (): string | null => {
+  const candidates = [
+    Constants.expoConfig?.hostUri,
+    (Constants as any).expoGoConfig?.debuggerHost,
+    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost,
+    (Constants as any).manifest?.debuggerHost, // legacy fallback
+  ];
+
+  for (const candidate of candidates) {
+    const host = candidate?.split(':')[0]?.trim();
+    if (host) {
+      return host;
+    }
+  }
+
+  return null;
+};
+
 const getApiUrl = (): string => {
+  
+  // Explicit override (e.g. staging/prod) via app.json -> expo.extra.apiUrl
   if (Constants.expoConfig?.extra?.apiUrl) {
     return Constants.expoConfig.extra.apiUrl;
   }
@@ -10,12 +36,13 @@ const getApiUrl = (): string => {
   if (__DEV__) {
     const port = process.env.EXPO_PUBLIC_API_PORT || '8000';
 
-    const hostUri = Constants.expoConfig?.hostUri;
-    if (hostUri) {
-      const host = hostUri.split(':')[0];
+    // Auto-detect the dev machine's IP from Expo — no .env entry needed.
+    const host = getDevHost();
+    if (host) {
       return `http://${host}:${port}`;
     }
 
+    // Optional manual override, only used if auto-detection fails.
     const localIp = process.env.EXPO_PUBLIC_LOCAL_IP;
     if (localIp) {
       return `http://${localIp}:${port}`;
@@ -28,6 +55,9 @@ const getApiUrl = (): string => {
 };
 
 export const API_BASE_URL = getApiUrl();
+// WebSocket URL is derived from the (auto-detected) API host by default;
+// EXPO_PUBLIC_WS_URL only needs to be set to point WS at a different host/port.
+// Will be same ip as API_BASE_URL if not set in env.
 export const WS_URL = process.env.EXPO_PUBLIC_WS_URL ?? API_BASE_URL.replace(/^http/, 'ws');
 
 export const API_ENDPOINTS = {
