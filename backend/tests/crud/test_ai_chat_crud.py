@@ -1,4 +1,5 @@
 """Tests for db/crud/ai_chat.py."""
+
 import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime
@@ -28,6 +29,7 @@ MSG_ROW = {
 class TestGetOrCreateSession:
     def test_returns_existing_session(self):
         from db.crud.ai_chat import get_or_create_session
+
         db, cursor = make_db_mock(fetchone=SESSION_ROW)
         # first call returns existing session, second (update) also returns it
         cursor.fetchone.side_effect = [SESSION_ROW, SESSION_ROW]
@@ -37,6 +39,7 @@ class TestGetOrCreateSession:
 
     def test_creates_new_session_when_none_exists(self):
         from db.crud.ai_chat import get_or_create_session
+
         db, cursor = make_db_mock()
         # first fetchone returns None (no existing session), second returns new session
         cursor.fetchone.side_effect = [None, SESSION_ROW]
@@ -46,6 +49,7 @@ class TestGetOrCreateSession:
 
     def test_raises_and_rollbacks_on_error(self):
         from db.crud.ai_chat import get_or_create_session
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):
@@ -56,6 +60,7 @@ class TestGetOrCreateSession:
 class TestCreateChatMessage:
     def test_creates_and_returns(self):
         from db.crud.ai_chat import create_chat_message
+
         db, cursor = make_db_mock(fetchone=MSG_ROW)
         data = AIChatMessageCreate(session_id=1, role="user", content="Hello", tokens_used=0)
         result = create_chat_message(data, db)
@@ -64,6 +69,7 @@ class TestCreateChatMessage:
 
     def test_raises_and_rollbacks_on_error(self):
         from db.crud.ai_chat import create_chat_message
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         data = AIChatMessageCreate(session_id=1, role="user", content="Error", tokens_used=0)
@@ -75,18 +81,21 @@ class TestCreateChatMessage:
 class TestGetChatHistory:
     def test_returns_list(self):
         from db.crud.ai_chat import get_chat_history
+
         db, cursor = make_db_mock(fetchall=[MSG_ROW])
         result = get_chat_history(1, db)
         assert len(result) == 1
 
     def test_returns_empty_when_none(self):
         from db.crud.ai_chat import get_chat_history
+
         db, cursor = make_db_mock(fetchall=[])
         result = get_chat_history(999, db)
         assert result == []
 
     def test_raises_on_error(self):
         from db.crud.ai_chat import get_chat_history
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):
@@ -96,6 +105,7 @@ class TestGetChatHistory:
 class TestGetSectionContext:
     def test_returns_context_dict(self):
         from db.crud.ai_chat import get_section_context
+
         db, cursor = make_db_mock(fetchall=[])
         result = get_section_context(5, db)
         assert "notes" in result
@@ -103,6 +113,7 @@ class TestGetSectionContext:
 
     def test_returns_notes_and_docs(self):
         from db.crud.ai_chat import get_section_context
+
         note = {"title": "Note", "description": "Desc", "notes_content": "content", "date_uploaded": "2025-01-01"}
         doc = {"doc_type": "study_guide", "doc_content": "Guide", "doc_date": "2025-01-01"}
         db, cursor = make_db_mock()
@@ -113,6 +124,7 @@ class TestGetSectionContext:
 
     def test_raises_on_error(self):
         from db.crud.ai_chat import get_section_context
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):
@@ -122,6 +134,7 @@ class TestGetSectionContext:
 class TestGetCourseContext:
     def test_returns_context_dict(self):
         from db.crud.ai_chat import get_course_context
+
         db, cursor = make_db_mock(fetchall=[])
         result = get_course_context(5, db)
         assert "notes" in result
@@ -129,6 +142,7 @@ class TestGetCourseContext:
 
     def test_raises_on_error(self):
         from db.crud.ai_chat import get_course_context
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):
@@ -138,6 +152,7 @@ class TestGetCourseContext:
 class TestDeleteChatSession:
     def test_returns_true_when_deleted(self):
         from db.crud.ai_chat import delete_chat_session
+
         db, cursor = make_db_mock(rowcount=1)
         result = delete_chat_session(1, db)
         assert result is True
@@ -145,12 +160,14 @@ class TestDeleteChatSession:
 
     def test_returns_false_when_not_found(self):
         from db.crud.ai_chat import delete_chat_session
+
         db, cursor = make_db_mock(rowcount=0)
         result = delete_chat_session(999, db)
         assert result is False
 
     def test_raises_and_rollbacks_on_error(self):
         from db.crud.ai_chat import delete_chat_session
+
         db, cursor = make_db_mock()
         cursor.execute.side_effect = Exception("fail")
         with pytest.raises(DatabaseException):

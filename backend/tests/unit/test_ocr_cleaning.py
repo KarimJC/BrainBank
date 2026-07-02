@@ -1,4 +1,5 @@
 """Tests for utils/ocr.py — _clean_ocr_text only."""
+
 import pytest
 from utils.ocr import _clean_ocr_text
 

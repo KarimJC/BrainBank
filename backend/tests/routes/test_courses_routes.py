@@ -1,4 +1,5 @@
 """Tests for api/routes/courses.py."""
+
 import pytest
 
 
@@ -59,7 +60,9 @@ class TestGetCourses:
 class TestUpdateCourse:
     def test_updates_course(self, client, monkeypatch):
         monkeypatch.setattr("api.routes.courses.get_course_by_id", lambda *a, **k: COURSE_DATA)
-        monkeypatch.setattr("api.routes.courses.update_course_crud", lambda *a, **k: {**COURSE_DATA, "course": "CS4000"})
+        monkeypatch.setattr(
+            "api.routes.courses.update_course_crud", lambda *a, **k: {**COURSE_DATA, "course": "CS4000"}
+        )
         resp = client.put("/api/v1/courses/1", json={"course": "CS4000", "title": "Advanced Algo", "subject": "CS"})
         assert resp.status_code == 200
 

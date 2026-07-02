@@ -1,4 +1,5 @@
 """Tests for api/websocket_manager/connection_manager.py."""
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
@@ -8,6 +9,7 @@ pytest_plugins = ("pytest_asyncio",)
 @pytest.mark.asyncio
 async def test_connect_stores_connection():
     from api.websocket_manager.connection_manager import ConnectionManager
+
     manager = ConnectionManager()
     ws = AsyncMock()
     await manager.connect(ws, user_id=1)
@@ -18,6 +20,7 @@ async def test_connect_stores_connection():
 @pytest.mark.asyncio
 async def test_disconnect_removes_connection():
     from api.websocket_manager.connection_manager import ConnectionManager
+
     manager = ConnectionManager()
     ws = AsyncMock()
     await manager.connect(ws, user_id=2)
@@ -28,6 +31,7 @@ async def test_disconnect_removes_connection():
 @pytest.mark.asyncio
 async def test_disconnect_missing_user_does_not_raise():
     from api.websocket_manager.connection_manager import ConnectionManager
+
     manager = ConnectionManager()
     await manager.disconnect(999)  # Should not raise
 
@@ -35,6 +39,7 @@ async def test_disconnect_missing_user_does_not_raise():
 @pytest.mark.asyncio
 async def test_send_message_calls_send_text():
     from api.websocket_manager.connection_manager import ConnectionManager
+
     manager = ConnectionManager()
     ws = AsyncMock()
     await manager.connect(ws, user_id=3)
@@ -45,6 +50,7 @@ async def test_send_message_calls_send_text():
 @pytest.mark.asyncio
 async def test_send_message_to_missing_user_does_not_raise():
     from api.websocket_manager.connection_manager import ConnectionManager
+
     manager = ConnectionManager()
     await manager.send_message(999, "hello")  # Should silently do nothing
 
@@ -52,6 +58,7 @@ async def test_send_message_to_missing_user_does_not_raise():
 @pytest.mark.asyncio
 async def test_multiple_connections():
     from api.websocket_manager.connection_manager import ConnectionManager
+
     manager = ConnectionManager()
     ws1, ws2 = AsyncMock(), AsyncMock()
     await manager.connect(ws1, user_id=10)

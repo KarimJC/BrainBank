@@ -1,6 +1,7 @@
 """
 conftest.py — must set env vars BEFORE any backend imports.
 """
+
 import os
 import sys
 from pathlib import Path
@@ -52,6 +53,7 @@ def make_db_mock(fetchone=None, fetchall=None, rowcount=0):
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture()
 def mock_db():

@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from fastapi import FastAPI
@@ -25,6 +26,7 @@ async def shutdown():
     close_pool()
     close_redis()
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,14 +37,18 @@ app.add_middleware(
 
 app.include_router(api_router, prefix="/api/v1")
 
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to BrainBank API"}
+
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

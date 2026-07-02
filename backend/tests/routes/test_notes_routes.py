@@ -2,6 +2,7 @@
 Tests for api/routes/notes.py — GET and DELETE endpoints only.
 POST (create) and PUT (update) are NOT tested — see tests/TODO.md.
 """
+
 import pytest
 
 
@@ -164,6 +165,7 @@ class TestValidateUpload:
 
     def _make_file_mock(self, content_type):
         from unittest.mock import MagicMock
+
         f = MagicMock()
         f.content_type = content_type
         f.filename = "test.jpg"
@@ -172,6 +174,7 @@ class TestValidateUpload:
     def test_valid_jpeg_passes(self):
         from api.routes.notes import validate_upload
         from fastapi import HTTPException
+
         f = self._make_file_mock("image/jpeg")
         data = b"x" * 100
         validate_upload(f, data)  # should not raise
@@ -179,6 +182,7 @@ class TestValidateUpload:
     def test_invalid_content_type_raises_400(self):
         from api.routes.notes import validate_upload
         from fastapi import HTTPException
+
         f = self._make_file_mock("text/plain")
         with pytest.raises(HTTPException) as exc_info:
             validate_upload(f, b"data")
@@ -187,6 +191,7 @@ class TestValidateUpload:
     def test_file_too_large_raises_400(self):
         from api.routes.notes import validate_upload
         from fastapi import HTTPException
+
         f = self._make_file_mock("image/png")
         big_data = b"x" * (10 * 1024 * 1024 + 1)  # 1 byte over 10 MB limit
         with pytest.raises(HTTPException) as exc_info:
@@ -196,5 +201,6 @@ class TestValidateUpload:
 
     def test_pdf_passes(self):
         from api.routes.notes import validate_upload
+
         f = self._make_file_mock("application/pdf")
         validate_upload(f, b"%PDF-fake")  # should not raise

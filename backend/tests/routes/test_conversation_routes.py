@@ -1,4 +1,5 @@
 """Tests for api/routes/conversation.py."""
+
 import pytest
 from datetime import datetime
 
@@ -48,7 +49,10 @@ class TestUpdateConversation:
     def test_updates_status(self, client, monkeypatch):
         monkeypatch.setattr("api.routes.conversation.get_conversation_by_id_crud", lambda *a, **k: CONV_DATA)
         monkeypatch.setattr("api.routes.conversation.get_user_by_auth_id", lambda *a, **k: USER_DATA)
-        monkeypatch.setattr("api.routes.conversation.update_conversation_status_crud", lambda *a, **k: {**CONV_DATA, "status": "accepted"})
+        monkeypatch.setattr(
+            "api.routes.conversation.update_conversation_status_crud",
+            lambda *a, **k: {**CONV_DATA, "status": "accepted"},
+        )
         monkeypatch.setattr("api.routes.conversation.cache_delete", lambda *a, **k: None)
         resp = client.patch("/api/v1/conversations/1", json={"status": "accepted"})
         assert resp.status_code == 200

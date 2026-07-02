@@ -8,16 +8,19 @@ from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 import os
 
+
 def setup_telemetry(app):
     """
     Configure OpenTelemetry tracing for FastAPI + PostgreSQL
     Uses OTLP exporter (modern replacement for Jaeger exporter)
     """
-    resource = Resource.create({
-        "service.name": "brainbank-api",
-        "service.version": "1.0.0",
-        "deployment.environment": os.getenv("ENV", "development"),
-    })
+    resource = Resource.create(
+        {
+            "service.name": "brainbank-api",
+            "service.version": "1.0.0",
+            "deployment.environment": os.getenv("ENV", "development"),
+        }
+    )
 
     # Set up tracer provider
     tracer_provider = TracerProvider(resource=resource)
@@ -26,7 +29,7 @@ def setup_telemetry(app):
     # Configure OTLP exporter (sends to Jaeger via OTLP protocol)
     otlp_exporter = OTLPSpanExporter(
         endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"),
-        insecure=True  # Use insecure for local development
+        insecure=True,  # Use insecure for local development
     )
     tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
 

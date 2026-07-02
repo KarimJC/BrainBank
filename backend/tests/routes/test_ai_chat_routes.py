@@ -1,4 +1,5 @@
 """Tests for api/routes/ai_chat.py — mocking ai_service."""
+
 import pytest
 from datetime import datetime
 
@@ -41,9 +42,7 @@ class TestSendMessageToAI:
         monkeypatch.setattr("api.routes.ai_chat.get_section_context", lambda *a, **k: {"notes": [], "documents": []})
         monkeypatch.setattr("api.routes.ai_chat.create_chat_message", lambda *a, **k: AI_MSG)
         _patch_ai(monkeypatch, "generate_response")
-        resp = client.post("/api/v1/ai-chat", json={
-            "user_id": 1, "section_id": 5, "message": "Help me study"
-        })
+        resp = client.post("/api/v1/ai-chat", json={"user_id": 1, "section_id": 5, "message": "Help me study"})
         assert resp.status_code == 200
         data = resp.json()
         assert "ai_response" in data
@@ -60,14 +59,16 @@ class TestSendMessageToAI:
         monkeypatch.setattr("api.routes.ai_chat.get_course_context", mock_course_ctx)
         monkeypatch.setattr("api.routes.ai_chat.create_chat_message", lambda *a, **k: AI_MSG)
         _patch_ai(monkeypatch, "generate_response")
-        resp = client.post("/api/v1/ai-chat", json={
-            "user_id": 1, "section_id": 5, "message": "Help", "use_all_sections": True
-        })
+        resp = client.post(
+            "/api/v1/ai-chat", json={"user_id": 1, "section_id": 5, "message": "Help", "use_all_sections": True}
+        )
         assert resp.status_code == 200
         assert captured.get("called")
 
     def test_returns_500_on_exception(self, client, monkeypatch):
-        monkeypatch.setattr("api.routes.ai_chat.get_or_create_session", lambda *a, **k: (_ for _ in ()).throw(Exception("boom")))
+        monkeypatch.setattr(
+            "api.routes.ai_chat.get_or_create_session", lambda *a, **k: (_ for _ in ()).throw(Exception("boom"))
+        )
         resp = client.post("/api/v1/ai-chat", json={"user_id": 1, "section_id": 5, "message": "Help"})
         assert resp.status_code == 500
 
@@ -83,7 +84,9 @@ class TestGetChatHistory:
         assert len(data["messages"]) == 1
 
     def test_returns_500_on_exception(self, client, monkeypatch):
-        monkeypatch.setattr("api.routes.ai_chat.get_or_create_session", lambda *a, **k: (_ for _ in ()).throw(Exception("boom")))
+        monkeypatch.setattr(
+            "api.routes.ai_chat.get_or_create_session", lambda *a, **k: (_ for _ in ()).throw(Exception("boom"))
+        )
         resp = client.get("/api/v1/ai-chat/history?user_id=1&section_id=5")
         assert resp.status_code == 500
 
@@ -102,7 +105,9 @@ class TestGenerateStudyGuide:
         assert resp.status_code == 200
 
     def test_returns_500_on_exception(self, client, monkeypatch):
-        monkeypatch.setattr("api.routes.ai_chat.get_or_create_session", lambda *a, **k: (_ for _ in ()).throw(Exception("boom")))
+        monkeypatch.setattr(
+            "api.routes.ai_chat.get_or_create_session", lambda *a, **k: (_ for _ in ()).throw(Exception("boom"))
+        )
         resp = client.post("/api/v1/ai-chat/study-guide?user_id=1&section_id=5")
         assert resp.status_code == 500
 
