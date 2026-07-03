@@ -66,7 +66,7 @@ export default function CoursePage() {
   const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
 
   const { user } = useUser();
-  const { invalidate: invalidateSections } = useCourseSections();
+  const { removeSection } = useCourseSections();
   const currentUserId = user?.user_id ?? null;
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function CoursePage() {
             try {
               if (!currentUserId) throw new Error('User not found');
               await unenrollFromCourseSection(Number(courseSectionId), currentUserId);
-              await invalidateSections();
+              removeSection(Number(courseSectionId));
               router.back();
             } catch (err) {
               console.error('Failed to unenroll:', err);

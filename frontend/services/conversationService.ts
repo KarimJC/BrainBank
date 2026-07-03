@@ -1,10 +1,9 @@
-import { API_BASE_URL, getAuthHeaders } from './api';
-import { apiFetch, TIMEOUTS } from './errors';
+import { API_BASE_URL, apiFetch, getAuthHeaders, TIMEOUTS } from './api';
 
 export async function getConversations(userId: number) {
   const headers = await getAuthHeaders();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/conversations/user/${userId}`,
     { headers }
   );
@@ -20,7 +19,7 @@ export async function getConversations(userId: number) {
 export async function getConversation(conversationId: number) {
   const headers = await getAuthHeaders();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/conversations/${conversationId}`,
     { headers }
   );
@@ -36,7 +35,7 @@ export async function getConversation(conversationId: number) {
 export async function updateConversation(conversationId: number, status: string) {
   const headers = await getAuthHeaders();
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/conversations/${conversationId}`,
     {
       method: 'PATCH',
@@ -55,7 +54,7 @@ export async function updateConversation(conversationId: number, status: string)
 
 export async function sendMessage(conversationId: number, content: string) {
   const headers = await getAuthHeaders();
-  const response = await fetch(`${API_BASE_URL}/api/v1/messages`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/v1/messages`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ conversation_id: conversationId, content }),
@@ -76,7 +75,7 @@ export async function getMessages(
   if (options?.before) params.set('before', options.before);
   if (options?.limit) params.set('limit', String(options.limit));
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/v1/messages?${params}`,
     { headers }
   );
@@ -91,7 +90,7 @@ export async function getMessages(
 
 export async function markConversationRead(conversationId: number) {
   const headers = await getAuthHeaders();
-  await fetch(`${API_BASE_URL}/api/v1/conversations/${conversationId}/read`, {
+  await apiFetch(`${API_BASE_URL}/api/v1/conversations/${conversationId}/read`, {
     method: 'POST',
     headers,
   });

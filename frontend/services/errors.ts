@@ -33,64 +33,6 @@ export class AuthRequiredError extends Error {
 
 // fetch wrapper with timeouts and error handling 
 
-// Default timeouts by request type
-export const TIMEOUTS = {
-  FAST: 5000,      // simple GETs (user, course sections, notes list)
-  DEFAULT: 10000,  // standard requests
-  SLOW: 20000,     //  file uploads, AI chat
-};
-
-//replace raw fetch with the following 
-
-export async function apiFetch(
-  url: string, 
-  options?: RequestInit, 
-  timeoutMs: number = TIMEOUTS.DEFAULT
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      // Try to parse the backend error detail
-      let message = `Request failed (${response.status})`;
-      try {
-        const errorText = await response.text();
-        const parsed = JSON.parse(errorText);
-        message = parsed.detail || message;
-      } catch {
-        // If parsing fails, keep the default message
-      }
-
-      throw new ApiError(response.status, message);
-    }
-
-    return response;
-  } catch (error) {
-    clearTimeout(timeout);
-
-    // If it's already one of our custom errors, rethrow it
-    if (error instanceof ApiError || error instanceof AuthRequiredError) {
-      throw error;
-    }
-
-    // AbortError means the request timed out
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new NetworkError('Request timed out. Please try again.');
-    }
-
-    // Everything else is a network failure (server down, no internet, DNS failure)
-    throw new NetworkError();
-  }
-}
-
 //Helper function for readable error messages for the user.
 
 

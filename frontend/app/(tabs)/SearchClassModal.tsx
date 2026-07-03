@@ -11,22 +11,10 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { API_BASE_URL } from '@/services/api';
-import { enrollInCourseSection } from '@/services/courseSectionService';
+import { CourseSection, enrollInCourseSection, getAllCourseSections } from '@/services/courseSectionService';
 import { SkeletonList } from '@/components/ui/SkeletonRow';
 import { useUser } from '@/contexts/UserContext';
 import { useCourseSections } from '@/contexts/CourseSectionsContext';
-
-export interface CourseSection {
-  course_section_id: number;
-  course_id: number;
-  course_crn: number;
-  professor_id: number | null;
-  professor_name: string | null;
-  course_code: string;
-  course_name: string;
-  subject: string | null;
-}
 
 interface Props {
   visible: boolean;
@@ -46,7 +34,7 @@ const COLORS = {
 
 const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) => {
   const { user } = useUser();
-  const { sections: userSections, refresh: refreshSections } = useCourseSections();
+  const { sections: userSections, addSections } = useCourseSections();
 
   const [sections, setSections] = useState<CourseSection[]>([]);
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
@@ -75,11 +63,7 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
 
     const loadData = async () => {
       try {
-        const sectionsRes = await fetch(`${API_BASE_URL}/api/v1/course-sections`);
-
-        if (!sectionsRes.ok) throw new Error(`Server error ${sectionsRes.status}`);
-        const allSections: CourseSection[] = await sectionsRes.json();
-
+        const allSections: CourseSection[] = await getAllCourseSections();
         setSections(allSections);
       } catch {
         setError('Could not load courses. Make sure the backend is running.');
@@ -135,11 +119,16 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
     if (!user) return;
     setConfirming(true);
     try {
-      await Promise.all(
-        Array.from(pendingIds).map((id) => enrollInCourseSection(id, user.user_id))
-      );
-      await refreshSections();
+      const ids = Array.from(pendingIds);
+      const results = await Promise.allSettled(ids.map((id) => enrollInCourseSection(id, user.user_id)));
+      const enrolledIds = ids.filter((_, i) => results[i].status === 'fulfilled');
+      const enrolledSections = sections.filter((s) => enrolledIds.includes(s.course_section_id));
+      addSections(enrolledSections);
       if (onClassAdded) onClassAdded();
+      const failedCount = results.filter((r) => r.status === 'rejected').length;
+      if (failedCount > 0) {
+        Alert.alert('Some classes not added', `${failedCount} of ${ids.length} could not be added. Please try again.`);
+      }
     } catch {
       Alert.alert('Error', 'Could not enroll in one or more classes. Please try again.');
     } finally {

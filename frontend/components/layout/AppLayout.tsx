@@ -4,7 +4,6 @@ import Header from '../ui/Header';
 import BottomNav from '../ui/BottomNav';
 import ActionMenu from '../ui/ActionMenu';
 import NotesUploadPage from '../../app/(tabs)/NotesUploadPage';
-import AddClassModal from '@/app/(tabs)/AddClassPage';
 import SearchClassModal from '@/app/(tabs)/SearchClassModal';
 
 interface AppLayoutProps {
@@ -22,7 +21,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showNotesUpload, setShowNotesUpload] = useState(false);
-  const [showAddClassPage, setshowAddClassPage] = useState(false);
   const [showSearchClassModal, setShowSearchClassModal] = useState(false);
  
   const handleAction = (action: string) => {
@@ -50,26 +48,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     setShowNotesUpload(false);
   };
 
-  const handleCloseAddClassPage = () => {
-    setshowAddClassPage(false);
-  };
-
   return (
     <View style={styles.container}>
       <Header onNavigate={handleNavigation} activeRoute={activeRoute} />
       <View style={styles.content}>
         {children}
       </View>
-      <Modal
-        visible={showAddClassPage}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={handleCloseAddClassPage}
-      >
-        <View style={styles.modalContainer}>
-          <AddClassModal onClose={handleCloseAddClassPage} onClassAdded={onClassAdded} />
-        </View>
-      </Modal>
 
       <SearchClassModal
         visible={showSearchClassModal}

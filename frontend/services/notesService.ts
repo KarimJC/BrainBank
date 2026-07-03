@@ -1,18 +1,7 @@
-import { API_BASE_URL, API_ENDPOINTS, getAuthHeaders } from '@/services/api';
+import { API_BASE_URL, API_ENDPOINTS, apiFetch, getAuthHeaders, TIMEOUTS } from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { apiFetch, TIMEOUTS } from './errors';
-
-export interface CourseSection {
-  course_section_id: number;
-  course_id: number;
-  course_crn: number;
-  professor_id: number | null;
-  course_code: string;
-  course_name: string;
-  subject: string | null;
-  professor_name: string | null;
-}
+import { CourseSection } from './courseSectionService';
 
 export interface NoteItem {
   noteId: number;

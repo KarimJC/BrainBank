@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { useFocusEffect , useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { getCourseSectionStudents } from '@/services/courseSectionService';
@@ -71,10 +71,6 @@ export default function HomeScreen() {
     }
   }, [user, userLoading]);
 
-  useFocusEffect(useCallback(() => {
-    refresh();
-  }, [refresh]));
-
   const handleNavigation = (route: string) => {
     if (route === 'home')         router.push('/(tabs)');
     else if (route === 'notes')   router.push('/(tabs)/notes');
@@ -124,7 +120,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <AppLayout onNavigate={handleNavigation} activeRoute="home" onClassAdded={refresh}>
+    <AppLayout onNavigate={handleNavigation} activeRoute="home">
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           {loading ? (
