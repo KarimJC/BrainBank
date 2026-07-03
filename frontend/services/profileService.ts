@@ -39,5 +39,4 @@ export async function updateProfilePicture(url: string) {
     headers,
     body: JSON.stringify({ profile_picture_url: url }),
   });
-  return response.json();
 }
