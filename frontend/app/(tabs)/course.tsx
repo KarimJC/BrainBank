@@ -89,7 +89,6 @@ export default function CoursePage() {
 
       if (viewMode === 'mine') {
         if (!courseSectionId) return;
-        console.log(professorName, professorId)
         data = await fetchAllNotesByCourseSection(Number(courseSectionId));
       } else if (viewMode === 'myProfessor') {
         if (!courseId) return;
