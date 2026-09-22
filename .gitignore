@@ -32,3 +32,4 @@ docker-compose.override.yml
 Thumbs.db
 
 .claude/
+.mcp.json
