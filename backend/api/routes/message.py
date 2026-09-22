@@ -22,7 +22,7 @@ from api.schemas.message import (
     MessageDeleteResponse,
     PaginatedMessagesResponse,
 )
-from core.exceptions import DatabaseException, MessageNotFoundException
+from core.exceptions import MessageNotFoundException
 from api.websocket_manager.connection_manager import ConnectionManager
 from db.connection import get_db
 

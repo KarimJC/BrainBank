@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { unenrollFromCourseSection } from '@/services/courseSectionService';
+import { CourseSection, unenrollFromCourseSection } from '@/services/courseSectionService';
 import { useUser } from '@/contexts/UserContext';
 import { useCourseSections } from '@/contexts/CourseSectionsContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +20,6 @@ import {
   fetchAllNotesByCourseSection,
   fetchNotesByCourse,
   NoteItem,
-  CourseSection,
 } from '@/services/notesService';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteDetailModal from '@/components/notes/NoteDetailModal';
