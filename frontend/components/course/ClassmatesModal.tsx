@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { api } from '@/services/api';
+import { createConversation } from '@/services/conversationService';
+import { useConversations } from '@/contexts/ConversationsContext';
 
 interface ClassmatesModalProps {
   visible: boolean;
@@ -23,6 +24,7 @@ interface ClassmatesModalProps {
 
 export default function ClassmatesModal({ visible, classmates, currentUserId, onClose }: ClassmatesModalProps) {
   const router = useRouter();
+  const { refresh: refreshConversations, invalidate: invalidateConversations } = useConversations();
   const [initiatingChat, setInitiatingChat] = useState<number | null>(null);
 
   const handleMessage = async (recipientId: number) => {
@@ -38,13 +40,14 @@ export default function ClassmatesModal({ visible, classmates, currentUserId, on
 
     setInitiatingChat(recipientId);
     try {
-      const conversation = await api.createConversation(currentUserId, recipientId);
+      const conversation = await createConversation(currentUserId, recipientId);
+      invalidateConversations();
       onClose();
       router.push(`/conversation/${conversation.conversation_id}` as any);
     } catch (error: any) {
       if (error.message?.includes('already exists')) {
-        const convos = await api.getConversations(currentUserId);
-        const existing = convos.find((c: any) =>
+        const fresh = await refreshConversations();
+        const existing = fresh.find((c: any) =>
           (c.initiator_id === currentUserId && c.recipient_id === recipientId) ||
           (c.initiator_id === recipientId && c.recipient_id === currentUserId)
         );

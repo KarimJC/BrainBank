@@ -1,8 +1,7 @@
-import { supabase } from './supabase';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
-import { API_BASE_URL } from './api';
+import { API_BASE_URL, getAuthHeaders } from './api';
 
 const BASE_URL = API_BASE_URL;
 
@@ -18,19 +17,6 @@ export interface ChatMessage {
 }
 
 export type DocumentType = 'study-guide' | 'practice-exam' | 'summary';
-
-// ─── Auth helpers ────────────────────────────────────────────────────────────
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    return {
-      'Authorization': `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    };
-  }
-  throw new Error('No active session. Please log in again.');
-}
 
 // ─── User ────────────────────────────────────────────────────────────────────
 

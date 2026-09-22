@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
-import { AuthRequiredError, apiFetch, TIMEOUTS } from './errors';
+import { AuthRequiredError, ApiError, NetworkError } from './errors';
 
 /**
  * Resolve the dev machine's host (IP) from Expo's runtime config.
@@ -74,7 +74,60 @@ export const API_ENDPOINTS = {
   HEALTH: `${API_BASE_URL}/health`,
 };
 
-console.log('API Base URL:', API_BASE_URL);
+export const TIMEOUTS = {
+  FAST: 5000,      // simple GETs (user, course sections, notes list)
+  DEFAULT: 10000,  // standard requests
+  SLOW: 20000,     //  file uploads, AI chat
+};
+
+export async function apiFetch(
+  url: string, 
+  options?: RequestInit, 
+  timeoutMs: number = TIMEOUTS.DEFAULT
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      // Try to parse the backend error detail
+      let message = `Request failed (${response.status})`;
+      try {
+        const errorText = await response.text();
+        const parsed = JSON.parse(errorText);
+        message = parsed.detail || message;
+      } catch {
+        // If parsing fails, keep the default message
+      }
+
+      throw new ApiError(response.status, message);
+    }
+
+    return response;
+  } catch (error) {
+    clearTimeout(timeout);
+
+    // If it's already one of our custom errors, rethrow it
+    if (error instanceof ApiError || error instanceof AuthRequiredError) {
+      throw error;
+    }
+
+    // AbortError means the request timed out
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new NetworkError('Request timed out. Please try again.');
+    }
+
+    // Everything else is a network failure (server down, no internet, DNS failure)
+    throw new NetworkError();
+  }
+}
 
 export const checkBackendConnection = async (): Promise<boolean> => {
   try {
@@ -85,206 +138,17 @@ export const checkBackendConnection = async (): Promise<boolean> => {
   }
 };
 
-async function getAuthHeaders() {
+export async function getAuthHeaders(json = true): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    return {
-      'Authorization': `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    };
+  if (!session?.access_token) {
+    throw new AuthRequiredError();
   }
-  throw new AuthRequiredError();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${session.access_token}`,
+  };
+  if (json) {
+    headers['Content-Type'] = 'application/json';
+  }
+  return headers;
 }
-
-export const api = {
-async getCurrentUser() {
-  const headers = await getAuthHeaders();
-  const response = await fetch(`${API_BASE_URL}/api/v1/me`, { headers }); // remove /user
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('API Error:', error);
-    throw new Error(`Failed to fetch user: ${error}`);
-  }
-
-  return response.json();
-},
-
-  async getConversations(userId: number) {
-  const headers = await getAuthHeaders();
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/conversations/user/${userId}`,
-    { headers }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to fetch conversations: ${error}`);
-  }
-
-  return response.json();
-},
-
-async getConversation(conversationId: number) {
-  const headers = await getAuthHeaders();
-
-  const response = await fetch(
-`${API_BASE_URL}/api/v1/conversations/${conversationId}`,
-    { headers }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to fetch conversation: ${error}`);
-  }
-
-  return response.json();
-},
-
-async updateConversation(conversationId: number, status: string) {
-  const headers = await getAuthHeaders();
-
-  const response = await fetch(
-`${API_BASE_URL}/api/v1/conversations/${conversationId}`,
-    {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ status }),
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to update conversation: ${error}`);
-  }
-
-  return response.json();
-},
-
-async sendMessage(conversationId: number, content: string) {
-  const headers = await getAuthHeaders();
-  const response = await fetch(`${API_BASE_URL}/api/v1/messages`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ conversation_id: conversationId, content }),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to send message: ${error}`);
-  }
-  return response.json();
-},
-
-async getMessages(
-  conversationId: number,
-  options?: { before?: string; limit?: number }
-): Promise<{ messages: any[]; next_cursor: string | null; has_more: boolean }> {
-  const headers = await getAuthHeaders();
-  const params = new URLSearchParams({ conversation_id: String(conversationId) });
-  if (options?.before) params.set('before', options.before);
-  if (options?.limit) params.set('limit', String(options.limit));
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/messages?${params}`,
-    { headers }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to fetch messages: ${error}`);
-  }
-
-  return response.json();
-},
-
-async markConversationRead(conversationId: number) {
-  const headers = await getAuthHeaders();
-  await fetch(`${API_BASE_URL}/api/v1/conversations/${conversationId}/read`, {
-    method: 'POST',
-    headers,
-  });
-},
-
-  async createConversation(initiatorId: number, recipientId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/conversations/${initiatorId}`,
-      { method: 'POST', headers, body: JSON.stringify({ recipient_id: recipientId }) },
-      TIMEOUTS.DEFAULT
-    );
-    return response.json();
-  },
-
-  async getCourseSectionByCRN(crn: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/course-sections/crn/${crn}`,
-      { headers },
-      TIMEOUTS.FAST
-    );
-    if (response.status === 404) return null;
-    return response.json();
-  },
-
-  async enrollInCourseSection(sectionId: number, userId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
-      { method: 'POST', headers },
-      TIMEOUTS.DEFAULT
-    );
-    return response.json();
-  },
-
-  async unenrollFromCourseSection(sectionId: number, userId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/course-sections/${sectionId}/enroll?user_id=${userId}`,
-      { method: 'DELETE', headers },
-      TIMEOUTS.DEFAULT
-    );
-    return response.json();
-  },
-
-  async getUserCourseSections(userId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/course-sections/user/${userId}`,
-      { headers },
-      TIMEOUTS.FAST
-    );
-    return response.json();
-  },
-
-  async getProfessor(professorId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      API_ENDPOINTS.PROFESSOR_BY_ID(professorId),
-      { headers },
-      TIMEOUTS.FAST
-    );
-    return response.json();
-  },
-
-  async getCourseSectionStudents(sectionId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/course-sections/${sectionId}/students`,
-      { headers },
-      TIMEOUTS.FAST
-    );
-    return response.json();
-  },
-
-  async getUserById(userId: number) {
-    const headers = await getAuthHeaders();
-    const response = await apiFetch(
-      `${API_BASE_URL}/api/v1/user/${userId}`,
-      { headers },
-      TIMEOUTS.FAST
-    );
-    return response.json();
-  },
-};
 

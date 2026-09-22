@@ -11,19 +11,10 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { API_BASE_URL, api } from '@/services/api';
+import { CourseSection, enrollInCourseSection, getAllCourseSections } from '@/services/courseSectionService';
 import { SkeletonList } from '@/components/ui/SkeletonRow';
-
-export interface CourseSection {
-  course_section_id: number;
-  course_id: number;
-  course_crn: number;
-  professor_id: number | null;
-  professor_name: string | null;
-  course_code: string;
-  course_name: string;
-  subject: string | null;
-}
+import { useUser } from '@/contexts/UserContext';
+import { useCourseSections } from '@/contexts/CourseSectionsContext';
 
 interface Props {
   visible: boolean;
@@ -42,16 +33,25 @@ const COLORS = {
 };
 
 const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) => {
+  const { user } = useUser();
+  const { sections: userSections, addSections } = useCourseSections();
+
   const [sections, setSections] = useState<CourseSection[]>([]);
-  const [enrolledIds, setEnrolledIds] = useState<Set<number>>(new Set());
-  const [enrolledCodes, setEnrolledCodes] = useState<Set<string>>(new Set());
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
-  const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [activeSubject, setActiveSubject] = useState<string>('ALL');
+
+  const enrolledIds = useMemo(
+    () => new Set<number>(userSections.map((s) => s.course_section_id)),
+    [userSections],
+  );
+  const enrolledCodes = useMemo(
+    () => new Set<string>(userSections.map((s) => s.course_code)),
+    [userSections],
+  );
 
   useEffect(() => {
     if (!visible) return;
@@ -63,22 +63,8 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
 
     const loadData = async () => {
       try {
-        const [sectionsRes, user] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/v1/course-sections`),
-          api.getCurrentUser(),
-        ]);
-
-        if (!sectionsRes.ok) throw new Error(`Server error ${sectionsRes.status}`);
-        const allSections: CourseSection[] = await sectionsRes.json();
-
-        const userSections = await api.getUserCourseSections(user.user_id);
-        const ids = new Set<number>(userSections.map((s: CourseSection) => s.course_section_id));
-        const codes = new Set<string>(userSections.map((s: CourseSection) => s.course_code));
-
+        const allSections: CourseSection[] = await getAllCourseSections();
         setSections(allSections);
-        setEnrolledIds(ids);
-        setEnrolledCodes(codes);
-        setUserId(user.user_id);
       } catch {
         setError('Could not load courses. Make sure the backend is running.');
       } finally {
@@ -130,13 +116,19 @@ const SearchClassModal: React.FC<Props> = ({ visible, onClose, onClassAdded }) =
       onClose();
       return;
     }
-    if (!userId) return;
+    if (!user) return;
     setConfirming(true);
     try {
-      await Promise.all(
-        Array.from(pendingIds).map((id) => api.enrollInCourseSection(id, userId))
-      );
+      const ids = Array.from(pendingIds);
+      const results = await Promise.allSettled(ids.map((id) => enrollInCourseSection(id, user.user_id)));
+      const enrolledIds = ids.filter((_, i) => results[i].status === 'fulfilled');
+      const enrolledSections = sections.filter((s) => enrolledIds.includes(s.course_section_id));
+      addSections(enrolledSections);
       if (onClassAdded) onClassAdded();
+      const failedCount = results.filter((r) => r.status === 'rejected').length;
+      if (failedCount > 0) {
+        Alert.alert('Some classes not added', `${failedCount} of ${ids.length} could not be added. Please try again.`);
+      }
     } catch {
       Alert.alert('Error', 'Could not enroll in one or more classes. Please try again.');
     } finally {

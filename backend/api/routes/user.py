@@ -51,13 +51,6 @@ def update_current_user_profile(
     if not current_user_data:
         raise UserNotFoundException(current_user["auth_id"])
 
-    if (
-        updated_user_data.neu_email
-        and current_user_data["neu_email"] != updated_user_data.neu_email
-        and check_email_exists(updated_user_data.neu_email, db)
-    ):
-        raise UserAlreadyExistsException(updated_user_data.neu_email)
-
     # Update using auth_id instead of user_id
     updated_user = update_user_by_auth_id(current_user["auth_id"], updated_user_data, db)
     cache_delete(f"user:{current_user['auth_id']}")

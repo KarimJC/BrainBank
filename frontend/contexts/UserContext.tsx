@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api } from '@/services/api';
+import { getCurrentUser } from '@/services/profileService';
 import { supabase } from '@/services/supabase';
 
 interface UserProfile {
@@ -38,7 +38,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setInitials('');
         return;
       }
-      const data = await api.getCurrentUser();
+      const data = await getCurrentUser();
       setUser(data);
       setInitials(data.first_name?.charAt(0).toUpperCase() ?? '');
     } catch (err) {
