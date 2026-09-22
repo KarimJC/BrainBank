@@ -61,6 +61,28 @@ def get_professor_by_id(professor_id: int, db: Connection):
         raise DatabaseException(f"Failed to get professor: {str(e)}")
 
 
+def get_all_professors(db: Connection) -> list[dict]:
+    """Get all professors ordered by name"""
+    try:
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+
+        query = """
+            SELECT professor_id, name, email
+            FROM public.professor
+            ORDER BY name ASC
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+        cursor.close()
+
+        return [dict(row) for row in results]
+
+    except Exception as e:
+        logger.error(f"Failed to get professors: {str(e)}")
+        raise DatabaseException(f"Failed to get professors: {str(e)}")
+
+
 def update_professor(professor_id: int, professor_data: ProfessorUpdate, db: Connection) -> dict:
     """Update a professor's information"""
     try:

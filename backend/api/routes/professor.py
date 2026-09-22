@@ -4,14 +4,18 @@ from psycopg2.extensions import connection as Connection
 from db.crud.professor import (
     create_professor as create_professor_crud,
     get_professor_by_id,
+    get_all_professors,
     update_professor as update_professor_crud,
     delete_professor as delete_professor_crud,
     check_professor_email_exists,
 )
 
+from db.crud.user import get_user_by_auth_id
+from auth import get_current_user
+
 from api.schemas.professor import ProfessorCreate, ProfessorUpdate, ProfessorResponse, ProfessorDeleteResponse
 
-from core.exceptions import ProfessorNotFoundException, ProfessorAlreadyExistsException
+from core.exceptions import ProfessorNotFoundException, ProfessorAlreadyExistsException, UserNotFoundException
 
 from db.connection import get_db
 
@@ -26,6 +30,15 @@ def create_professor(professor_data: ProfessorCreate, db: Connection = Depends(g
     else:
         professor = create_professor_crud(professor_data, db)
         return professor
+
+
+@router.get("", response_model=list[ProfessorResponse], status_code=status.HTTP_200_OK)
+def list_professors(current_user: dict = Depends(get_current_user), db: Connection = Depends(get_db)):
+    """List all professors ordered by name"""
+    user = get_user_by_auth_id(current_user["auth_id"], db)
+    if not user:
+        raise UserNotFoundException(current_user["auth_id"])
+    return get_all_professors(db)
 
 
 @router.get("/{professor_id}", response_model=ProfessorResponse, status_code=status.HTTP_200_OK)

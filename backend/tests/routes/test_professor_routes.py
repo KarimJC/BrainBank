@@ -1,9 +1,78 @@
 """Tests for api/routes/professor.py."""
 
 import pytest
+from unittest.mock import MagicMock
+
+from core.exceptions import DatabaseException
 
 
 PROF_DATA = {"professor_id": 1, "name": "Dr. Smith", "email": "smith@neu.edu"}
+
+USER_DATA = {
+    "user_id": 1,
+    "auth_id": "test-auth-id",
+    "neu_email": "test@northeastern.edu",
+    "first_name": "Alice",
+    "last_name": "Smith",
+    "profile_picture": None,
+}
+
+
+class TestListProfessors:
+    def test_returns_professors(self, client, monkeypatch):
+        monkeypatch.setattr("api.routes.professor.get_user_by_auth_id", lambda *a, **k: USER_DATA)
+        monkeypatch.setattr("api.routes.professor.get_all_professors", lambda *a, **k: [PROF_DATA])
+        resp = client.get("/api/v1/professors")
+        assert resp.status_code == 200
+        assert resp.json() == [PROF_DATA]
+
+    def test_returns_empty_list(self, client, monkeypatch):
+        monkeypatch.setattr("api.routes.professor.get_user_by_auth_id", lambda *a, **k: USER_DATA)
+        monkeypatch.setattr("api.routes.professor.get_all_professors", lambda *a, **k: [])
+        resp = client.get("/api/v1/professors")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_preserves_crud_order(self, client, monkeypatch):
+        adams = {"professor_id": 2, "name": "Dr. Adams", "email": "adams@neu.edu"}
+        smith = {"professor_id": 1, "name": "Dr. Smith", "email": "smith@neu.edu"}
+        monkeypatch.setattr("api.routes.professor.get_user_by_auth_id", lambda *a, **k: USER_DATA)
+        monkeypatch.setattr("api.routes.professor.get_all_professors", lambda *a, **k: [adams, smith])
+        resp = client.get("/api/v1/professors")
+        assert resp.status_code == 200
+        names = [p["name"] for p in resp.json()]
+        assert names == ["Dr. Adams", "Dr. Smith"]
+
+    def test_returns_404_when_user_not_found(self, client, monkeypatch):
+        monkeypatch.setattr("api.routes.professor.get_user_by_auth_id", lambda *a, **k: None)
+        resp = client.get("/api/v1/professors")
+        assert resp.status_code == 404
+
+    def test_does_not_query_professors_when_user_missing(self, client, monkeypatch):
+        monkeypatch.setattr("api.routes.professor.get_user_by_auth_id", lambda *a, **k: None)
+        mock_get_all = MagicMock()
+        monkeypatch.setattr("api.routes.professor.get_all_professors", mock_get_all)
+        resp = client.get("/api/v1/professors")
+        assert resp.status_code == 404
+        mock_get_all.assert_not_called()
+
+    def test_returns_500_on_db_error(self, client, monkeypatch):
+        monkeypatch.setattr("api.routes.professor.get_user_by_auth_id", lambda *a, **k: USER_DATA)
+
+        def raise_db_error(*a, **k):
+            raise DatabaseException("fail")
+
+        monkeypatch.setattr("api.routes.professor.get_all_professors", raise_db_error)
+        resp = client.get("/api/v1/professors")
+        assert resp.status_code == 500
+
+    def test_returns_401_when_unauthenticated(self, client):
+        from main import app
+        from auth import get_current_user
+
+        app.dependency_overrides.pop(get_current_user, None)
+        resp = client.get("/api/v1/professors")
+        assert resp.status_code == 401
 
 
 class TestCreateProfessor:

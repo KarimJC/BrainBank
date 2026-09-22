@@ -110,6 +110,51 @@ class TestDeleteProfessor:
         db.rollback.assert_called()
 
 
+class TestGetAllProfessors:
+    def test_returns_list_of_professors(self):
+        from db.crud.professor import get_all_professors
+
+        db, cursor = make_db_mock(
+            fetchall=[PROF_ROW, {**PROF_ROW, "professor_id": 2, "name": "Dr. Adams", "email": "adams@neu.edu"}]
+        )
+        result = get_all_professors(db)
+        assert len(result) == 2
+        assert result[0] == PROF_ROW
+
+    def test_returns_empty_list(self):
+        from db.crud.professor import get_all_professors
+
+        db, cursor = make_db_mock(fetchall=[])
+        result = get_all_professors(db)
+        assert result == []
+
+    def test_query_orders_by_name_asc(self):
+        from db.crud.professor import get_all_professors
+
+        db, cursor = make_db_mock(fetchall=[PROF_ROW])
+        get_all_professors(db)
+        sql = cursor.execute.call_args[0][0]
+        assert "ORDER BY name ASC" in sql
+        assert "FROM public.professor" in sql
+
+    def test_raises_on_error(self):
+        from db.crud.professor import get_all_professors
+
+        db, cursor = make_db_mock()
+        cursor.execute.side_effect = Exception("fail")
+        with pytest.raises(DatabaseException):
+            get_all_professors(db)
+
+    def test_does_not_rollback_on_error(self):
+        from db.crud.professor import get_all_professors
+
+        db, cursor = make_db_mock()
+        cursor.execute.side_effect = Exception("fail")
+        with pytest.raises(DatabaseException):
+            get_all_professors(db)
+        db.rollback.assert_not_called()
+
+
 class TestCheckProfessorEmailExists:
     def test_returns_true_when_exists(self):
         from db.crud.professor import check_professor_email_exists
